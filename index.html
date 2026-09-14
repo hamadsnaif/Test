@@ -11,7 +11,7 @@
 <meta name="description" content="لعبة تتريس بطابع هواتف نوكيا القديمة، مهيأة للعب على الآيفون.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <title>تتريس نوكيا</title>
 <style>
   :root{
@@ -29,6 +29,8 @@
     --muted:#a39b8a;
     --accent:#a9c79b;      /* أخضر زيتي هادئ */
     --accent-deep:#7fa470;
+    --font-ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,Helvetica,sans-serif;
+    --font-display:"Changa","IBM Plex Sans Arabic",Tahoma,Arial,Helvetica,sans-serif;
   }
 
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -43,7 +45,7 @@
     overscroll-behavior:none;
     background:radial-gradient(ellipse at top,var(--page-top) 0%,var(--bg) 72%) fixed;
     color:var(--ink);
-    font-family:"Tajawal","Segoe UI",Tahoma,Arial,Helvetica,sans-serif;
+    font-family:var(--font-ui);
     -webkit-user-select:none;
     user-select:none;
     -webkit-tap-highlight-color:transparent;
@@ -215,15 +217,18 @@
   .overlay[hidden]{display:none;}
 
   .overlay h1{
-    font-size:26px;
-    letter-spacing:2px;
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:28px;
+    letter-spacing:normal;
     color:var(--accent);
     text-shadow:0 2px 0 rgba(0,0,0,.6);
   }
-  .overlay h2{font-size:20px;color:var(--ink);}
-  .overlay p{font-size:13px;line-height:1.7;color:var(--muted);max-width:230px;}
+  .overlay h2{font-family:var(--font-display);font-weight:700;font-size:21px;color:var(--ink);}
+  .overlay p{font-size:13px;line-height:1.75;color:var(--muted);max-width:252px;}
   .overlay .big{
-    font-size:30px;font-weight:800;color:var(--accent);
+    font-family:var(--font-display);
+    font-size:32px;font-weight:700;color:var(--accent);
     direction:ltr;font-variant-numeric:tabular-nums;
   }
 
@@ -232,9 +237,9 @@
     border:none;
     border-radius:10px;
     padding:11px 26px;
-    font-size:16px;
+    font-size:17px;
     font-weight:700;
-    font-family:inherit;
+    font-family:var(--font-display);
     color:#1b2416;
     background:linear-gradient(180deg,#c3dcb5,#8fb67e);
     box-shadow:0 3px 0 #5e7f50,0 6px 14px rgba(0,0,0,.45);
@@ -872,9 +877,8 @@ function menuScreen(){
     '<h1>تتريس</h1>' +
     '<p>رتّب القطع النازلة وكوّن صفاً كاملاً ليختفي.<br>كل 10 صفوف ترفع المستوى والسرعة.</p>' +
     '<button class="go" id="btnStart" type="button">ابدأ اللعب</button>' +
-    '<p>الأزرار أسفل الشاشة: «يمين» و«يسار» للتحريك، «نزول» للإنزال،<br>' +
-    '«تدوير» لتدوير القطعة، و«إسقاط» لإنزالها فوراً.</p>' +
-    '<p style="font-size:11px">أو المس الشاشة مباشرة: اسحب للتحريك أو للإنزال، وانقر نقرة واحدة للتدوير.</p>'
+    '<p>بالأزرار أسفل الشاشة: «يمين» و«يسار» للتحريك، «نزول» للإنزال، «تدوير» للتدوير، و«إسقاط» لإنزالها فوراً.</p>' +
+    '<p style="font-size:11px">أو مباشرة على الشاشة: اسحب للتحريك، وانقر للتدوير.</p>'
   );
   $('btnStart').addEventListener('click', startGame);
 }
