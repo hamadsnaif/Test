@@ -106,6 +106,19 @@
     font-size: 14px;
     letter-spacing: 1px;
   }
+  .hud .hud-right { display: inline-flex; align-items: center; gap: 8px; }
+  .hud .mute {
+    background: transparent;
+    border: 2px solid var(--lcd-dark);
+    color: var(--lcd-dark);
+    width: 22px; height: 22px;
+    border-radius: 3px;
+    font-size: 13px; line-height: 1;
+    font-family: inherit; font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+  }
+  .hud .mute.off { color: var(--lcd-bg); background: var(--lcd-dark); text-decoration: line-through; }
   .hud .bonus { visibility: hidden; }
   .hud .bonus.on { visibility: visible; animation: blink .5s steps(2) infinite; }
   @keyframes blink { to { opacity: .2; } }
@@ -247,7 +260,10 @@
       <div class="hud">
         <span id="score">0000</span>
         <span id="bonus" class="bonus">★ <span id="bonusTimer">20</span></span>
-        <span id="best">TOP 0000</span>
+        <span class="hud-right">
+          <span id="best">TOP 0000</span>
+          <button id="muteBtn" class="mute" aria-label="كتم الصوت" title="الصوت (M)">♪</button>
+        </span>
       </div>
       <canvas id="game" width="320" height="240"></canvas>
 
@@ -257,7 +273,7 @@
         <p>اختر السرعة:</p>
         <div class="levels" id="levels"></div>
         <button class="btn" id="startBtn">ابدأ اللعب</button>
-        <p>أسهم الكيبورد أو WASD أو الأزرار بالأسفل<br>مسافة أو P للإيقاف</p>
+        <p>أسهم الكيبورد أو WASD أو الأزرار بالأسفل<br>مسافة أو P للإيقاف، M للصوت</p>
       </div>
 
       <div id="paused" class="overlay hidden">
@@ -406,6 +422,78 @@
     }
   }
 
+  // ---------- Sound (Web Audio, no external files) ----------
+  const SOUND_KEY = 'nokia-snake-sound';
+  let soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) {}
+  const muteBtn = $('muteBtn');
+
+  let actx = null;
+  function audioCtx() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  // iOS/Safari only allow audio after a user gesture: warm the context on the first one.
+  ['pointerdown', 'keydown', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, () => { if (soundOn) audioCtx(); }, { passive: true }));
+
+  // Square-wave beeps, like a monophonic phone speaker.
+  // notes: array of [frequencyHz, durationMs, gapMs?]; 0 Hz = rest
+  function play(notes, vol = 0.08) {
+    if (!soundOn) return;
+    const ac = audioCtx();
+    if (!ac) return;
+    let t = ac.currentTime;
+    for (const [freq, dur, gap = 15] of notes) {
+      if (freq > 0) {
+        const osc = ac.createOscillator();
+        const g = ac.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, t);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.004);
+        g.gain.setValueAtTime(vol, t + dur / 1000 - 0.008);
+        g.gain.linearRampToValueAtTime(0, t + dur / 1000);
+        osc.connect(g).connect(ac.destination);
+        osc.start(t);
+        osc.stop(t + dur / 1000 + 0.01);
+      }
+      t += (dur + gap) / 1000;
+    }
+  }
+
+  const SFX = {
+    eat:        () => play([[880, 45]]),
+    turn:       () => play([[220, 12]], 0.025),
+    bonusShow:  () => play([[1175, 40], [1568, 40], [1175, 40], [1568, 40]]),
+    bonusEat:   () => play([[988, 50], [1319, 50], [1760, 90]]),
+    bonusGone:  () => play([[330, 60], [262, 90]], 0.05),
+    start:      () => play([[659, 70], [784, 70], [988, 70], [1319, 140]]),
+    pause:      () => play([[523, 40], [392, 60]]),
+    resume:     () => play([[392, 40], [523, 60]]),
+    over:       () => play([[494, 120], [440, 120], [392, 120], [349, 120], [0, 60], [262, 320]]),
+    record:     () => play([[784, 60], [988, 60], [1175, 60], [1568, 60], [0, 40], [1568, 60], [0, 40], [1568, 180]]),
+    click:      () => play([[660, 25]], 0.05),
+  };
+
+  function updateMuteBtn() {
+    muteBtn.classList.toggle('off', !soundOn);
+    muteBtn.setAttribute('aria-label', soundOn ? 'كتم الصوت' : 'تشغيل الصوت');
+  }
+  function toggleSound() {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off'); } catch (e) {}
+    updateMuteBtn();
+    if (soundOn) SFX.click();
+  }
+  muteBtn.addEventListener('click', e => { e.stopPropagation(); toggleSound(); });
+  updateMuteBtn();
+
   // ---------- Game lifecycle ----------
   function resetGame() {
     const cy = Math.floor(ROWS / 2);
@@ -432,6 +520,7 @@
     resetGame();
     state = 'playing';
     showOverlay(null);
+    SFX.start();
     startLoop();
     draw();
   }
@@ -449,12 +538,14 @@
     if (state !== 'playing') return;
     state = 'paused';
     stopLoop();
+    SFX.pause();
     showOverlay('paused');
   }
   function resumeGame() {
     if (state !== 'paused') return;
     state = 'playing';
     showOverlay(null);
+    SFX.resume();
     startLoop();
   }
   function togglePause() {
@@ -472,6 +563,7 @@
       try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {}
     }
     updateHud();
+    if (record) SFX.record(); else SFX.over();
     // death flash animation, then overlay
     flashTicks = 6;
     const flash = setInterval(() => {
@@ -499,7 +591,7 @@
     if (!DIRS[d]) return;
     const last = dirQueue.length ? dirQueue[dirQueue.length - 1] : dir;
     if (d === last || d === OPPOSITE[last]) return;
-    if (dirQueue.length < 3) dirQueue.push(d);
+    if (dirQueue.length < 3) { dirQueue.push(d); SFX.turn(); }
   }
 
   const KEYMAP = {
@@ -528,6 +620,7 @@
       if (state === 'menu' || state === 'over') startGame();
       else if (state === 'paused') resumeGame();
     }
+    if (e.key === 'm' || e.key === 'M') { toggleSound(); return; }
     if (e.key === 'Escape') {
       if (state === 'playing') pauseGame();
       else if (state === 'paused' || state === 'over') goMenu();
@@ -606,13 +699,15 @@
       foodsEaten++;
       food = null;
       spawnFood();
-      if (foodsEaten % 5 === 0 && !bonus) spawnBonus();
+      SFX.eat();
+      if (foodsEaten % 5 === 0 && !bonus) { spawnBonus(); if (bonus) SFX.bonusShow(); }
     }
     // Eat bonus (2 cells wide)
     else if (bonus && ny === bonus.y && (nx === bonus.x || nx === bonus.x + 1)) {
       score += level * Math.max(1, Math.ceil(bonus.ticksLeft / 4));
       growBy += 2;
       bonus = null;
+      SFX.bonusEat();
     }
 
     if (growBy > 0) growBy--;
@@ -620,7 +715,7 @@
 
     if (bonus) {
       bonus.ticksLeft--;
-      if (bonus.ticksLeft <= 0) bonus = null;
+      if (bonus.ticksLeft <= 0) { bonus = null; SFX.bonusGone(); }
     }
 
     updateHud();
