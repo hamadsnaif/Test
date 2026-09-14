@@ -9,7 +9,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="تتريس">
 <meta name="description" content="لعبة تتريس بطابع هواتف نوكيا القديمة، مهيأة للعب على الآيفون.">
-<title>تتريس — Nokia Tetris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap">
+<title>تتريس نوكيا</title>
 <style>
   :root{
     --bg:#0e1013;
@@ -30,13 +33,14 @@
   html,body{height:100%;}
 
   body{
+    direction:rtl;
     height:100vh;
     height:100dvh;
     overflow:hidden;
     overscroll-behavior:none;
     background:radial-gradient(ellipse at top,#2b3038 0%,var(--bg) 70%) fixed;
     color:var(--ink);
-    font-family:"Tahoma","Segoe UI",Arial,Helvetica,sans-serif;
+    font-family:"Tajawal","Segoe UI",Tahoma,Arial,Helvetica,sans-serif;
     -webkit-user-select:none;
     user-select:none;
     -webkit-tap-highlight-color:transparent;
@@ -688,7 +692,11 @@ function loop(t){
 /* ============================ الرسم ============================ */
 /* بعض إصدارات سفاري لا تدعم الوحدة dvh، فنضبط الارتفاع يدوياً */
 function fitViewport(){
-  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  let embedded = false;
+  try { embedded = window.self !== window.top; } catch(e){ embedded = true; }
+  const vh = embedded
+    ? window.innerHeight
+    : ((window.visualViewport && window.visualViewport.height) || window.innerHeight);
   if (vh) document.body.style.height = vh + 'px';
 }
 
