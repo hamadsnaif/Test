@@ -1,76 +1,157 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Bounce - الكرة الحمراء (المرحلة الأولى)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bounce</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
 <style>
-  :root { color-scheme: light; }
-  * { box-sizing: border-box; }
+  :root {
+    --ground: #14161c;
+    --panel: #1e2230;
+    --key: #2b3040;
+    --key-down: #3d4460;
+    --key-ink: #dfe6f5;
+    --amber: #e59a4d;
+    --muted: #8a93a8;
+    --border: #3a4152;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
   body {
     margin: 0;
-    background: #1b1f2a;
-    color: #eee;
-    font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    background: var(--ground);
+    color: var(--key-ink);
+    font-family: Tahoma, "Segoe UI", -apple-system, Arial, sans-serif;
+  }
+  #shell {
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
-    padding: 12px 16px;
+    gap: 10px;
+    padding-inline: 16px;
+    padding-block: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom));
   }
-  h1 { font-size: 20px; margin: 4px 0 8px; }
-  #wrap {
+  #top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
     width: 100%;
     max-width: 960px;
-    position: relative;
+    justify-content: space-between;
+    flex: 0 0 auto;
+  }
+  #brand {
+    font-family: Silkscreen, "Courier New", monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--amber);
+    margin: 0;
+  }
+  #sub { font-size: 12px; color: var(--muted); direction: rtl; }
+  #stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   canvas {
-    width: 100%;
     display: block;
+    aspect-ratio: 480 / 288;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     background: #dff4ff;
-    border: 4px solid #444;
+    border: 4px solid var(--border);
     border-radius: 6px;
     image-rendering: pixelated;
     touch-action: none;
   }
-  #hint { font-size: 14px; color: #bbb; margin: 8px 0; text-align: center; }
-  #touch {
-    display: none;
+  #pad {
+    flex: 0 0 auto;
     width: 100%;
     max-width: 960px;
-    justify-content: space-between;
-    margin-top: 10px;
+    display: none;
+    grid-template-columns: 1fr 1fr 1.4fr;
+    gap: 10px;
     direction: ltr;
   }
-  #touch button {
-    width: 30%;
-    height: 64px;
-    font-size: 28px;
-    border-radius: 12px;
-    border: none;
-    background: #3a4152;
-    color: #fff;
-    user-select: none;
-    -webkit-user-select: none;
+  #pad button {
+    height: 72px;
+    font-size: 30px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--key);
+    color: var(--key-ink);
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.35);
     touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    padding: 0;
   }
-  #touch button:active { background: #5a6478; }
-  @media (pointer: coarse) { #touch { display: flex; } }
+  #pad button.down, #pad button:active {
+    background: var(--key-down);
+    box-shadow: inset 0 3px 0 rgba(0,0,0,.35);
+    transform: translateY(2px);
+  }
+  #pad button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  #hint { font-size: 12px; color: var(--muted); direction: rtl; text-align: center; flex: 0 0 auto; }
+  body.touch #pad { display: grid; }
+  body.touch #hint-keys { display: none; }
+  body:not(.touch) #hint-touch { display: none; }
+  @media (max-height: 420px) {
+    #shell { gap: 6px; }
+    #top { display: none; }
+    #hint { display: none; }
+    #pad button { height: 56px; font-size: 24px; }
+  }
+  @media (max-width: 400px) {
+    #sub { display: none; }
+  }
 </style>
 </head>
 <body>
-<h1>Bounce - الكرة الحمراء (المرحلة الأولى)</h1>
-<div id="wrap"><canvas id="game" width="480" height="288"></canvas></div>
-<div id="hint">الأسهم ← → للحركة، ↑ أو مسافة للقفز. اجمع كل الحلقات ثم ادخل الباب.</div>
-<div id="touch">
-  <button id="btnL">◀</button>
-  <button id="btnJ">▲</button>
-  <button id="btnR">▶</button>
+<div id="shell">
+  <div id="top">
+    <h1 id="brand">BOUNCE</h1>
+    <div id="sub">الكرة الحمراء - المرحلة الأولى</div>
+  </div>
+  <div id="stage"><canvas id="game" width="480" height="288"></canvas></div>
+  <div id="pad">
+    <button id="btnL" aria-label="يسار">◀</button>
+    <button id="btnR" aria-label="يمين">▶</button>
+    <button id="btnJ" aria-label="قفز">▲ قفز</button>
+  </div>
+  <div id="hint">
+    <span id="hint-keys">الأسهم ← → للحركة، ↑ أو المسافة للقفز. اجمع كل الحلقات ثم ادخل الباب.</span>
+    <span id="hint-touch">اجمع كل الحلقات الزرقاء ثم ادخل الباب. احذر الأشواك.</span>
+  </div>
 </div>
 
 <script>
 (function () {
   'use strict';
+
+  const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 ||
+                  window.matchMedia('(hover: none)').matches;
+  if (isTouch) document.body.classList.add('touch');
+  document.addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
   const T = 32;                 // tile size
   const canvas = document.getElementById('game');
@@ -125,40 +206,54 @@
   }
   resetLevel();
 
-  // ---------- Input ----------
-  const keys = { left: false, right: false, jump: false };
-  const keyMap = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
-                   ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' };
-  window.addEventListener('keydown', e => {
-    if (keyMap[e.code]) { keys[keyMap[e.code]] = true; e.preventDefault(); }
-    if (state === 'won' && (e.code === 'Enter' || e.code === 'Space')) resetLevel();
-  });
-  window.addEventListener('keyup', e => { if (keyMap[e.code]) keys[keyMap[e.code]] = false; });
-  function bindTouch(id, k) {
-    const el = document.getElementById(id);
-    const on = e => { keys[k] = true; e.preventDefault(); if (state === 'won') resetLevel(); };
-    const off = e => { keys[k] = false; e.preventDefault(); };
-    el.addEventListener('pointerdown', on);
-    el.addEventListener('pointerup', off);
-    el.addEventListener('pointercancel', off);
-    el.addEventListener('pointerleave', off);
-  }
-  bindTouch('btnL', 'left'); bindTouch('btnR', 'right'); bindTouch('btnJ', 'jump');
-  canvas.addEventListener('pointerdown', () => { if (state === 'won') resetLevel(); });
-
-  // ---------- Sound (simple beeps) ----------
+  // ---------- Sound (simple beeps; unlocked on first touch for iOS) ----------
   let audio = null;
-  function beep(freq, dur, type) {
+  function unlockAudio() {
     try {
       if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === 'suspended') audio.resume();
+    } catch (e) { /* audio not available */ }
+  }
+  function beep(freq, dur, type) {
+    try {
+      if (!audio || audio.state !== 'running') return;
       const o = audio.createOscillator(), g = audio.createGain();
       o.type = type || 'square'; o.frequency.value = freq;
       g.gain.setValueAtTime(0.08, audio.currentTime);
       g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
       o.connect(g); g.connect(audio.destination);
       o.start(); o.stop(audio.currentTime + dur);
-    } catch (e) { /* audio not available */ }
+    } catch (e) { /* ignore */ }
   }
+
+  // ---------- Input ----------
+  const keys = { left: false, right: false, jump: false };
+  const keyMap = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+                   ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' };
+  window.addEventListener('keydown', e => {
+    unlockAudio();
+    if (keyMap[e.code]) { keys[keyMap[e.code]] = true; e.preventDefault(); }
+    if (state === 'won' && (e.code === 'Enter' || e.code === 'Space')) resetLevel();
+  });
+  window.addEventListener('keyup', e => { if (keyMap[e.code]) keys[keyMap[e.code]] = false; });
+  window.addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; });
+
+  function bindTouch(id, k) {
+    const el = document.getElementById(id);
+    const on = e => {
+      e.preventDefault(); unlockAudio();
+      keys[k] = true; el.classList.add('down');
+      if (state === 'won') resetLevel();
+    };
+    const off = e => { e.preventDefault(); keys[k] = false; el.classList.remove('down'); };
+    el.addEventListener('pointerdown', on);
+    el.addEventListener('pointerup', off);
+    el.addEventListener('pointercancel', off);
+    el.addEventListener('pointerleave', off);
+    el.addEventListener('touchend', off, { passive: false });
+  }
+  bindTouch('btnL', 'left'); bindTouch('btnR', 'right'); bindTouch('btnJ', 'jump');
+  canvas.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); if (state === 'won') resetLevel(); });
 
   // ---------- Physics helpers ----------
   function isSolid(c, r) {
@@ -196,32 +291,26 @@
     }
     if (state !== 'play') return;
 
-    // horizontal
     if (keys.left) ball.vx -= ACCEL;
     if (keys.right) ball.vx += ACCEL;
     if (!keys.left && !keys.right) ball.vx *= FRICTION;
     ball.vx = Math.max(-MAXVX, Math.min(MAXVX, ball.vx));
     if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
 
-    // jump
     if (keys.jump && ball.onGround) { ball.vy = JUMP; ball.onGround = false; beep(440, 0.08); }
 
-    // gravity
     ball.vy += GRAVITY;
     if (ball.vy > 12) ball.vy = 12;
 
-    // move X
     ball.px = ball.x;
     let nx = ball.x + ball.vx;
     if (collidesX(nx, ball.y)) {
-      // push out to the edge of the tile
       if (ball.vx > 0) nx = Math.floor((nx + R) / T) * T - R - 0.01;
       else nx = Math.ceil((nx - R) / T) * T + R + 0.01;
       ball.vx = -ball.vx * 0.3;
     }
     ball.x = nx;
 
-    // move Y
     let ny = ball.y + ball.vy;
     ball.onGround = false;
     if (collidesX(ball.x, ny)) {
@@ -238,12 +327,10 @@
     ball.y = ny;
     ball.angle += ball.vx / R;
 
-    // spikes
     for (const s of spikes) {
       if (circleRect(ball.x, ball.y, R - 2, s.c * T + 6, s.r * T + 12, T - 12, T - 12)) { die(); return; }
     }
 
-    // rings
     for (const rg of rings) {
       if (!rg.got && ball.y > rg.top && ball.y < rg.bottom &&
           (ball.px - rg.cx) * (ball.x - rg.cx) <= 0) {
@@ -251,13 +338,11 @@
       }
     }
 
-    // exit
     if (exit && rings.every(r => r.got) &&
         circleRect(ball.x, ball.y, R, exit.x, exit.y, exit.w, exit.h)) {
       state = 'won'; score += 1000; beep(660, 0.15, 'sine'); setTimeout(() => beep(990, 0.3, 'sine'), 150);
     }
 
-    // camera
     camX = Math.max(0, Math.min(LEVEL_W - W, ball.x - W / 2));
   }
 
@@ -326,7 +411,6 @@
     ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.beginPath(); ctx.ellipse(x - 4, y - 5, 3.5, 2.2, -0.6, 0, Math.PI * 2); ctx.fill();
-    // rolling mark
     ctx.fillStyle = 'rgba(80,0,0,0.5)';
     ctx.beginPath();
     ctx.arc(x + Math.cos(ball.angle) * 6, y + Math.sin(ball.angle) * 6, 2, 0, Math.PI * 2);
