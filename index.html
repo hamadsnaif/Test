@@ -18,22 +18,21 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    height: 100%;
-    background: radial-gradient(ellipse at top, #2b3038 0%, #0e1013 70%);
+  html { height: 100%; background: #0e1013; }
+
+  body {
+    min-height: 100%;
+    background: radial-gradient(ellipse at top, #2b3038 0%, #0e1013 70%) fixed;
     color: #ddd;
     font-family: "Courier New", Courier, monospace;
     -webkit-user-select: none;
     user-select: none;
     touch-action: manipulation;
-    overflow: hidden;
-  }
-
-  body {
+    overflow-x: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   }
 
   /* ---------- Phone shell ---------- */
