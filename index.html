@@ -269,7 +269,7 @@
 
       <div id="menu" class="overlay">
         <h1>SNAKE II</h1>
-        <p>الدودة الأسطورية من نوكيا</p>
+        <p>الدودة الأسطورية من نوكيا<br>الحواف مفتوحة: اخرج من جهة تعُد من المقابلة</p>
         <p>اختر السرعة:</p>
         <div class="levels" id="levels"></div>
         <button class="btn" id="startBtn">ابدأ اللعب</button>
@@ -680,11 +680,9 @@
     if (dirQueue.length) dir = dirQueue.shift();
     const v = DIRS[dir];
     const head = snake[0];
-    const nx = head.x + v.x;
-    const ny = head.y + v.y;
-
-    // Walls are solid, like the original Nokia Snake
-    if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return gameOver();
+    // Open edges: leaving one side brings the snake back in from the opposite side
+    const nx = (head.x + v.x + COLS) % COLS;
+    const ny = (head.y + v.y + ROWS) % ROWS;
 
     // Self collision (tail tip is allowed since it moves away this tick, unless we grow)
     const bodyToCheck = growBy > 0 ? snake : snake.slice(0, -1);
@@ -773,9 +771,12 @@
   }
 
   function drawBorder() {
-    ctx.strokeStyle = COLOR_DARK;
+    // dashed frame: the edges are open, the snake wraps around
+    ctx.strokeStyle = COLOR_MID;
     ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
     ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+    ctx.setLineDash([]);
   }
 
   function draw() {
