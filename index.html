@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0e1013">
+<meta name="theme-color" content="#171512">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,17 +15,20 @@
 <title>تتريس نوكيا</title>
 <style>
   :root{
-    --bg:#0e1013;
-    --phone-body:#1b1f24;
-    --phone-edge:#2c3138;
-    --key-bg:#343b44;
-    --key-hi:#454e59;
-    --key-txt:#e8edf3;
-    --screen-bg:#121a22;
-    --screen-edge:#0b1118;
-    --ink:#dde7f1;
-    --muted:#8ea1b4;
-    --accent:#7fc7d9;
+    --bg:#171512;          /* فحمي دافئ */
+    --page-top:#3a352d;
+    --phone-body:#2c2922;
+    --phone-edge:#423c33;
+    --key-bg:#3a352d;
+    --key-hi:#4c463c;
+    --key-edge:#17150f;
+    --key-txt:#f1ece0;
+    --screen-bg:#1a1813;   /* أرضية الرقعة */
+    --screen-edge:#121110;
+    --ink:#efe9dc;
+    --muted:#a39b8a;
+    --accent:#a9c79b;      /* أخضر زيتي هادئ */
+    --accent-deep:#7fa470;
   }
 
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -38,7 +41,7 @@
     height:100dvh;
     overflow:hidden;
     overscroll-behavior:none;
-    background:radial-gradient(ellipse at top,#2b3038 0%,var(--bg) 70%) fixed;
+    background:radial-gradient(ellipse at top,var(--page-top) 0%,var(--bg) 72%) fixed;
     color:var(--ink);
     font-family:"Tajawal","Segoe UI",Tahoma,Arial,Helvetica,sans-serif;
     -webkit-user-select:none;
@@ -73,22 +76,24 @@
     gap:8px;
   }
 
-  .speaker{
-    width:54px;height:5px;margin:0 auto;flex:none;
-    border-radius:4px;
-    background:repeating-linear-gradient(90deg,#000 0 3px,#3d434b 3px 6px);
+  .topbar{
+    flex:none;
+    display:flex;
+    align-items:center;
+    gap:5px;
   }
 
   .brand{
-    flex:none;
+    flex:1;
     text-align:center;
     font-family:Arial,Helvetica,sans-serif;
     font-weight:900;
     letter-spacing:3px;
-    font-size:12px;
-    color:#c3ccd6;
+    font-size:11px;
+    color:#8d8678;
     text-shadow:0 1px 0 #000;
     direction:ltr;
+    white-space:nowrap;
   }
 
   /* ---------- الشاشة ---------- */
@@ -98,14 +103,14 @@
     background:var(--screen-edge);
     border-radius:14px;
     padding:8px;
-    box-shadow:inset 0 3px 10px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.05);
+    box-shadow:inset 0 3px 10px rgba(0,0,0,.9),0 1px 0 rgba(255,255,255,.06);
     display:flex;
   }
 
   .screen{
     flex:1;
     min-height:0;
-    background:linear-gradient(180deg,#16202a,#101821);
+    background:linear-gradient(180deg,#2a261e,#201d17);
     border-radius:8px;
     padding:8px;
     display:flex;
@@ -202,7 +207,7 @@
     gap:10px;
     text-align:center;
     padding:14px;
-    background:rgba(10,16,22,.88);
+    background:rgba(23,21,18,.9);
     -webkit-backdrop-filter:blur(3px);
     backdrop-filter:blur(3px);
     border-radius:6px;
@@ -230,45 +235,31 @@
     font-size:16px;
     font-weight:700;
     font-family:inherit;
-    color:#0f1720;
-    background:linear-gradient(180deg,#9ad8e6,#5fb3c7);
-    box-shadow:0 3px 0 #33788a,0 6px 14px rgba(0,0,0,.4);
+    color:#1b2416;
+    background:linear-gradient(180deg,#c3dcb5,#8fb67e);
+    box-shadow:0 3px 0 #5e7f50,0 6px 14px rgba(0,0,0,.45);
     cursor:pointer;
   }
-  .go:active{transform:translateY(2px);box-shadow:0 1px 0 #33788a;}
+  .go:active{transform:translateY(2px);box-shadow:0 1px 0 #5e7f50;}
 
-  .hint{
-    display:flex;flex-wrap:wrap;gap:6px 12px;
-    justify-content:center;
-    font-size:12px;color:var(--muted);
-  }
-  .hint b{color:var(--ink);font-weight:600;}
-
-  /* ---------- أزرار التحكم ---------- */
-  .tools{
-    flex:none;
-    display:flex;
-    gap:6px;
-    justify-content:center;
-  }
-
+  /* ---------- الأزرار الثانوية في الشريط العلوي ---------- */
   .tool{
     appearance:none;-webkit-appearance:none;
-    flex:1;
-    max-width:96px;
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:8px;
-    background:linear-gradient(180deg,var(--key-hi),var(--key-bg));
-    color:var(--key-txt);
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:999px;
+    background:rgba(255,255,255,.05);
+    color:#c2baa9;
     font-family:inherit;
-    font-size:12px;
-    padding:7px 4px;
+    font-size:11px;
+    line-height:1;
+    padding:6px 10px;
     cursor:pointer;
-    box-shadow:0 2px 0 #14181d;
+    white-space:nowrap;
   }
-  .tool:active{transform:translateY(1px);box-shadow:none;}
-  .tool.off{color:#7d8794;}
+  .tool:active{background:rgba(255,255,255,.12);}
+  .tool.off{color:#7d766a;}
 
+  /* ---------- أزرار اللعب ---------- */
   .controls{
     flex:none;
     display:flex;
@@ -276,43 +267,64 @@
     gap:7px;
   }
 
-  .pad{
-    flex:none;
+  /* صف الحركة: ثلاثة أسهم متطابقة */
+  .pad-move{
     direction:ltr;
     display:grid;
     grid-template-columns:1fr 1fr 1fr;
     gap:7px;
   }
 
+  /* صف الأفعال: زرّان كبيران مميّزان بلونيهما */
+  .pad-act{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+
   .key{
     appearance:none;-webkit-appearance:none;
-    border:1px solid rgba(255,255,255,.09);
-    border-radius:12px;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;
     background:linear-gradient(180deg,var(--key-hi),var(--key-bg));
     color:var(--key-txt);
     font-family:inherit;
-    font-size:13px;
-    font-weight:600;
-    padding:11px 4px 9px;
+    font-weight:700;
+    padding:10px 4px 8px;
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:1px;
+    justify-content:center;
+    gap:2px;
     line-height:1;
     cursor:pointer;
-    box-shadow:0 3px 0 #14181d,inset 0 1px 0 rgba(255,255,255,.08);
+    box-shadow:0 3px 0 var(--key-edge),inset 0 1px 0 rgba(255,255,255,.07);
     touch-action:none;
   }
-  .key .ico{font-size:20px;line-height:1;direction:ltr;}
-  .key .lbl{font-size:11px;color:#b9c4d0;font-weight:400;}
+  .key .ico{font-size:22px;line-height:1;direction:ltr;}
+  .key .lbl{font-size:11px;color:#bcb3a2;font-weight:400;}
   .key:active,.key.down{
     transform:translateY(3px);
     box-shadow:none;
-    background:linear-gradient(180deg,#4d5763,#3b434d);
+    filter:brightness(1.25);
   }
-  .key.wide{grid-column:span 3;}
-  .key.rotate{background:linear-gradient(180deg,#4a5a66,#38454f);}
-  .key.drop{background:linear-gradient(180deg,#56646f,#3f4b55);}
+
+  /* زرّا الفعل أعرض وأوضح: أيقونة ونص في سطر واحد */
+  .pad-act .key{
+    flex-direction:row;
+    gap:8px;
+    padding:14px 6px;
+  }
+  .pad-act .key .lbl{font-size:14px;color:inherit;font-weight:700;}
+
+  .key.rotate{
+    background:linear-gradient(180deg,#5d6f51,#45523c);
+    border-color:rgba(169,199,155,.22);
+  }
+  .key.drop{
+    background:linear-gradient(180deg,#6d5b45,#513f30);
+    border-color:rgba(214,169,114,.22);
+  }
 
   /* الوضع الأفقي: الشاشة على جهة والأزرار على الجهة الأخرى */
   @media (orientation:landscape) and (max-height:520px){
@@ -325,7 +337,8 @@
       padding:10px;
       gap:10px;
     }
-    .brand,.speaker{display:none;}
+    .topbar{flex-direction:column;justify-content:center;gap:5px;}
+    .brand{display:none;}
     .bezel{flex:1;min-width:0;}
     .controls{
       width:46%;
@@ -333,19 +346,19 @@
       justify-content:center;
     }
     .key{padding:9px 4px 8px;}
+    .pad-act .key{padding:12px 6px;}
   }
 
   @media (max-height:680px) and (orientation:portrait){
-    .brand{display:none;}
-    .speaker{display:none;}
-    .phone{border-radius:24px;padding:10px 10px 10px;gap:6px;}
-    .key{padding:8px 4px 7px;}
-    .key .ico{font-size:18px;}
+    .phone{border-radius:24px;padding:10px;gap:6px;}
+    .key{padding:8px 4px 6px;}
+    .pad-act .key{padding:11px 6px;}
+    .key .ico{font-size:19px;}
   }
   @media (max-height:560px) and (orientation:portrait){
     .next{width:52px;}
     #next{height:26px;}
-    .key .lbl{display:none;}
+    .pad-move .key .lbl{display:none;}
     .stat .k{font-size:9px;}
     .stat .v{font-size:13px;}
   }
@@ -353,8 +366,13 @@
 </head>
 <body>
 <div class="phone">
-  <div class="speaker"></div>
-  <div class="brand">NOKIA</div>
+  <div class="topbar">
+    <button class="tool" id="btnPause" type="button">إيقاف</button>
+    <button class="tool" id="btnRestart" type="button">إعادة</button>
+    <div class="brand">NOKIA</div>
+    <button class="tool" id="btnSound" type="button">الصوت</button>
+    <button class="tool" id="btnMusic" type="button">اللحن</button>
+  </div>
 
   <div class="bezel">
     <div class="screen">
@@ -381,20 +399,15 @@
   </div>
 
   <div class="controls">
-  <div class="tools">
-    <button class="tool" id="btnPause" type="button">إيقاف</button>
-    <button class="tool" id="btnSound" type="button">الصوت</button>
-    <button class="tool" id="btnMusic" type="button">اللحن</button>
-    <button class="tool" id="btnRestart" type="button">إعادة</button>
-  </div>
-
-  <div class="pad">
-    <button class="key" id="kLeft" type="button"><span class="ico">←</span><span class="lbl">يسار</span></button>
-    <button class="key rotate" id="kRotate" type="button"><span class="ico">⟳</span><span class="lbl">تدوير</span></button>
-    <button class="key" id="kRight" type="button"><span class="ico">→</span><span class="lbl">يمين</span></button>
-    <button class="key" id="kDown" type="button"><span class="ico">↓</span><span class="lbl">نزول</span></button>
-    <button class="key drop" id="kDrop" type="button" style="grid-column:span 2"><span class="ico">⤓</span><span class="lbl">إسقاط سريع</span></button>
-  </div>
+    <div class="pad-move">
+      <button class="key" id="kLeft" type="button"><span class="ico">←</span><span class="lbl">يسار</span></button>
+      <button class="key" id="kDown" type="button"><span class="ico">↓</span><span class="lbl">نزول</span></button>
+      <button class="key" id="kRight" type="button"><span class="ico">→</span><span class="lbl">يمين</span></button>
+    </div>
+    <div class="pad-act">
+      <button class="key rotate" id="kRotate" type="button"><span class="ico">⟳</span><span class="lbl">تدوير</span></button>
+      <button class="key drop" id="kDrop" type="button"><span class="ico">⤓</span><span class="lbl">إسقاط</span></button>
+    </div>
   </div>
 </div>
 
@@ -769,7 +782,7 @@ function draw(){
   ctx.clearRect(0, 0, W, H);
 
   /* الخلفية والشبكة */
-  ctx.fillStyle = '#121a22';
+  ctx.fillStyle = '#1a1813';
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = 'rgba(255,255,255,.045)';
   ctx.lineWidth = 1;
@@ -779,7 +792,7 @@ function draw(){
   ctx.stroke();
 
   if (flash > 0){
-    ctx.fillStyle = 'rgba(127,199,217,' + (flash * 0.12).toFixed(3) + ')';
+    ctx.fillStyle = 'rgba(169,199,155,' + (flash * 0.13).toFixed(3) + ')';
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -791,7 +804,7 @@ function draw(){
       const t = grid[y][x];
       if (!t) continue;
       if (isClearing){
-        drawCell(ctx, x * cell, y * cell, cell, blink ? '#ffffff' : '#cfe7ee');
+        drawCell(ctx, x * cell, y * cell, cell, blink ? '#fffaf0' : '#ded4bf');
       } else {
         drawCell(ctx, x * cell, y * cell, cell, COLORS[t]);
       }
@@ -854,13 +867,14 @@ function showOverlay(html){
 function hideOverlay(){ overlay.hidden = true; }
 
 function menuScreen(){
+  document.querySelector('.next').style.visibility = 'hidden';
   showOverlay(
     '<h1>تتريس</h1>' +
     '<p>رتّب القطع النازلة وكوّن صفاً كاملاً ليختفي.<br>كل 10 صفوف ترفع المستوى والسرعة.</p>' +
     '<button class="go" id="btnStart" type="button">ابدأ اللعب</button>' +
-    '<div class="hint"><span><b>←  →</b> تحريك</span><span><b>⟳</b> تدوير</span>' +
-    '<span><b>↓</b> نزول</span><span><b>⤓</b> إسقاط فوري</span></div>' +
-    '<p style="font-size:11px">يمكنك أيضاً السحب على الشاشة: يمين/يسار للتحريك، للأسفل للإنزال، ونقرة واحدة للتدوير.</p>'
+    '<p>الأزرار أسفل الشاشة: «يمين» و«يسار» للتحريك، «نزول» للإنزال،<br>' +
+    '«تدوير» لتدوير القطعة، و«إسقاط» لإنزالها فوراً.</p>' +
+    '<p style="font-size:11px">أو المس الشاشة مباشرة: اسحب للتحريك أو للإنزال، وانقر نقرة واحدة للتدوير.</p>'
   );
   $('btnStart').addEventListener('click', startGame);
 }
@@ -888,6 +902,7 @@ function overScreen(){
 
 function startGame(){
   unlockAudio();
+  document.querySelector('.next').style.visibility = 'visible';
   grid = emptyGrid();
   bag = []; nextType = null; piece = null; clearing = null;
   score = 0; lines = 0; level = 1;
