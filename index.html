@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Nokia Snake II - لعبة الدودة</title>
+<style>
+  :root {
+    --lcd-bg: #9bbc0f;
+    --lcd-dark: #0f380f;
+    --lcd-mid: #306230;
+    --lcd-light: #8bac0f;
+    --phone-body: #1b1f24;
+    --phone-edge: #2c3138;
+    --key-bg: #3a4049;
+    --key-hi: #4a515b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: radial-gradient(ellipse at top, #2b3038 0%, #0e1013 70%);
+    color: #ddd;
+    font-family: "Courier New", Courier, monospace;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  /* ---------- Phone shell ---------- */
+  .phone {
+    width: 100%;
+    max-width: 420px;
+    background: linear-gradient(160deg, var(--phone-edge), var(--phone-body) 60%);
+    border-radius: 42px 42px 60px 60px;
+    padding: 22px 18px 26px;
+    box-shadow:
+      0 30px 60px rgba(0,0,0,.7),
+      inset 0 2px 0 rgba(255,255,255,.08),
+      inset 0 -4px 12px rgba(0,0,0,.6);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .brand {
+    text-align: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    letter-spacing: 3px;
+    font-size: 15px;
+    color: #cfd6df;
+    text-shadow: 0 1px 0 #000;
+    direction: ltr;
+  }
+
+  .speaker {
+    width: 60px; height: 6px; margin: -6px auto 0;
+    border-radius: 4px;
+    background: repeating-linear-gradient(90deg, #000 0 3px, #444 3px 6px);
+  }
+
+  /* ---------- Screen ---------- */
+  .screen-bezel {
+    background: #111;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,.9);
+  }
+
+  .screen {
+    position: relative;
+    background: var(--lcd-bg);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 0 20px rgba(15,56,15,.25);
+  }
+
+  .screen::after {
+    /* subtle LCD pixel grid */
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(15,56,15,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15,56,15,.06) 1px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  .hud {
+    direction: ltr;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px 2px;
+    color: var(--lcd-dark);
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .hud .bonus { visibility: hidden; }
+  .hud .bonus.on { visibility: visible; animation: blink .5s steps(2) infinite; }
+  @keyframes blink { to { opacity: .2; } }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px;
+    color: var(--lcd-dark);
+    text-align: center;
+    padding: 16px;
+    background: rgba(155,188,15,.92);
+  }
+  .overlay.hidden { display: none; }
+  .overlay h1 {
+    font-size: 30px;
+    letter-spacing: 3px;
+    font-family: Arial Black, Arial, sans-serif;
+    direction: ltr;
+  }
+  .overlay h2 { font-size: 22px; }
+  .overlay p { font-size: 13px; line-height: 1.7; }
+  .overlay .big { font-size: 40px; font-weight: 900; }
+  .overlay .btn {
+    margin-top: 6px;
+    background: var(--lcd-dark);
+    color: var(--lcd-bg);
+    border: none;
+    padding: 8px 22px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+  .overlay .btn:active { transform: translateY(1px); }
+
+  .levels {
+    direction: ltr;
+    display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+  }
+  .levels button {
+    background: transparent;
+    border: 2px solid var(--lcd-dark);
+    color: var(--lcd-dark);
+    width: 28px; height: 28px;
+    font-family: inherit; font-weight: bold;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .levels button.sel { background: var(--lcd-dark); color: var(--lcd-bg); }
+
+  /* ---------- Keypad ---------- */
+  .keypad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .softkeys {
+    direction: ltr;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .softkeys button {
+    flex: 1;
+    background: var(--key-bg);
+    color: #e8edf2;
+    border: none;
+    border-radius: 14px;
+    padding: 10px 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #000, inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .softkeys button:active { transform: translateY(2px); box-shadow: 0 1px 0 #000; }
+
+  .dpad {
+    direction: ltr;
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 64px);
+    gap: 4px;
+  }
+  .dpad button {
+    background: linear-gradient(180deg, var(--key-hi), var(--key-bg));
+    border: none;
+    color: #e8edf2;
+    font-size: 22px;
+    cursor: pointer;
+    border-radius: 12px;
+    box-shadow: 0 4px 0 #000, inset 0 1px 0 rgba(255,255,255,.15);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dpad button:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; }
+  .dpad .empty { visibility: hidden; }
+  .dpad .center {
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #7c8590;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  @media (max-height: 760px) {
+    .dpad { grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(3, 52px); }
+    .phone { padding: 16px 14px 20px; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="brand">NOKIA</div>
+  <div class="speaker"></div>
+
+  <div class="screen-bezel">
+    <div class="screen">
+      <div class="hud">
+        <span id="score">0000</span>
+        <span id="bonus" class="bonus">★ <span id="bonusTimer">20</span></span>
+        <span id="best">TOP 0000</span>
+      </div>
+      <canvas id="game" width="320" height="240"></canvas>
+
+      <div id="menu" class="overlay">
+        <h1>SNAKE II</h1>
+        <p>الدودة الأسطورية من نوكيا</p>
+        <p>اختر السرعة:</p>
+        <div class="levels" id="levels"></div>
+        <button class="btn" id="startBtn">ابدأ اللعب</button>
+        <p>أسهم الكيبورد أو WASD أو الأزرار بالأسفل<br>مسافة أو P للإيقاف</p>
+      </div>
+
+      <div id="paused" class="overlay hidden">
+        <h2>إيقاف مؤقت</h2>
+        <p>اضغط مسافة للمتابعة</p>
+        <button class="btn" id="resumeBtn">متابعة</button>
+      </div>
+
+      <div id="gameover" class="overlay hidden">
+        <h2>انتهت اللعبة</h2>
+        <div class="big" id="finalScore">0</div>
+        <p id="recordMsg"></p>
+        <button class="btn" id="againBtn">العب مرة أخرى</button>
+        <button class="btn" id="menuBtn">القائمة</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="keypad">
+    <div class="softkeys">
+      <button id="softLeft">قائمة</button>
+      <button id="softRight">إيقاف</button>
+    </div>
+    <div class="dpad">
+      <button class="empty"></button>
+      <button data-dir="up" aria-label="أعلى">▲</button>
+      <button class="empty"></button>
+      <button data-dir="left" aria-label="يسار">◀</button>
+      <button class="center" id="okBtn">OK</button>
+      <button data-dir="right" aria-label="يمين">▶</button>
+      <button class="empty"></button>
+      <button data-dir="down" aria-label="أسفل">▼</button>
+      <button class="empty"></button>
+    </div>
+    <div class="hint">اسحب بإصبعك على الشاشة للتحكم من الجوال</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Grid & rendering constants ----------
+  const COLS = 32;
+  const ROWS = 24;
+  const CELL = 10;               // canvas pixels per cell (canvas is 320x240)
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  const COLOR_BG   = '#9bbc0f';
+  const COLOR_DARK = '#0f380f';
+  const COLOR_MID  = '#306230';
+
+  // ---------- DOM ----------
+  const $ = id => document.getElementById(id);
+  const scoreEl = $('score'), bestEl = $('best');
+  const bonusEl = $('bonus'), bonusTimerEl = $('bonusTimer');
+  const menuEl = $('menu'), pausedEl = $('paused'), overEl = $('gameover');
+  const finalScoreEl = $('finalScore'), recordMsgEl = $('recordMsg');
+  const levelsEl = $('levels');
+
+  // ---------- Persistent high score ----------
+  const BEST_KEY = 'nokia-snake-best';
+  let best = 0;
+  try { best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; } catch (e) { best = 0; }
+
+  // ---------- Game state ----------
+  const DIRS = {
+    up:    { x: 0,  y: -1 },
+    down:  { x: 0,  y: 1 },
+    left:  { x: -1, y: 0 },
+    right: { x: 1,  y: 0 },
+  };
+  const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+  let level = 5;                 // 1..9 like the original
+  let state = 'menu';            // menu | playing | paused | over
+  let snake = [];                // array of {x,y}, head first
+  let dir = 'right';
+  let dirQueue = [];             // buffered turns so quick double-taps register
+  let food = null;
+  let bonus = null;              // {x,y,ticksLeft}
+  let foodsEaten = 0;
+  let score = 0;
+  let growBy = 0;
+  let timer = null;
+  let flashTicks = 0;            // death animation
+
+  const levelDelay = lvl => Math.round(300 - (lvl - 1) * 27); // ms per tick: 300 → 84
+
+  // ---------- Level picker ----------
+  for (let i = 1; i <= 9; i++) {
+    const b = document.createElement('button');
+    b.textContent = i;
+    b.dataset.level = i;
+    if (i === level) b.classList.add('sel');
+    b.addEventListener('click', () => {
+      level = i;
+      [...levelsEl.children].forEach(c => c.classList.toggle('sel', +c.dataset.level === level));
+    });
+    levelsEl.appendChild(b);
+  }
+
+  // ---------- Helpers ----------
+  const pad4 = n => String(n).padStart(4, '0');
+  function updateHud() {
+    scoreEl.textContent = pad4(score);
+    bestEl.textContent = 'TOP ' + pad4(best);
+    if (bonus) {
+      bonusEl.classList.add('on');
+      bonusTimerEl.textContent = Math.ceil(bonus.ticksLeft / 2);
+    } else {
+      bonusEl.classList.remove('on');
+    }
+  }
+
+  function isOccupied(x, y) {
+    return snake.some(s => s.x === x && s.y === y)
+        || (food && food.x === x && food.y === y)
+        || (bonus && bonus.x === x && bonus.y === y);
+  }
+
+  function randomFreeCell() {
+    let tries = 0;
+    while (tries++ < 2000) {
+      const x = Math.floor(Math.random() * COLS);
+      const y = Math.floor(Math.random() * ROWS);
+      if (!isOccupied(x, y)) return { x, y };
+    }
+    return null;
+  }
+
+  function spawnFood() {
+    food = randomFreeCell();
+  }
+
+  function spawnBonus() {
+    // bonus needs 2 free horizontal cells (the classic "bug")
+    for (let t = 0; t < 500; t++) {
+      const x = Math.floor(Math.random() * (COLS - 1));
+      const y = Math.floor(Math.random() * ROWS);
+      if (!isOccupied(x, y) && !isOccupied(x + 1, y)) {
+        bonus = { x, y, ticksLeft: 40 };
+        return;
+      }
+    }
+  }
+
+  // ---------- Game lifecycle ----------
+  function resetGame() {
+    const cy = Math.floor(ROWS / 2);
+    snake = [];
+    for (let i = 0; i < 5; i++) snake.push({ x: 8 - i, y: cy });
+    dir = 'right';
+    dirQueue = [];
+    score = 0;
+    growBy = 0;
+    foodsEaten = 0;
+    bonus = null;
+    flashTicks = 0;
+    spawnFood();
+    updateHud();
+  }
+
+  function showOverlay(which) {
+    menuEl.classList.toggle('hidden', which !== 'menu');
+    pausedEl.classList.toggle('hidden', which !== 'paused');
+    overEl.classList.toggle('hidden', which !== 'over');
+  }
+
+  function startGame() {
+    resetGame();
+    state = 'playing';
+    showOverlay(null);
+    startLoop();
+    draw();
+  }
+
+  function startLoop() {
+    stopLoop();
+    timer = setInterval(tick, levelDelay(level));
+  }
+  function stopLoop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+  }
+
+  function pauseGame() {
+    if (state !== 'playing') return;
+    state = 'paused';
+    stopLoop();
+    showOverlay('paused');
+  }
+  function resumeGame() {
+    if (state !== 'paused') return;
+    state = 'playing';
+    showOverlay(null);
+    startLoop();
+  }
+  function togglePause() {
+    if (state === 'playing') pauseGame();
+    else if (state === 'paused') resumeGame();
+  }
+
+  function gameOver() {
+    state = 'over';
+    stopLoop();
+    let record = false;
+    if (score > best) {
+      best = score;
+      record = true;
+      try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {}
+    }
+    updateHud();
+    // death flash animation, then overlay
+    flashTicks = 6;
+    const flash = setInterval(() => {
+      flashTicks--;
+      draw();
+      if (flashTicks <= 0) {
+        clearInterval(flash);
+        finalScoreEl.textContent = score;
+        recordMsgEl.textContent = record ? '🏆 رقم قياسي جديد!' : 'أفضل نتيجة: ' + best;
+        showOverlay('over');
+      }
+    }, 150);
+  }
+
+  function goMenu() {
+    stopLoop();
+    state = 'menu';
+    resetGame();
+    showOverlay('menu');
+    draw();
+  }
+
+  // ---------- Input ----------
+  function queueDir(d) {
+    if (!DIRS[d]) return;
+    const last = dirQueue.length ? dirQueue[dirQueue.length - 1] : dir;
+    if (d === last || d === OPPOSITE[last]) return;
+    if (dirQueue.length < 3) dirQueue.push(d);
+  }
+
+  const KEYMAP = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', s: 'down', a: 'left', d: 'right',
+    W: 'up', S: 'down', A: 'left', D: 'right',
+    // Nokia keypad layout: 2 up, 8 down, 4 left, 6 right
+    '2': 'up', '8': 'down', '4': 'left', '6': 'right',
+  };
+
+  document.addEventListener('keydown', e => {
+    const d = KEYMAP[e.key];
+    if (d) {
+      e.preventDefault();
+      if (state === 'menu') startGame();
+      if (state === 'playing') queueDir(d);
+      return;
+    }
+    if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
+      e.preventDefault();
+      if (state === 'menu') startGame();
+      else if (state === 'over') startGame();
+      else togglePause();
+    }
+    if (e.key === 'Enter') {
+      if (state === 'menu' || state === 'over') startGame();
+      else if (state === 'paused') resumeGame();
+    }
+    if (e.key === 'Escape') {
+      if (state === 'playing') pauseGame();
+      else if (state === 'paused' || state === 'over') goMenu();
+    }
+  });
+
+  // On-screen D-pad
+  document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+    const handler = e => {
+      e.preventDefault();
+      if (state === 'menu') startGame();
+      if (state === 'playing') queueDir(btn.dataset.dir);
+    };
+    btn.addEventListener('pointerdown', handler);
+  });
+
+  $('okBtn').addEventListener('click', () => {
+    if (state === 'menu' || state === 'over') startGame();
+    else togglePause();
+  });
+  $('softLeft').addEventListener('click', goMenu);
+  $('softRight').addEventListener('click', () => {
+    if (state === 'playing' || state === 'paused') togglePause();
+  });
+  $('startBtn').addEventListener('click', startGame);
+  $('resumeBtn').addEventListener('click', resumeGame);
+  $('againBtn').addEventListener('click', startGame);
+  $('menuBtn').addEventListener('click', goMenu);
+
+  // Swipe on the screen
+  let touchStart = null;
+  const screen = document.querySelector('.screen');
+  screen.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  screen.addEventListener('touchmove', e => {
+    if (!touchStart) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
+    const TH = 24;
+    if (Math.abs(dx) < TH && Math.abs(dy) < TH) return;
+    const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    if (state === 'playing') queueDir(d);
+    touchStart = null;
+  }, { passive: true });
+  screen.addEventListener('touchend', () => { touchStart = null; }, { passive: true });
+
+  // Pause automatically when tab is hidden
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state === 'playing') pauseGame();
+  });
+
+  // ---------- Game tick ----------
+  function tick() {
+    if (dirQueue.length) dir = dirQueue.shift();
+    const v = DIRS[dir];
+    const head = snake[0];
+    const nx = head.x + v.x;
+    const ny = head.y + v.y;
+
+    // Walls are solid, like the original Nokia Snake
+    if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return gameOver();
+
+    // Self collision (tail tip is allowed since it moves away this tick, unless we grow)
+    const bodyToCheck = growBy > 0 ? snake : snake.slice(0, -1);
+    if (bodyToCheck.some(s => s.x === nx && s.y === ny)) return gameOver();
+
+    snake.unshift({ x: nx, y: ny });
+
+    // Eat regular food
+    if (food && nx === food.x && ny === food.y) {
+      score += level;
+      growBy += 1;
+      foodsEaten++;
+      food = null;
+      spawnFood();
+      if (foodsEaten % 5 === 0 && !bonus) spawnBonus();
+    }
+    // Eat bonus (2 cells wide)
+    else if (bonus && ny === bonus.y && (nx === bonus.x || nx === bonus.x + 1)) {
+      score += level * Math.max(1, Math.ceil(bonus.ticksLeft / 4));
+      growBy += 2;
+      bonus = null;
+    }
+
+    if (growBy > 0) growBy--;
+    else snake.pop();
+
+    if (bonus) {
+      bonus.ticksLeft--;
+      if (bonus.ticksLeft <= 0) bonus = null;
+    }
+
+    updateHud();
+    draw();
+  }
+
+  // ---------- Drawing ----------
+  function cellRect(x, y, inset = 1) {
+    ctx.fillRect(x * CELL + inset, y * CELL + inset, CELL - inset * 2, CELL - inset * 2);
+  }
+
+  function drawSnake() {
+    ctx.fillStyle = COLOR_DARK;
+    for (let i = snake.length - 1; i >= 1; i--) {
+      const s = snake[i];
+      // body segment with a small "checker" hole for the classic look
+      cellRect(s.x, s.y, 1);
+      ctx.fillStyle = COLOR_BG;
+      ctx.fillRect(s.x * CELL + 4, s.y * CELL + 4, 2, 2);
+      ctx.fillStyle = COLOR_DARK;
+    }
+    // head: solid with an eye
+    const h = snake[0];
+    cellRect(h.x, h.y, 0);
+    ctx.fillStyle = COLOR_BG;
+    const v = DIRS[dir];
+    const ex = h.x * CELL + 5 + v.x * 2 - (v.y !== 0 ? 2 : 0);
+    const ey = h.y * CELL + 5 + v.y * 2 - (v.x !== 0 ? 2 : 0);
+    ctx.fillRect(ex, ey, 2, 2);
+  }
+
+  function drawFood() {
+    if (!food) return;
+    ctx.fillStyle = COLOR_DARK;
+    // small diamond
+    const cx = food.x * CELL, cy = food.y * CELL;
+    ctx.fillRect(cx + 4, cy + 2, 2, 6);
+    ctx.fillRect(cx + 2, cy + 4, 6, 2);
+    ctx.fillRect(cx + 3, cy + 3, 4, 4);
+  }
+
+  function drawBonus() {
+    if (!bonus) return;
+    ctx.fillStyle = COLOR_DARK;
+    const bx = bonus.x * CELL, by = bonus.y * CELL;
+    // a little "bug": body of 2 cells wide, with legs
+    ctx.fillRect(bx + 3, by + 3, 14, 4);
+    ctx.fillRect(bx + 5, by + 1, 10, 8);
+    ctx.fillStyle = COLOR_BG;
+    ctx.fillRect(bx + 7, by + 3, 2, 2);
+    ctx.fillRect(bx + 11, by + 3, 2, 2);
+    ctx.fillStyle = COLOR_MID;
+    ctx.fillRect(bx + 1, by + 2, 2, 1); ctx.fillRect(bx + 17, by + 2, 2, 1);
+    ctx.fillRect(bx + 1, by + 7, 2, 1); ctx.fillRect(bx + 17, by + 7, 2, 1);
+  }
+
+  function drawBorder() {
+    ctx.strokeStyle = COLOR_DARK;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+  }
+
+  function draw() {
+    ctx.fillStyle = COLOR_BG;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawBorder();
+    drawFood();
+    drawBonus();
+    // death flash: alternate hiding the snake
+    if (state === 'over' && flashTicks % 2 === 1) return;
+    drawSnake();
+  }
+
+  // ---------- Boot ----------
+  resetGame();
+  showOverlay('menu');
+  draw();
+})();
+</script>
+</body>
+</html>
