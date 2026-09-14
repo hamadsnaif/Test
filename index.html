@@ -11,7 +11,7 @@
 <meta name="description" content="لعبة تتريس بطابع هواتف نوكيا القديمة، مهيأة للعب على الآيفون.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Handjet:ELGR,ELSH,wght@1,0,400;1,0,500;1,0,700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
 <title>تتريس نوكيا</title>
 <style>
   :root{
@@ -30,10 +30,19 @@
     --accent:#a9c79b;      /* أخضر زيتي هادئ */
     --accent-deep:#7fa470;
     --font-ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,Helvetica,sans-serif;
-    --font-display:"Changa","IBM Plex Sans Arabic",Tahoma,Arial,Helvetica,sans-serif;
+    /* خط بكسلي يدعم العربية: مربّعات البكسل عبر محوري ELGR/ELSH */
+    --font-pixel:"Handjet","IBM Plex Sans Arabic",Tahoma,Arial,Helvetica,sans-serif;
   }
 
   *{box-sizing:border-box;margin:0;padding:0;}
+
+  /* كل عناصر الواجهة التي تأخذ الطابع البكسلي */
+  .stat .k,.stat .v,.next .k,.tool,.key .lbl,.brand,
+  .overlay h1,.overlay h2,.overlay .big,.go{
+    font-family:var(--font-pixel);
+    font-variation-settings:"ELGR" 1,"ELSH" 0;
+    letter-spacing:normal;
+  }
 
   html,body{height:100%;}
 
@@ -88,10 +97,9 @@
   .brand{
     flex:1;
     text-align:center;
-    font-family:Arial,Helvetica,sans-serif;
-    font-weight:900;
-    letter-spacing:3px;
-    font-size:11px;
+    font-weight:700;
+    letter-spacing:2px;
+    font-size:15px;
     color:#8d8678;
     text-shadow:0 1px 0 #000;
     direction:ltr;
@@ -150,9 +158,9 @@
     min-width:0;
   }
 
-  .stat .k{font-size:10px;color:var(--muted);white-space:nowrap;}
+  .stat .k{font-size:13px;color:var(--muted);white-space:nowrap;}
   .stat .v{
-    font-size:15px;font-weight:700;color:var(--ink);
+    font-size:20px;font-weight:700;color:var(--ink);
     font-variant-numeric:tabular-nums;
     direction:ltr;
     line-height:1.1;
@@ -173,7 +181,7 @@
     align-items:center;
     gap:1px;
   }
-  .next .k{font-size:10px;color:var(--muted);}
+  .next .k{font-size:13px;color:var(--muted);}
   #next{width:100%;height:32px;display:block;}
 
   /* ---------- الرقعة ---------- */
@@ -217,18 +225,15 @@
   .overlay[hidden]{display:none;}
 
   .overlay h1{
-    font-family:var(--font-display);
     font-weight:700;
-    font-size:28px;
-    letter-spacing:normal;
+    font-size:38px;
     color:var(--accent);
     text-shadow:0 2px 0 rgba(0,0,0,.6);
   }
-  .overlay h2{font-family:var(--font-display);font-weight:700;font-size:21px;color:var(--ink);}
+  .overlay h2{font-weight:700;font-size:29px;color:var(--ink);}
   .overlay p{font-size:13px;line-height:1.75;color:var(--muted);max-width:252px;}
   .overlay .big{
-    font-family:var(--font-display);
-    font-size:32px;font-weight:700;color:var(--accent);
+    font-size:44px;font-weight:700;color:var(--accent);
     direction:ltr;font-variant-numeric:tabular-nums;
   }
 
@@ -237,9 +242,8 @@
     border:none;
     border-radius:10px;
     padding:11px 26px;
-    font-size:17px;
+    font-size:22px;
     font-weight:700;
-    font-family:var(--font-display);
     color:#1b2416;
     background:linear-gradient(180deg,#c3dcb5,#8fb67e);
     box-shadow:0 3px 0 #5e7f50,0 6px 14px rgba(0,0,0,.45);
@@ -254,8 +258,8 @@
     border-radius:999px;
     background:rgba(255,255,255,.05);
     color:#c2baa9;
-    font-family:inherit;
-    font-size:11px;
+    font-size:14px;
+    font-weight:500;
     line-height:1;
     padding:6px 10px;
     cursor:pointer;
@@ -306,8 +310,8 @@
     box-shadow:0 3px 0 var(--key-edge),inset 0 1px 0 rgba(255,255,255,.07);
     touch-action:none;
   }
-  .key .ico{font-size:22px;line-height:1;direction:ltr;}
-  .key .lbl{font-size:11px;color:#bcb3a2;font-weight:400;}
+  .key .ico{font-size:22px;line-height:1;direction:ltr;font-family:var(--font-ui);}
+  .key .lbl{font-size:14px;color:#bcb3a2;font-weight:700;}
   .key:active,.key.down{
     transform:translateY(3px);
     box-shadow:none;
@@ -320,7 +324,7 @@
     gap:8px;
     padding:14px 6px;
   }
-  .pad-act .key .lbl{font-size:14px;color:inherit;font-weight:700;}
+  .pad-act .key .lbl{font-size:19px;color:inherit;font-weight:700;}
 
   .key.rotate{
     background:linear-gradient(180deg,#5d6f51,#45523c);
@@ -877,7 +881,7 @@ function menuScreen(){
     '<h1>تتريس</h1>' +
     '<p>رتّب القطع النازلة وكوّن صفاً كاملاً ليختفي.<br>كل 10 صفوف ترفع المستوى والسرعة.</p>' +
     '<button class="go" id="btnStart" type="button">ابدأ اللعب</button>' +
-    '<p>بالأزرار أسفل الشاشة: «يمين» و«يسار» للتحريك، «نزول» للإنزال، «تدوير» للتدوير، و«إسقاط» لإنزالها فوراً.</p>' +
+    '<p>«يمين» و«يسار» للتحريك، و«نزول» للإنزال.<br>«تدوير» لتدوير القطعة، و«إسقاط» لإنزالها فوراً.</p>' +
     '<p style="font-size:11px">أو مباشرة على الشاشة: اسحب للتحريك، وانقر للتدوير.</p>'
   );
   $('btnStart').addEventListener('click', startGame);
