@@ -289,7 +289,13 @@
   let leaveLevel = false;
   const held = { left: false, right: false, up: false };
 
-  function setMode(m) { mode = m; modeSince = performance.now(); }
+  // The chassis reads the mode from the body: the RUN lamp, the pause key's
+  // glyph and its engraved caption all follow it in CSS.
+  function setMode(m) {
+    document.body.dataset.mode = m;
+    document.body.classList.toggle('paused', m === 'pause');
+    mode = m; modeSince = performance.now();
+  }
   function heldDir() { return (held.left ? LEFT : 0) | (held.right ? RIGHT : 0) | (held.up ? UP : 0); }
 
   // Every input surface keeps its own state, so releasing one never cancels
@@ -938,16 +944,14 @@
 
 
   // ------------------------------------------------------------------
-  // The phone's own keys. A Nokia keypad is a direction grid around 5, so
-  // that is what these do: the row above 5 jumps, 4 and 6 steer, and the
-  // corners do both at once — which is how you take a gap at speed.
+  // The phone's own keys. Three of the Nokia keypad's keys are on the
+  // chassis: 4 and 6 steer, 5 jumps (and confirms in the menus). A
+  // diagonal jump is 4+5 or 6+5 held together, which the per-source merge
+  // above already supports.
   //
-  //   1 ↖   2 ↑   3 ↗
   //   4 ←   5 ↑   6 →
-  //   7 ←   8 ·   9 →
   // ------------------------------------------------------------------
   const KEYPAD = {
-    '1': ['left', 'up'], '2': ['up'],   '3': ['right', 'up'],
     '4': ['left'],       '5': ['up'],   '6': ['right']
   };
 
@@ -984,12 +988,16 @@
     if (keys.length) el.classList.add('live');
     bindMulti(el, keys);
   }
-  // the two pills above the stick: one opens things, the other stops
-  bindMulti(document.getElementById('softL'), [], () => press());
-  document.getElementById('softR').addEventListener('pointerdown', e => {
+  // The one round key beside the dish: pause / resume, and it wakes the
+  // splash. Confirming is the dish, the canvas, key 5 or Enter.
+  const softR = document.getElementById('softR');
+  softR.addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
     if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
   });
+  // pressed look only; the action above fires on the same pointerdown
+  softR.addEventListener('pointerdown', () => softR.classList.add('down'));
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave']) softR.addEventListener(t, () => softR.classList.remove('down'));
   // Floating stick: the base jumps to wherever the thumb lands, so there is
   // nothing small to hit. The jump pad is a separate pointer, so steering and
   // jumping never interrupt each other.
@@ -1072,6 +1080,10 @@
     renderLevel() { const c = mk(LEVEL_W, ROWS * T); drawWorld(c.getContext('2d'), 0, 0, LEVEL_W, ROWS * T); return c.toDataURL(); }
   };
 
+  // The built page owns the <body> tag, so the felt-mat class and the initial
+  // mode are stamped here, before the first paint.
+  document.body.classList.add('ground');
+  document.body.dataset.mode = mode;
   applyControls();
   restStick();
   loadGraphics().then(() => { loadHiScore(); loadLevel(1); resize(); requestAnimationFrame(frame); });

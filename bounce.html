@@ -18,310 +18,315 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-  :root {
-    --ground: #14161c;          /* الصفحة تبقى داكنة ليبرز البدن الفاتح */
-    --body-hi: #cdd2d9;         /* الغلاف الفضّي */
-    --body: #b2b8c1;
-    --body-lo: #969ca6;
-    --face-hi: #eef0f3;         /* اللوحة الأمامية، رمادي أفتح قليلاً */
-    --face: #dfe2e7;
-    --face-lo: #ccd0d6;
-    --key: #e8eaee;             /* مفاتيح فضّية فاتحة */
-    --key-down: #c0c5cd;
-    --key-ink: #23262c;         /* حبر داكن عليها */
-    --accent: #e8231f;     /* لون اللعبة: المؤشّران وحلقة العصا */
-    --amber: #e59a4d;
-    --muted: #8a93a8;
-    --border: #969ca6;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    position: fixed;
-    inset: 0;
-    overflow: hidden;
-    overscroll-behavior: none;
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-    background: var(--ground);
-    color: var(--key-ink);
-    font-family: Tahoma, "Segoe UI", -apple-system, Arial, sans-serif;
-  }
-  #shell {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding-inline: 4px;
-    padding-block: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-bottom));
-  }
-  #top {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    width: 100%;
-    max-width: 720px;
-    justify-content: space-between;
-    flex: 0 0 auto;
-  }
-  #brand { font-family: "Courier New", monospace; font-weight: 700; font-size: 16px; letter-spacing: 3px; color: var(--amber); margin: 0; }
-  #sub { font-size: 12px; color: var(--muted); direction: rtl; }
-  /* ==================== الهيكل ====================
-     سبيكة عامودية واحدة: شاشة كبيرة أعلاها، ولوحة تحكّم أسفلها حيث يصل
-     الإبهام. القاعدة التي تحكم كل مقاس: لا هدف لمس دون 46 بكسل. */
-  .unit {
-    width: 100%;
-    max-width: min(400px, 58vh);
-    height: 100%;
-    max-height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    /* الصورة تكبر بمضاعفات صحيحة، فكل بكسل من الحشوة قد يكلّف درجة كاملة */
-    padding: 8px 8px 12px;
-    border-radius: 26px;
-    background:
-      /* أربعة براغٍ في الزوايا: طابع الأجهزة القديمة بلا كلفة في المساحة */
-      radial-gradient(circle 4px at 16px 16px, #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
-      radial-gradient(circle 4px at calc(100% - 16px) 16px, #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
-      radial-gradient(circle 4px at 16px calc(100% - 16px), #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
-      radial-gradient(circle 4px at calc(100% - 16px) calc(100% - 16px), #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
-      linear-gradient(168deg, #3a4048 0%, #24282e 46%, #171a1f 100%);
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.14),
-      inset 0 -2px 6px rgba(0,0,0,.6),
-      0 20px 44px rgba(0,0,0,.7);
-  }
-  .cap {
-    flex: none;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    height: 16px;
-  }
-  .led {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 6px var(--accent), inset 0 1px 0 rgba(255,255,255,.5);
-  }
-  .name {
-    font-family: var(--font-pixel, monospace);
-    font-size: 11px; letter-spacing: 5px; direction: ltr;
-    color: #8f98a5;
-  }
-  .well {
-    flex: 1 1 auto;
-    min-height: 0;
-    padding: 7px;
-    border-radius: 14px;
-    background: #0c0e11;
-    box-shadow:
-      inset 0 3px 9px rgba(0,0,0,.9),
-      0 0 0 1px rgba(232,35,31,.14),
-      0 0 22px rgba(232,35,31,.10),
-      0 1px 0 rgba(255,255,255,.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #stage {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  #game {
-    display: block;
-    background: #000;
-    border-radius: 3px;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    touch-action: none;
-  }
+/* ==================== المادة المشتركة: «عاج وألمنيوم مؤكسد» ====================
+   جسم من بلاستيك عاجي دافئ كأجهزة السبعينات (آلة حاسبة، راديو جيب)، ولوحة
+   شاشة من ألمنيوم داكن مصقول تطوّقها حلقة مؤكسدة بلون اللعبة، ومفاتيح محدّبة
+   عاجية يعلوها مفتاح واحد بلون اللعبة. لا سطح مسطّح في الجهاز كله: كل طبقة
+   تحمل تدرّجاً خفياً وتموّجاً خافتاً يُقرأ كعرق المادة لا كخطوط.
+   كل التفاصيل رسومات CSS لا تكلّف الشاشة بكسلاً واحداً. */
+:root {
+  --ivory-hi:#f7f2e7; --ivory:#e9e2d1; --ivory-lo:#d5ccb7; --ivory-edge:#b9ae97; --ivory-deep:#a3977e;
+  --ink:#2a2723; --engrave:#6e6555;
+  --alu-hi:#464a51; --alu:#2b2e33; --alu-lo:#181a1e;
+  --mat:#1a1714; --mat-hi:#2f2a24;
+  --font-ui: "Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif;
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+/* ---- الأرضية: بساط لبّاد داكن تحت بقعة ضوء دافئة، لا لون واحد مسطّح ---- */
+.ground {
+  background:
+    radial-gradient(120% 70% at 50% -8%, rgba(255,236,205,.20), rgba(255,236,205,0) 62%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.016) 0 2px, rgba(0,0,0,0) 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.016) 0 2px, rgba(0,0,0,0) 2px 6px),
+    radial-gradient(110% 90% at 50% 110%, var(--mat-hi), var(--mat) 65%);
+}
+/* ---- البدن: عاج دافئ بلمعة خفية من أعلى اليسار وتموّج أفقي خافت جداً.
+   الحافة حلقة ظلّ لا border كي لا تكلّف بكسلاً من عرض الشاشة ---- */
+.unit {
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(255,255,255,.60), rgba(255,255,255,0) 55%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.055) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(162deg, var(--ivory-hi) 0%, var(--ivory) 48%, var(--ivory-lo) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -3px 8px rgba(90,70,40,.22),
+    inset 0 0 44px rgba(120,95,60,.13),
+    0 0 0 1px var(--ivory-edge),
+    0 2px 0 var(--ivory-deep),
+    0 26px 48px rgba(0,0,0,.62);
+}
+/* ---- لوحة الشاشة: ألمنيوم داكن بخطوط صقل أفقية وحلقة مؤكسدة بلون اللعبة ---- */
+.plate {
+  position:relative;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 2px, rgba(0,0,0,.08) 2px 3px),
+    linear-gradient(180deg, var(--alu-hi), var(--alu) 55%, var(--alu-lo));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.07),
+    inset 0 0 0 2.5px var(--acc-ring),
+    inset 0 3px 8px rgba(0,0,0,.75),
+    0 1px 0 rgba(255,255,255,.6),
+    0 0 0 1px rgba(0,0,0,.4);
+}
+/* انعكاس زجاجي خافت فوق الشاشة (لا يستقبل اللمس) */
+.plate::after {
+  content:""; position:absolute; inset:7px; pointer-events:none; border-radius:5px; z-index:3;
+  background:linear-gradient(118deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.025) 32%, rgba(255,255,255,0) 52%);
+}
+/* ---- لوحة المفاتيح: حوض عاجي غائر قليلاً بخيط ضوء أسفله (الدرزة) ---- */
+.deck {
+  border-radius:18px;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(180deg, var(--ivory-lo), var(--ivory) 32%, var(--ivory-lo));
+  box-shadow:
+    inset 0 2px 5px rgba(90,70,40,.28),
+    inset 0 -1px 0 rgba(255,255,255,.75),
+    0 1px 0 rgba(255,255,255,.65);
+}
+/* ---- المفتاح: قبّة عاجية محدّبة في تجويف مصبوب، تغوص 2 بكسل عند الضغط ---- */
+.key {
+  flex:none;
+  appearance:none; -webkit-appearance:none; border:0; padding:0; margin:0; cursor:pointer;
+  touch-action:none; -webkit-user-select:none; user-select:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:var(--ink); font:700 16px/1 var(--font-ui);
+  border-radius:14px;
+  background:
+    radial-gradient(90% 70% at 35% 22%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, var(--ivory-hi), var(--ivory-lo));
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -2px 3px rgba(90,70,40,.22),
+    0 0 0 1px var(--ivory-edge),
+    0 3px 0 var(--ivory-deep),
+    0 3px 0 1px rgba(0,0,0,.22),
+    0 6px 8px rgba(0,0,0,.28),
+    0 0 0 5px rgba(80,60,30,.075);
+}
+.key:active, .key.down {
+  transform:translateY(2px);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 2px 4px rgba(60,45,20,.22),
+    0 0 0 1px var(--ivory-edge),
+    0 1px 0 var(--ivory-deep),
+    0 2px 3px rgba(0,0,0,.25),
+    0 0 0 5px rgba(80,60,30,.075);
+}
+.key.round { border-radius:50%; }
+/* مفتاح اللون: مطاط مؤكسد بلون اللعبة، واحد لكل جهاز (الفعل الرئيسي) */
+.key.acc {
+  color:#fff; text-shadow:0 -1px 0 rgba(0,0,0,.3);
+  background:
+    radial-gradient(90% 70% at 35% 22%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, var(--acc-hi), var(--acc) 55%, var(--acc-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    inset 0 -2px 3px rgba(0,0,0,.28),
+    0 0 0 1px var(--acc-lo),
+    0 3px 0 var(--acc-lo),
+    0 3px 0 1px rgba(0,0,0,.28),
+    0 6px 8px rgba(0,0,0,.32),
+    0 0 0 5px rgba(80,60,30,.075);
+}
+.key.acc:active, .key.acc.down {
+  transform:translateY(2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 2px 5px rgba(0,0,0,.35),
+    0 0 0 1px var(--acc-lo), 0 1px 0 var(--acc-lo), 0 2px 3px rgba(0,0,0,.3), 0 0 0 5px rgba(80,60,30,.075);
+}
+.key small { font-size:8.5px; letter-spacing:.12em; font-weight:700; opacity:.8; margin-top:2px; }
+/* ---- التفاصيل المضيئة والمحفورة ---- */
+.lamp {
+  display:inline-block; width:9px; height:9px; border-radius:50%; flex:none;
+  background:radial-gradient(circle at 38% 32%, #fff 0 12%, var(--acc-hi) 30%, var(--acc) 60%, var(--acc-lo) 100%);
+  box-shadow: 0 0 7px var(--acc-glow), 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4);
+}
+/* مصباح مطفأ: يُستعمل لمصباح RUN حين تكون اللعبة متوقفة */
+.lamp.off, body:not([data-mode="play"]) .lamp.run {
+  background:radial-gradient(circle at 38% 32%, #d9d0bd 0 12%, #8f8674 45%, #5a5244 100%);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4), inset 0 1px 2px rgba(0,0,0,.5);
+}
+.engr {
+  color:var(--engrave); font:700 9px/1 var(--font-ui); letter-spacing:.16em; text-transform:uppercase;
+  text-shadow:0 1px 0 rgba(255,255,255,.8); white-space:nowrap;
+}
+.engr.ar { letter-spacing:0; font-size:10px; direction:rtl; }
+.name {
+  color:var(--engrave); font:800 12px/1 var(--font-ui); letter-spacing:.42em; direction:ltr;
+  text-shadow:0 1px 0 rgba(255,255,255,.85), 0 -1px 0 rgba(90,70,40,.25);
+}
+/* شبكة سمّاعة: ثقوب مثقوبة في العاج، كل ثقب بظلّ علوي وضوء سفلي */
+.grille {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.65) 0 1.1px, transparent 1.6px) 0 1.2px / 6px 6px,
+    radial-gradient(circle at 50% 50%, #5a5244 0 1.2px, transparent 1.7px) 0 0 / 6px 6px;
+}
+/* ---- اللوحة العلوية والشريط السفلي: يمتصّان الفراغ الرأسي ويختفيان حين يضيق الطول ---- */
+.cap { flex:none; height:24px; display:flex; align-items:center; gap:10px; direction:ltr; padding:0 8px; }
+.cap .grille { flex:1; height:10px; max-width:120px; margin-left:auto; opacity:.8; }
+.foot { flex:none; height:26px; display:none; align-items:center; gap:12px; direction:ltr; padding:0 12px; }
+.foot .grille { flex:1; height:12px; opacity:.85; }
+@media (min-height: 760px) { .foot { display:flex; } .cap { height:30px; } .foot { height:30px; } }
+/* ---- الحركة: لا رسوم متحرّكة دائمة؛ ما يتحرّك يحترم تفضيل المستخدم ---- */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 
-  .deck {
-    flex: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 10px 10px;
-    border-radius: 16px;
-    background: linear-gradient(180deg, #2b3138, #1e2228);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 1px 0 rgba(255,255,255,.06);
-  }
-  .pills { display: flex; gap: 10px; width: 100%; }
-  .pill {
-    flex: 1;
-    appearance: none; -webkit-appearance: none;
-    height: 46px;
-    border: 1px solid #3d444d;
-    border-radius: 23px;
-    background: linear-gradient(180deg, #39404a, #262b32);
-    color: #dfe5ee;
-    font-family: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    touch-action: none;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 2px 0 #12151a;
-  }
-  .pill:active, .pill.down {
-    transform: translateY(2px);
-    box-shadow: inset 0 2px 5px rgba(0,0,0,.5);
-    background: linear-gradient(180deg, #454d58, #2f353d);
-  }
+/* ==================== Bounce — أحمر مؤكسد ====================
+   لون هذا الجهاز: أحمر كرة اللعبة. حلقة اللوحة، مصباح RUN، ومفتاح القفز
+   على لوحة الأرقام هي المواضع الوحيدة التي يظهر فيها. */
+:root { --acc:#d63b2f; --acc-hi:#f07a68; --acc-lo:#8d1d14; --acc-ring:rgba(214,59,47,.55); --acc-glow:rgba(214,59,47,.6); }
+html, body { height:100%; }
+body {
+  margin:0; position:fixed; inset:0; overflow:hidden; overscroll-behavior:none; touch-action:none;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  background:var(--mat);            /* أرضية داكنة حتى قبل أن يضيف المحرّك صنف البساط */
+  color:var(--ink); font-family:var(--font-ui);
+}
+/* ---- الهيكل: عمود يوسّط الجهاز، وفراغان بنسبة 5:3 فوقه وتحته كي يهبط
+   صفّ المفاتيح حيث يستريح الإبهامان لا في منتصف الشاشة ---- */
+#shell {
+  height:100%; display:flex; flex-direction:column; align-items:center;
+  /* الحشوة الجانبية 3 بكسل فقط: كل بكسل حول الشاشة قد يكلّف درجة تكبير كاملة */
+  padding-inline:max(3px, env(safe-area-inset-left)) max(3px, env(safe-area-inset-right));
+  padding-block:max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-bottom));
+}
+#shell::before { content:""; flex:5 1 0; min-height:0; }
+#shell::after  { content:""; flex:3 1 0; min-height:0; }
+.unit {
+  width:100%; max-width:430px;
+  display:flex; flex-direction:column; gap:8px;
+  padding:8px 7px 10px; border-radius:28px;
+}
+/* البئر: الصورة تكبر بمضاعفات صحيحة، والحشوة 7 هي ما يطرحه المحرّك (22 = 7+7+8) */
+.well {
+  flex:1 1 auto; min-height:0; padding:7px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+}
+#stage { width:100%; display:flex; align-items:center; justify-content:center; }
+#game { display:block; background:#000; border-radius:3px; image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none; }
 
-  /* الفرّار: قرص عريض، العصا تظهر حيث يقع الإبهام فلا شيء صغير يُصاب */
-  #stickpad {
-    width: 100%;
-    height: 156px;
-    position: relative;
-    direction: ltr;
-    touch-action: none;
-  }
-  #stickzone {
-    position: absolute;
-    inset: 0;
-    border-radius: 78px;
-    border: 1px solid #3d444d;
-    background: linear-gradient(180deg, #2f353d, #20242a);
-    box-shadow: inset 0 2px 6px rgba(0,0,0,.55);
-    touch-action: none;
-  }
-  #stickbase {
-    position: absolute;
-    width: 112px; height: 112px;
-    border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.1);
-    background: rgba(255,255,255,.03);
-    pointer-events: none;
-    opacity: .7;
-  }
-  #stickbase.active { opacity: 1; border-color: rgba(232,35,31,.4); }
-  #stickknob {
-    position: absolute;
-    left: 30px; top: 30px;
-    width: 52px; height: 52px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #545c68, #2b3038 72%);
-    border: 1px solid #454d58;
-    box-shadow: 0 3px 6px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.2);
-  }
-  #stickbase.active #stickknob {
-    background: radial-gradient(circle at 38% 32%, #6a7280, #363c46 72%);
-    box-shadow: 0 3px 6px rgba(0,0,0,.6), inset 0 0 0 2px rgba(232,35,31,.35);
-  }
+/* ---- المنصة: عمود مفتاح الإيقاف على اليسار (الإبهام الحرّ)، والطبق يملأ
+   الباقي على اليمين (إبهام اللعب). صفّ مادي فاتجاهه يسار→يمين دائماً ---- */
+.deck { flex:none; width:100%; display:flex; align-items:center; gap:12px; padding:10px; direction:ltr; }
+.side { flex:none; width:64px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+/* مفتاح الإيقاف: 60 بكسل، رمزه يتبدّل مع الحالة (❚❚ أثناء اللعب، ▶ أثناء التوقّف) */
+#softR { width:60px; height:60px; font-size:20px; }
+#softR .ic.pause { font-size:22px; letter-spacing:-2px; }
+#softR .ic.play { font-size:19px; padding-left:3px; }
+body.paused #softR .ic.pause, body:not(.paused) #softR .ic.play,
+body.paused .cap-pause, body:not(.paused) .cap-resume { display:none; }
 
-  /* لوحة الأرقام: النظام البديل من القائمة */
-  #keypad {
-    display: none;
-    width: 100%;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-  .num {
-    appearance: none; -webkit-appearance: none;
-    height: 52px;
-    border: 1px solid #3d444d;
-    border-radius: 12px;
-    background: linear-gradient(180deg, #39404a, #262b32);
-    color: #dfe5ee;
-    font-family: inherit;
-    cursor: pointer; padding: 0;
-    touch-action: none;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 3px 0 #12151a;
-  }
-  .num b { font-size: 17px; font-weight: 700; }
-  .num.live b { color: var(--accent); }
-  .num:active, .num.down { transform: translateY(2px); box-shadow: inset 0 2px 5px rgba(0,0,0,.5); }
+/* ---- الطبق: ألمنيوم مخروط بحلقات خراطة، العصا تظهر حيث يقع الإبهام،
+   وعليه رموز محفورة تشرح الاتجاهات دون أن تكون أهدافاً ---- */
+#stickpad { flex:1 1 auto; min-width:0; height:186px; position:relative; direction:ltr; touch-action:none; }
+#stickzone {
+  position:absolute; inset:0; border-radius:999px; touch-action:none;
+  background:
+    radial-gradient(60% 120% at 50% 50%, rgba(0,0,0,.30), rgba(0,0,0,0) 72%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 4px),
+    linear-gradient(180deg, var(--alu-lo), var(--alu) 60%, var(--alu-hi));
+  box-shadow:
+    inset 0 4px 9px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.14),
+    0 1px 0 rgba(255,255,255,.7), 0 0 0 1px rgba(0,0,0,.45);
+}
+.etch {
+  position:absolute; pointer-events:none; font:700 10px/1 var(--font-ui);
+  color:rgba(255,255,255,.28); letter-spacing:.1em; white-space:nowrap;
+  text-shadow:0 -1px 0 rgba(0,0,0,.7);
+}
+.etch.l { left:14px; top:50%; transform:translateY(-50%); }
+.etch.r { right:14px; top:50%; transform:translateY(-50%); }
+.etch.t { top:8px; left:50%; transform:translateX(-50%); }
+#stickbase {
+  position:absolute; width:112px; height:112px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03);
+  pointer-events:none; opacity:.75;
+}
+#stickbase.active { opacity:1; border-color:var(--acc-ring); }
+/* المقبض: زرّ راديو أسود بخطّ دليل أبيض؛ 52 بكسل في كل مقاس، فراحة العصا لا تتغيّر */
+#stickknob {
+  position:absolute; left:30px; top:30px; width:52px; height:52px; border-radius:50%;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.85) 0 2px, transparent 2px) 50% 6px / 2px 12px no-repeat,
+    radial-gradient(circle at 38% 30%, #5f6672, #2a2e35 70%);
+  border:1px solid #4a5059;
+  box-shadow: 0 4px 7px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.25), inset 0 -3px 4px rgba(0,0,0,.4);
+}
+#stickbase.active #stickknob { box-shadow: 0 4px 7px rgba(0,0,0,.65), inset 0 0 0 2px var(--acc-ring), inset 0 -3px 4px rgba(0,0,0,.4); }
 
-  body.joystick #keypad { display: none; }
-  body.joystick #stickpad { display: block; }
-  body:not(.joystick) #stickpad { display: none; }
-  body:not(.joystick) #keypad { display: grid; }
+/* ---- لوحة الأسهم البديلة (من القائمة): ثلاثة مفاتيح فقط — يسار، قفز، يمين.
+   القفز هو المفتاح الملوّن الوحيد في هذا النظام ---- */
+#keypad {
+  display:none; flex:1 1 auto; min-width:0;
+  grid-template-columns:1fr 84px 1fr; gap:10px; align-items:center; direction:ltr;
+}
+.num { width:100%; height:72px; font-size:22px; }
+.num.round { width:72px; height:72px; justify-self:center; }
+body.joystick #keypad { display:none; } body.joystick #stickpad { display:block; }
+body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { display:grid; }
 
-  @media (max-height: 700px) {
-    .unit { gap: 8px; padding: 10px 10px 12px; }
-    #stickpad { height: 132px; }
-    .deck { gap: 8px; padding: 9px 8px 9px; }
-    .num { height: 48px; }
+/* ---- الطبقات حسب الطول: كل ما يصغر هو الطبق ومفتاح الإيقاف، الشاشة لا تصغر أبداً ---- */
+@media (max-height: 700px) {
+  .unit { gap:8px; padding:8px 7px 10px; }
+  #stickpad { height:140px; }
+  .deck { gap:10px; padding:8px 8px 9px; }
+  #softR { width:56px; height:56px; }
+}
+@media (max-height: 640px) { .cap { display:none; } }
+@media (max-height: 560px) and (orientation: portrait) {
+  #stickpad { height:116px; }
+  #softR { width:48px; height:48px; }
+  .side { width:56px; }
+  .num { height:56px; }
+  .num.round { width:56px; height:56px; }
+}
+/* ---- إطار عريض قصير: شبكة ثلاثة أعمدة (كل خلية مثبّتة في الصفّ الأول كي لا يزحف
+   التوزيع التلقائي بالجناح إلى صفّ ثانٍ) — جناح الإيقاف يساراً (الإبهام الأيسر)،
+   الشاشة وسطاً بكامل الطول، وطبق طويل يميناً (الإبهام الأيمن) بمدى 44 بكسل
+   كاملاً من أي نقطة هبوط ---- */
+@media (orientation: landscape) and (max-height: 560px) {
+  #shell { padding-block:max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-bottom)); }
+  .unit { display:grid; grid-template-columns:96px minmax(0,1fr) 200px; grid-template-rows:1fr; align-items:stretch;
+          max-width:none; width:auto; gap:12px; padding:6px 10px; direction:ltr; }
+  .cap, .foot { display:none; }
+  .well { grid-column:2; grid-row:1; align-self:stretch; min-width:0; }
+  .deck { display:contents; }
+  .side { grid-column:1; grid-row:1; width:auto; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding:6px 0; gap:6px; }
+  /* الاسم محفوراً رأسياً في الجناح، مكان اللوحة العلوية المخفية */
+  .side::before {
+    content:"BOUNCE"; writing-mode:vertical-rl; transform:rotate(180deg); margin-bottom:auto;
+    color:var(--engrave); font:800 12px/1 var(--font-ui); letter-spacing:.42em;
+    text-shadow:-1px 0 0 rgba(255,255,255,.85), 1px 0 0 rgba(90,70,40,.25);
   }
-  @media (max-height: 560px) {
-    .cap { display: none; }
-    #stickpad { height: 116px; }
-    .pill { height: 44px; font-size: 12px; }
-    .num { height: 46px; }
-  }
-  /* إطار عريض قصير: اللوحة إلى جانب الشاشة */
-  @media (orientation: landscape) and (max-height: 560px) {
-    .unit { flex-direction: row; align-items: center; max-width: none; width: auto; gap: 12px; }
-    .cap { display: none; }
-    .well { flex: 0 1 auto; min-width: 0; align-self: stretch; }
-    .deck { flex: none; align-self: center; width: 190px; }
-    .pills { flex-direction: column; }
-    .pill { flex: none; width: 100%; height: 46px; }
-    #stickpad { height: 150px; }
-  }
-
-  #hint { display: none; }
-  body.touch:not(.joystick) #pad { display: grid; }
-  body.touch #hint-keys { display: none; }
-  body:not(.touch) #hint-touch { display: none; }
-  @media (max-height: 460px) {
-    #shell { gap: 6px; }
-    #top, #hint { display: none; }
-    #pad button { height: 56px; font-size: 22px; }
-    #stickpad { height: 104px; }
-    #stickbase { width: 88px; height: 88px; }
-    #stickknob { left: 22px; top: 22px; width: 42px; height: 42px; }
-  }
-  @media (max-width: 400px) { #sub { display: none; } }
-  /* installed as an app: give the whole screen to the game */
-  @media (display-mode: standalone), (display-mode: fullscreen) {
-    #top, #hint { display: none; }
-    #shell { gap: 8px; }
-  }
-  body.standalone #top, body.standalone #hint { display: none; }
+  #softR { width:60px; height:60px; }
+  #stickpad { grid-column:3; grid-row:1; width:180px; height:auto; align-self:stretch; justify-self:center; }
+  #stickzone { border-radius:90px; }
+  #keypad { grid-column:3; grid-row:1; grid-template-columns:1fr; align-content:center; }
+  .num, .num.round { width:100%; height:72px; }
+  .num.round { width:72px; }
+}
 </style>
 </head>
 <body>
 <div id="shell">
   <div class="unit">
-    <div class="cap">
-      <span class="led" aria-hidden="true"></span>
-      <span class="name">BOUNCE</span>
-      <span class="led" aria-hidden="true"></span>
-    </div>
-
-    <div class="well">
-      <div id="stage"><canvas id="game" width="384" height="384"></canvas></div>
-    </div>
-
+    <div class="cap"><span class="lamp run" aria-hidden="true"></span><span class="name">BOUNCE</span><span class="grille" aria-hidden="true"></span></div>
+    <div class="well plate"><div id="stage"><canvas id="game" width="384" height="384"></canvas></div></div>
     <div class="deck">
-      <div class="pills">
-        <button class="pill" id="softL">القائمة</button>
-        <button class="pill" id="softR">إيقاف</button>
+      <div class="side">
+        <button class="key round" id="softR" type="button" aria-label="إيقاف / متابعة"><span class="ic pause">&#x2016;</span><span class="ic play">&#x25B6;&#xFE0E;</span></button>
+        <span class="engr ar cap-pause">إيقاف</span><span class="engr ar cap-resume">متابعة</span>
       </div>
-
-      <div id="stickpad">
-        <div id="stickzone"><div id="stickbase"><div id="stickknob"></div></div></div>
-      </div>
-
+      <div id="stickpad"><div id="stickzone"><span class="etch l">&#x25C0;&#xFE0E;</span><span class="etch r">&#x25B6;&#xFE0E;</span><span class="etch t">&#x25B2;&#xFE0E; قفز</span><div id="stickbase"><div id="stickknob"></div></div></div></div>
       <div id="keypad">
-        <button class="num" data-k="1"><b>1</b></button>
-        <button class="num" data-k="2"><b>2</b></button>
-        <button class="num" data-k="3"><b>3</b></button>
-        <button class="num" data-k="4"><b>4</b></button>
-        <button class="num" data-k="5"><b>5</b></button>
-        <button class="num" data-k="6"><b>6</b></button>
+        <button class="key num" data-k="4" type="button" aria-label="يسار">&#x25C0;&#xFE0E;</button>
+        <button class="key num round acc" data-k="5" type="button" aria-label="قفز">&#x25B2;&#xFE0E;</button>
+        <button class="key num" data-k="6" type="button" aria-label="يمين">&#x25B6;&#xFE0E;</button>
       </div>
     </div>
+    <div class="foot"><span class="engr">Model B·128</span><span class="grille" aria-hidden="true"></span><span class="engr">1 Player</span></div>
   </div>
-</div>
-
-<script>
+</div><script>
 (function () {
   'use strict';
 
@@ -635,7 +640,13 @@
   let leaveLevel = false;
   const held = { left: false, right: false, up: false };
 
-  function setMode(m) { mode = m; modeSince = performance.now(); }
+  // The chassis reads the mode from the body: the RUN lamp, the pause key's
+  // glyph and its engraved caption all follow it in CSS.
+  function setMode(m) {
+    document.body.dataset.mode = m;
+    document.body.classList.toggle('paused', m === 'pause');
+    mode = m; modeSince = performance.now();
+  }
   function heldDir() { return (held.left ? LEFT : 0) | (held.right ? RIGHT : 0) | (held.up ? UP : 0); }
 
   // Every input surface keeps its own state, so releasing one never cancels
@@ -1284,16 +1295,14 @@
 
 
   // ------------------------------------------------------------------
-  // The phone's own keys. A Nokia keypad is a direction grid around 5, so
-  // that is what these do: the row above 5 jumps, 4 and 6 steer, and the
-  // corners do both at once — which is how you take a gap at speed.
+  // The phone's own keys. Three of the Nokia keypad's keys are on the
+  // chassis: 4 and 6 steer, 5 jumps (and confirms in the menus). A
+  // diagonal jump is 4+5 or 6+5 held together, which the per-source merge
+  // above already supports.
   //
-  //   1 ↖   2 ↑   3 ↗
   //   4 ←   5 ↑   6 →
-  //   7 ←   8 ·   9 →
   // ------------------------------------------------------------------
   const KEYPAD = {
-    '1': ['left', 'up'], '2': ['up'],   '3': ['right', 'up'],
     '4': ['left'],       '5': ['up'],   '6': ['right']
   };
 
@@ -1330,12 +1339,16 @@
     if (keys.length) el.classList.add('live');
     bindMulti(el, keys);
   }
-  // the two pills above the stick: one opens things, the other stops
-  bindMulti(document.getElementById('softL'), [], () => press());
-  document.getElementById('softR').addEventListener('pointerdown', e => {
+  // The one round key beside the dish: pause / resume, and it wakes the
+  // splash. Confirming is the dish, the canvas, key 5 or Enter.
+  const softR = document.getElementById('softR');
+  softR.addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
     if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
   });
+  // pressed look only; the action above fires on the same pointerdown
+  softR.addEventListener('pointerdown', () => softR.classList.add('down'));
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave']) softR.addEventListener(t, () => softR.classList.remove('down'));
   // Floating stick: the base jumps to wherever the thumb lands, so there is
   // nothing small to hit. The jump pad is a separate pointer, so steering and
   // jumping never interrupt each other.
@@ -1418,6 +1431,10 @@
     renderLevel() { const c = mk(LEVEL_W, ROWS * T); drawWorld(c.getContext('2d'), 0, 0, LEVEL_W, ROWS * T); return c.toDataURL(); }
   };
 
+  // The built page owns the <body> tag, so the felt-mat class and the initial
+  // mode are stamped here, before the first paint.
+  document.body.classList.add('ground');
+  document.body.dataset.mode = mode;
   applyControls();
   restStick();
   loadGraphics().then(() => { loadHiScore(); loadLevel(1); resize(); requestAnimationFrame(frame); });
