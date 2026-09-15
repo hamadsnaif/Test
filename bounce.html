@@ -20,9 +20,12 @@
 <style>
   :root {
     --ground: #14161c;          /* الصفحة تبقى داكنة ليبرز البدن الفاتح */
-    --body-hi: #e3e6ea;         /* أعلى البدن الفضّي */
-    --body: #c4c8cf;
-    --body-lo: #a3a8b1;
+    --body-hi: #cdd2d9;         /* الغلاف الفضّي */
+    --body: #b2b8c1;
+    --body-lo: #969ca6;
+    --face-hi: #eef0f3;         /* اللوحة الأمامية، رمادي أفتح قليلاً */
+    --face: #dfe2e7;
+    --face-lo: #ccd0d6;
     --key: #e8eaee;             /* مفاتيح فضّية فاتحة */
     --key-down: #c0c5cd;
     --key-ink: #23262c;         /* حبر داكن عليها */
@@ -51,10 +54,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
-    padding-inline: 10px;
-    padding-block: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom));
+    overflow: hidden;
+    padding-inline: 6px;
+    padding-block: max(8px, env(safe-area-inset-top)) 0;
   }
   #top {
     display: flex;
@@ -70,8 +74,10 @@
   /* ---------- هيكل الجوال ---------- */
   #phone {
     position: relative;
-    flex: 0 1 auto;
-    max-height: 100%;
+    /* يملأ الإطار حتى حافته السفلى: الزوايا السفلية قائمة و#shell يقصّ، فيبدو
+       الجهاز ممتداً تحت الشاشة لا منتهياً عندها. */
+    flex: 1 1 auto;
+    height: 100%;
     min-height: 0;
     width: 100%;
     max-width: 410px;
@@ -79,13 +85,12 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 10px 10px 14px;
-    border-radius: 30px / 36px;
+    padding: 9px 8px 14px;
+    border-radius: 30px 30px 0 0 / 36px 36px 0 0;
     background: linear-gradient(174deg, var(--body-hi) 0%, var(--body) 46%, var(--body-lo) 100%);
     border: 1px solid #eef0f3;
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.9),
-      inset 0 -3px 8px rgba(0,0,0,.16),
       0 14px 32px rgba(0,0,0,.55);
   }
   #grille {
@@ -103,6 +108,21 @@
     color: #4d525a;
     opacity: .9;
     direction: ltr;
+  }
+  /* قطعتان مصبوبتان لا لون واحد: الغلاف فضّي واللوحة الأمامية أفتح منه،
+     ويفصلهما خطّ رفيع كما يفصل الشقُّ بين قطعتي بلاستيك. */
+  #fascia {
+    flex: 0 1 auto;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 6px 10px;
+    border-radius: 16px 16px 20px 20px;
+    background: linear-gradient(176deg, var(--face-hi), var(--face) 55%, var(--face-lo));
+    border: 1px solid rgba(255,255,255,.9);
+    box-shadow: 0 1px 2px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.9);
   }
   #stage {
     flex: 0 1 auto;
@@ -323,6 +343,7 @@
      الشاشة تقيس بمضاعفات صحيحة، فكل بضعة بكسلات قد تعني درجة كاملة. */
   @media (max-height: 740px) and (orientation: portrait) {
     #phone { gap: 6px; padding-top: 8px; }
+    #fascia { padding: 8px 8px 10px; gap: 6px; }
     #grille { height: 5px; }
     #nokia { font-size: 11px; }
     #keys { gap: 5px; }
@@ -357,6 +378,7 @@
     #softrow { grid-template-columns: 1fr; justify-items: center; gap: 10px; }
     .soft { width: 100%; }
 
+    #fascia { display: contents; }
     body.touch.joystick #shell { position: relative; }
     body.touch.joystick #stickpad {
       position: absolute;
@@ -378,7 +400,7 @@
       transform: none;
     }
   }
-  #hint { font-size: 12px; color: var(--muted); direction: rtl; text-align: center; flex: 0 0 auto; }
+  #hint { display: none; }
   body.touch:not(.joystick) #pad { display: grid; }
   body.touch #hint-keys { display: none; }
   body:not(.touch) #hint-touch { display: none; }
@@ -407,6 +429,7 @@
   <div id="phone">
     <div id="grille" aria-hidden="true"></div>
     <div id="nokia">NOKIA</div>
+    <div id="fascia">
     <div id="stage"><div id="screen"><canvas id="game" width="384" height="384"></canvas></div></div>
 
     <div id="keys">
@@ -441,6 +464,7 @@
     <div id="stickpad">
       <div id="stickzone"><div id="stickbase"><div id="stickknob"></div></div></div>
       <button id="btnM2" aria-label="القائمة">☰</button>
+    </div>
     </div>
   </div>
 
