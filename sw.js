@@ -1,12 +1,17 @@
 // Offline cache for Hamad's Games. Each page is self contained, so the cache
 // only holds the launcher, the three games, the manifest and the icons.
-const CACHE = 'hamads-games-v3';
+const CACHE = 'hamads-games-v4';
 const ASSETS = ['./', './index.html', './bounce.html', './snake.html', './tetris.html',
   './manifest.webmanifest', './apple-touch-icon.png', './icon-120.png', './icon-152.png',
   './icon-167.png', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // one unreachable asset must not wipe out offline support for the rest
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => Promise.allSettled(ASSETS.map(u => c.add(u))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', e => {
@@ -26,8 +31,17 @@ self.addEventListener('fetch', e => {
         return hit;
       }
       return fetch(e.request)
-        .then(res => { if (res && res.ok && e.request.url.startsWith(self.registration.scope)) caches.open(CACHE).then(c => c.put(e.request, res.clone())); return res; })
-        .catch(() => caches.match('./index.html'));
+        .then(res => {
+          // clone before the response is handed to the page, not after
+          if (res && res.ok && e.request.url.startsWith(self.registration.scope)) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, copy));
+          }
+          return res;
+        })
+        // only a page request may fall back to the launcher; an icon or a
+        // manifest must not be answered with HTML
+        .catch(() => (e.request.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
     })
   );
 });
