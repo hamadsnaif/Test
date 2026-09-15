@@ -1,0 +1,599 @@
+<title>Hamad's Games</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Loaded as a print sheet and switched on once it arrives, so it never blocks
+     rendering. On a connection that is present but dead this is the difference
+     between the shelf appearing at once from the cache and a fullscreen app —
+     no URL bar, no stop button — sitting on a blank screen until the request
+     finally gives up. The CSS names real fallbacks for both faces. -->
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap"></noscript>
+<style>
+  :root {
+    --case: #14171c;
+    --surface: #1c2128;
+    --surface-hi: #232a33;
+    --edge: #2b323c;
+    --ink: #e9eef6;
+    --dim: #8d97a6;
+    --accent: #e59a4d;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--case);
+    color: var(--ink);
+    font-family: "IBM Plex Sans Arabic", Tahoma, -apple-system, Arial, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+    direction: rtl;
+  }
+
+  /* ---------- launcher ---------- */
+  #shelf {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    padding-inline: 16px;
+    padding-block: max(28px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-bottom));
+  }
+  header { width: 100%; max-width: 520px; text-align: center; }
+  #wordmark {
+    font-family: Silkscreen, "Courier New", monospace;
+    font-weight: 700;
+    font-size: clamp(22px, 7vw, 34px);
+    letter-spacing: 2px;
+    color: var(--ink);
+    margin: 0;
+    direction: ltr;
+  }
+  #rule {
+    width: 64px; height: 3px;
+    background: var(--accent);
+    margin: 12px auto 10px;
+    border-radius: 2px;
+  }
+  #tagline { margin: 0; color: var(--dim); font-size: 14px; line-height: 1.6; }
+
+  #list {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tile {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px 14px 20px;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 14px;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .tile::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0; bottom: 0;
+    width: 5px;
+    background: var(--stripe, #6c7a8c);
+  }
+  .tile:hover, .tile:focus-visible { background: var(--surface-hi); }
+  .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tile:active { transform: translateY(1px); }
+  .tile .thumb {
+    width: 72px; height: 72px;
+    border-radius: 8px;
+    image-rendering: pixelated;
+    display: block;
+    border: 1px solid var(--edge);
+  }
+  .tile .thumb.smooth { image-rendering: auto; }
+  .name { margin: 0 0 2px; font-size: 17px; font-weight: 600; }
+  .latin {
+    font-family: Silkscreen, "Courier New", monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--stripe, #6c7a8c);
+    direction: ltr;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .desc { margin: 0; font-size: 13px; line-height: 1.5; color: var(--dim); }
+  .chev { color: var(--dim); font-size: 22px; line-height: 1; }
+
+  footer {
+    width: 100%; max-width: 520px;
+    color: var(--dim);
+    font-size: 12.5px;
+    line-height: 1.7;
+    text-align: center;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+
+  /* ---------- player ----------
+     A slim bar carries the way back. The three games all put controls in
+     their own top corners, so a floating button would sit on top of one of
+     them; a bar of its own never collides with anything. */
+  #player {
+    position: fixed;
+    inset: 0;
+    background: var(--case);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+  }
+  #player[hidden] { display: none !important; }
+  #bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    box-sizing: content-box;
+    padding-top: env(safe-area-inset-top);
+    padding-inline: 6px max(10px, env(safe-area-inset-right));
+    background: var(--surface);
+    border-bottom: 1px solid var(--edge);
+  }
+  #back {
+    min-width: 58px; height: 30px;
+    border-radius: 9px;
+    border: 1px solid var(--edge);
+    background: var(--case);
+    color: var(--ink);
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1;
+    padding: 0 10px;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  #back:active { background: var(--surface-hi); }
+  #back:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #playing-name { font-size: 13.5px; font-weight: 500; color: var(--dim); }
+  #frame { flex: 1 1 auto; width: 100%; border: 0; display: block; min-height: 0; }
+  body.playing { overflow: hidden; }
+
+  @media (max-width: 400px) {
+    .tile { gap: 11px; padding: 12px 12px 12px 16px; }
+    .tile .thumb { width: 60px; height: 60px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tile:active { transform: none; }
+  }
+</style>
+
+<div id="shelf">
+  <header>
+    <h1 id="wordmark">HAMAD'S GAMES</h1>
+    <div id="rule"></div>
+    <p id="tagline">ثلاث ألعاب من زمن هواتف نوكيا، أُعيد بناؤها للمتصفح. اختر لعبة لتبدأ.</p>
+  </header>
+
+  <div id="list"></div>
+
+  <footer>
+    كل لعبة تعمل مستقلة بأصواتها وحفظ نتائجها. أضف الصفحة إلى الشاشة الرئيسية من Safari لتعمل بملء الشاشة وبدون إنترنت.
+  </footer>
+</div>
+
+<div id="player" hidden>
+  <div id="bar">
+    <button id="back" type="button" aria-label="رجوع إلى قائمة الألعاب">رجوع</button>
+    <span id="playing-name"></span>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // The shelf is data driven. REGISTRY is the copy of games.json baked in at
+  // build time so the first paint never waits on the network; when the page is
+  // served from a real origin it then re-reads games.json and redraws if the
+  // file has changed. Adding a game therefore means dropping its page next to
+  // this one and adding an entry to games.json — no code change, no rebuild.
+  const REGISTRY = __REGISTRY__;
+  const SOURCES = __SOURCES__;   // artifact build only: the games carried inline
+  // Whether this page can read its neighbours. The build says what it intends,
+  // but a page opened over file:// has no origin to fetch from whatever the
+  // build thought, so the protocol gets the final say.
+  const LIVE = __LIVE__ && /^https?:$/.test(location.protocol);
+
+  // ------------------------------------------------------------------
+  // Thumbnails: each one is a 32x32 pixel scene drawn from the game it
+  // opens, so the tile shows the world you are about to enter.
+  // ------------------------------------------------------------------
+  function px(c, x, y, w, h, color) { c.fillStyle = color; c.fillRect(x, y, w, h); }
+
+  function drawBounce(c) {
+    px(c, 0, 0, 32, 32, '#b0e0f0');
+    for (let x = 0; x < 32; x += 8) {
+      px(c, x, 24, 8, 8, '#c8722a');
+      px(c, x, 24, 7, 3, '#e59a4d');
+      px(c, x, 28, 7, 3, '#e59a4d');
+    }
+    px(c, 0, 24, 32, 1, '#8b4a16');
+    c.fillStyle = '#8f0d0a';
+    c.beginPath(); c.arc(16, 15, 8, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#e8231f';
+    c.beginPath(); c.arc(16, 15, 7, 0, Math.PI * 2); c.fill();
+    px(c, 12, 10, 3, 2, '#ff8c8c');
+  }
+
+  function drawSnake(c) {
+    px(c, 0, 0, 32, 32, '#9bbc0f');
+    const body = [[6, 20], [10, 20], [14, 20], [18, 20], [18, 16], [18, 12], [22, 12]];
+    for (const [x, y] of body) { px(c, x, y, 4, 4, '#0f380f'); px(c, x, y, 3, 3, '#306230'); }
+    px(c, 22, 12, 4, 4, '#0f380f');
+    px(c, 8, 8, 4, 4, '#0f380f');
+    px(c, 9, 9, 2, 2, '#9bbc0f');
+  }
+
+  function drawTetris(c) {
+    px(c, 0, 0, 32, 32, '#1a1813');
+    const blocks = [
+      [4, 20, '#5ab7c4'], [10, 20, '#5ab7c4'], [16, 20, '#5ab7c4'], [22, 20, '#5ab7c4'],
+      [4, 26, '#e0a45e'], [10, 26, '#e3c65f'], [16, 26, '#7fbe74'], [22, 26, '#b48bd6'],
+      [10, 8, '#df8179'], [16, 8, '#df8179'], [16, 14, '#df8179'], [22, 14, '#df8179']
+    ];
+    for (const [x, y, col] of blocks) {
+      px(c, x, y, 6, 6, col);
+      px(c, x, y, 6, 1, '#fffaf0');
+      px(c, x, y + 5, 6, 1, 'rgba(0,0,0,.35)');
+    }
+  }
+
+  const BUILTIN = { bounce: drawBounce, snake: drawSnake, tetris: drawTetris };
+
+  /* A future game does not have to ship a draw function. Its "thumb" may be:
+       {"builtin": "bounce"}                       one of the three above
+       {"bg": "#123", "rects": [[x,y,w,h,"#c"]]}   pixels straight from JSON
+       "thumbs/mygame.png"                         any image next to the page
+     and with no "thumb" at all the tile falls back to the game's initial on
+     its own stripe colour, which always looks deliberate. */
+  const HEX = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;   // what CSS actually accepts
+  function colour(v, fallback) { return typeof v === 'string' && HEX.test(v) ? v : fallback; }
+
+  function drawFromRects(c, thumb, g) {
+    px(c, 0, 0, 32, 32, colour(thumb.bg, '#14171c'));
+    const rects = Array.isArray(thumb.rects) ? thumb.rects : [];
+    for (const r of rects) {
+      if (!Array.isArray(r) || r.length < 5) continue;
+      const [x, y, w, h] = r;
+      if (![x, y, w, h].every(n => typeof n === 'number' && isFinite(n))) continue;
+      px(c, x, y, w, h, colour(r[4], g.stripe));
+    }
+  }
+
+  // Drawn at 4x and shown at 32 CSS px worth of tile, because this is the
+  // default for a game that ships no artwork and a nearest neighbour blow up of
+  // an antialiased letter looks like a mistake rather than a choice.
+  const INIT_SCALE = 4;
+  function drawInitial(c, g) {
+    const s = INIT_SCALE;
+    c.canvas.width = c.canvas.height = 32 * s;
+    c.imageSmoothingEnabled = true;
+    px(c, 0, 0, 32 * s, 32 * s, '#1b1f26');
+    px(c, 0, 0, 32 * s, 3 * s, g.stripe);
+    c.fillStyle = g.stripe;
+    c.font = 'bold ' + (18 * s) + 'px system-ui, sans-serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText(((g.en || g.ar || '?').trim()[0] || '?').toUpperCase(), 16 * s, 19 * s);
+    c.canvas.classList.add('smooth');
+  }
+
+  function thumbFor(g) {
+    if (typeof g.thumb === 'string' && isSafePath(g.thumb)) {
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.alt = '';
+      img.decoding = 'async';
+      img.src = g.thumb;
+      // a missing image file must not leave a broken tile
+      img.addEventListener('error', () => { img.replaceWith(canvasThumb(g, true)); }, { once: true });
+      return img;
+    }
+    return canvasThumb(g, false);
+  }
+
+  function canvasThumb(g, forceInitial) {
+    const cv = document.createElement('canvas');
+    cv.className = 'thumb';
+    cv.width = cv.height = 32;
+    const c = cv.getContext('2d');
+    const t = g.thumb;
+    if (!forceInitial && t && typeof t === 'object' && BUILTIN[t.builtin]) BUILTIN[t.builtin](c);
+    else if (!forceInitial && t && typeof t === 'object' && Array.isArray(t.rects)) drawFromRects(c, t, g);
+    else drawInitial(c, g);
+    return cv;
+  }
+
+  // ------------------------------------------------------------------
+  // Registry: read games.json defensively. It is a file a human edits, so a
+  // typo in one entry must cost that entry only, never the whole shelf.
+  // ------------------------------------------------------------------
+  const ID = /^[a-z0-9][a-z0-9_-]{0,31}$/i;
+
+  function isSafePath(p) {
+    return typeof p === 'string' && p.length > 0 && p.length < 256 &&
+      !/^[a-z][a-z0-9+.-]*:/i.test(p) &&   // no http:, data:, javascript:
+      !p.startsWith('/') && !p.startsWith('\\') &&
+      !p.split(/[\\/]/).includes('..');
+  }
+
+  const MAX_GAMES = 48;
+  function text(v, cap) {
+    return typeof v === 'string' ? v.trim().slice(0, cap) : '';
+  }
+
+  function clean(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const id = String(raw.id || '');
+    if (!ID.test(id)) return null;
+    const file = raw.file || (id + '.html');
+    if (!isSafePath(file)) return null;
+    return {
+      id: id.toLowerCase(),       // so Snake and snake cannot both get a tile
+      file: file,
+      ar: text(raw.ar, 60) || id,
+      en: text(raw.en, 24),
+      desc: text(raw.desc, 200),  // a pasted essay must not wreck the layout
+      stripe: colour(raw.stripe, '#6c7a8c'),
+      thumb: raw.thumb
+    };
+  }
+
+  function parse(data) {
+    const arr = Array.isArray(data) ? data : (data && Array.isArray(data.games) ? data.games : null);
+    if (!arr) return null;
+    const out = [];
+    const seen = new Set();
+    let dropped = 0;
+    for (const raw of arr) {
+      if (out.length >= MAX_GAMES) break;
+      const g = clean(raw);
+      if (!g || seen.has(g.id)) { dropped++; continue; }
+      seen.add(g.id);
+      out.push(g);
+    }
+    // editing games.json from a phone, a silently missing tile is impossible to
+    // debug; say so where anyone who looks will find it
+    if (dropped) console.warn('games.json: ' + dropped + ' entry/entries ignored (bad id, unsafe file path, or duplicate)');
+    return out.length ? out : null;
+  }
+
+  let GAMES = parse(REGISTRY) || [];
+
+  // ------------------------------------------------------------------
+  // Launcher
+  // ------------------------------------------------------------------
+  const list = document.getElementById('list');
+  const player = document.getElementById('player');
+  const bar = document.getElementById('bar');
+  const back = document.getElementById('back');
+  const playingName = document.getElementById('playing-name');
+
+  function render() {
+    const tiles = GAMES.map(g => {
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'tile';
+      tile.style.setProperty('--stripe', g.stripe);
+      tile.setAttribute('aria-label', 'تشغيل لعبة ' + g.ar);
+
+      const mid = document.createElement('div');
+      const h = document.createElement('p');
+      h.className = 'name';
+      h.textContent = g.ar;
+      const en = document.createElement('span');
+      en.className = 'latin';
+      en.textContent = g.en;
+      const d = document.createElement('p');
+      d.className = 'desc';
+      d.textContent = g.desc;
+      mid.append(h, en, d);
+
+      const chev = document.createElement('span');
+      chev.className = 'chev';
+      chev.setAttribute('aria-hidden', 'true');
+      chev.textContent = '‹';
+
+      tile.append(thumbFor(g), mid, chev);
+      tile.addEventListener('click', () => open(g.id));
+      return tile;
+    });
+    list.replaceChildren(...tiles);
+  }
+  render();
+
+  let decoder = null;
+  function decode(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    decoder = decoder || new TextDecoder('utf-8');
+    return decoder.decode(bytes);
+  }
+
+  // A fresh iframe per launch: the first load of a new frame does not add a
+  // history entry, and removing it on exit stops the game's loop and audio
+  // outright, so every game starts clean and nothing keeps running behind the
+  // launcher.
+  function open(id) {
+    const game = GAMES.find(g => g.id === id);
+    if (!game) return;
+    const inline = SOURCES[id];
+    playingName.textContent = game.ar;
+    const frame = document.createElement('iframe');
+    frame.id = 'frame';
+    frame.title = 'اللعبة';
+    frame.setAttribute('allow', 'autoplay');
+    if (inline && inline.b64) frame.srcdoc = decode(inline.b64);
+    else frame.src = game.file;
+    player.replaceChildren(bar, frame);
+    document.body.classList.add('playing');
+    player.hidden = false;
+    history.pushState({ hg: id }, '');
+    setTimeout(() => { try { frame.contentWindow.focus(); } catch (e) { /* cross document */ } }, 60);
+  }
+
+  function close(fromPop) {
+    if (player.hidden) return;
+    player.replaceChildren(bar);
+    player.hidden = true;
+    document.body.classList.remove('playing');
+    if (!fromPop && history.state && history.state.hg) history.back();
+    // anything that had to wait for the game to end happens now
+    if (pendingRender) { pendingRender = false; render(); }
+    if (pendingReload) applyUpdate();
+  }
+
+  back.addEventListener('click', () => close(false));
+  window.addEventListener('popstate', () => close(true));
+
+  // ------------------------------------------------------------------
+  // Staying current. Someone who added the shelf to their home screen should
+  // see new games and fixes without doing anything, so the page re-reads
+  // games.json on every launch and asks the service worker to re-check
+  // itself. A reload is only ever applied on the shelf, never mid game.
+  // ------------------------------------------------------------------
+  let signature = JSON.stringify(GAMES);
+
+  function refreshRegistry(retry) {
+    if (!LIVE) return Promise.resolve();
+    return fetch('games.json', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('http ' + r.status))))
+      .then(data => {
+        const next = data && parse(data);
+        if (!next) {
+          console.warn('games.json: nothing usable in it, keeping the list already on screen');
+          return;
+        }
+        const sig = JSON.stringify(next);
+        if (sig === signature) return;
+        signature = sig;
+        GAMES = next;
+        // never reshuffle the shelf under someone who is mid game; close() draws it
+        if (player.hidden) render(); else pendingRender = true;
+        precache(next);
+      })
+      .catch(() => {
+        // One slow moment should not cost a whole session: the shelf already
+        // drew from the baked in list, so try once more a few seconds later
+        // rather than waiting for the next time the app is reopened.
+        if (retry !== false) setTimeout(() => refreshRegistry(false), 5000);
+      });
+  }
+
+  // A game added to games.json after this build is not in the worker's list of
+  // files to keep offline, so hand it over once it is known.
+  function precache(games) {
+    const sw = navigator.serviceWorker;
+    if (!sw) return;
+    const urls = [];
+    for (const g of games) {
+      urls.push(g.file);
+      if (typeof g.thumb === 'string') urls.push(g.thumb);   // keep artwork offline too
+    }
+    // .ready rather than .controller: on a first ever visit there is no
+    // controller yet, and that is precisely the visit where nothing is cached.
+    sw.ready.then(reg => {
+      const worker = reg.active || sw.controller;
+      if (worker) worker.postMessage({ type: 'cache', urls: urls });
+    }).catch(() => { /* no worker on this origin */ });
+  }
+
+  let pendingRender = false;
+  let pendingReload = false;
+  let reloading = false;
+
+  // A flag on this page is not enough to stop a reload loop, because a reload
+  // hands the next page a fresh flag. GitHub Pages sits behind a CDN, so for a
+  // few minutes after a deploy two edges can disagree about sw.js and each
+  // load can look like an update to the one before. A stamp that survives the
+  // reload turns that into at most one reload a minute.
+  const STAMP = 'hg:autoreload';
+  function recentlyReloaded() {
+    try {
+      const t = Number(sessionStorage.getItem(STAMP) || 0);
+      return isFinite(t) && Date.now() - t < 60000;
+    } catch (e) { return false; }   // private mode, storage blocked
+  }
+
+  function applyUpdate() {
+    pendingReload = false;
+    if (reloading || recentlyReloaded()) return;
+    reloading = true;
+    try { sessionStorage.setItem(STAMP, String(Date.now())); } catch (e) { /* not fatal */ }
+    location.reload();
+  }
+
+  if (LIVE && 'serviceWorker' in navigator) {
+    // Is this tab under a worker yet? The first one arriving is an install:
+    // nothing on screen is stale, so it must not cause a reload. Every later
+    // handover is a genuinely new version replacing the one that drew this
+    // page. Tracking it as it changes distinguishes the two, where reading it
+    // once at startup would call both of them "first" in a tab that was opened
+    // before any worker existed.
+    let controlled = !!navigator.serviceWorker.controller;
+    const UPDATE_THROTTLE = 15000;   // guards against flicking between apps, no more
+    let reg = null;
+    let lastCheck = 0;
+
+    const check = () => {
+      if (!reg || !player.hidden) return;   // not while someone is playing
+      const now = Date.now();
+      if (now - lastCheck < UPDATE_THROTTLE) return;
+      lastCheck = now;
+      reg.update().catch(() => {});
+    };
+
+    // updateViaCache:'none' keeps the browser's HTTP cache away from sw.js, so
+    // a new worker is noticed on the first launch after a deploy rather than
+    // whenever the cache entry happens to expire.
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(r => { reg = r; lastCheck = Date.now(); precache(GAMES); })
+      .catch(() => {});
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      const wasControlled = controlled;
+      controlled = true;
+      if (!wasControlled) return;                             // the install, not an update
+      if (!player.hidden) { pendingReload = true; return; }   // someone is playing
+      applyUpdate();
+    });
+
+    // An app resumed from the iOS app switcher performs no navigation, so the
+    // browser never runs its own update check. These three are the only moments
+    // a returning user gives us to notice that something was published.
+    const resumed = () => {
+      if (document.hidden) return;
+      check();
+      refreshRegistry();
+    };
+    document.addEventListener('visibilitychange', resumed);
+    window.addEventListener('pageshow', resumed);          // includes bfcache restores
+    window.addEventListener('online', resumed);
+  }
+
+  refreshRegistry();
+})();
+</script>
