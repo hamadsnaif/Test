@@ -1,8 +1,9 @@
 // Offline cache for Hamad's Games. Each page is self contained, so the cache
 // only holds the launcher, the three games, the manifest and the icons.
-const CACHE = 'hamads-games-v2';
+const CACHE = 'hamads-games-v3';
 const ASSETS = ['./', './index.html', './bounce.html', './snake.html', './tetris.html',
-  './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
+  './manifest.webmanifest', './apple-touch-icon.png', './icon-120.png', './icon-152.png',
+  './icon-167.png', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
