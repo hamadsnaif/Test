@@ -39,9 +39,9 @@ catch (e) { document.documentElement.className += ' framed'; }
   :root{
     --cross:104px;         /* قطر صليب الاتجاهات */
     --big:72px;            /* قطر زرّ التدوير الكبير */
-    --lcd:#9aa885;         /* زجاج الشاشة الأخضر */
-    --lcd-ink:#20261a;     /* البكسل المُطفأ */
-    --lcd-dim:#63705289;   /* الكتابة المطبوعة الباهتة */
+    --lcd:#16211a;         /* زجاج الشاشة، مضاء من الخلف */
+    --lcd-ink:#b8e08a;     /* الفوسفور المضيء — ١١:١ على الزجاج */
+    --lcd-dim:#7f9a68;     /* عناوين اللوحة الجانبية */
     --bg:#171512;          /* فحمي دافئ */
     --page-top:#3a352d;
     --phone-body:#2c2922;
@@ -160,7 +160,8 @@ catch (e) { document.documentElement.className += ' framed'; }
     padding:7px;
     border-radius:3px;
     background:var(--lcd);
-    box-shadow:inset 0 0 0 1px rgba(0,0,0,.35), inset 0 2px 10px rgba(0,0,0,.18);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.6), inset 0 0 26px rgba(120,190,90,.13),
+               0 0 14px rgba(120,190,90,.10);
   }
 
   .board-wrap{flex:1;min-width:0;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;}
@@ -183,7 +184,7 @@ catch (e) { document.documentElement.className += ' framed'; }
     gap:9px;
     text-align:center;
     padding:10px;
-    background:rgba(154,168,133,.94);
+    background:rgba(22,33,26,.95);
     color:var(--lcd-ink);
   }
   .overlay[hidden]{display:none;}
@@ -398,9 +399,14 @@ const SHAPES = {
   Z: [[1,1,0],[0,1,1],[0,0,0]]
 };
 
-/* شاشة LCD بلون واحد: كل القطع بحبر واحد كما في الجهاز الأصلي */
-const INK = '#20261a';
-const COLORS = { I:INK, J:INK, L:INK, O:INK, S:INK, T:INK, Z:INK };
+/* ألوان على زجاج LCD أخضر، لا على خلفية داكنة. الزجاج نفسه فاتح (#9aa885)،
+   فالألوان الباهتة تذوب فيه: هذه مشبعة وغامقة لتبقى مقروءة عليه وليتميّز
+   كلٌّ منها عن الآخر. شكل الطوبة يبقى كما في الجهاز — مربّع مفرّغ بداخله
+   مربّع مصمت — فالجهاز يُعرف من شكله واللعب يُقرأ من لونه. */
+const COLORS = {
+  I:'#21b9ca', J:'#6a8ee3', L:'#efad72', O:'#f0c440',
+  S:'#30cd35', T:'#bf80df', Z:'#e8817d'
+};   /* أقلّها تبايناً ٥٫٢:١ على الزجاج — مقيسة لا مختارة بالنظر */
 
 const TYPES = Object.keys(SHAPES);
 
@@ -732,7 +738,7 @@ function drawGhostCell(ctx, px, py, size, color){
   const x = px + pad, y = py + pad, s = size - pad * 2;
   const lw = Math.max(1, s * 0.13);
   ctx.save();
-  ctx.globalAlpha = 0.22;                 /* الخلية المُطفأة على الزجاج */
+  ctx.globalAlpha = 0.30;                 /* الخلية المُطفأة على الزجاج */
   ctx.strokeStyle = color;
   ctx.lineWidth = lw;
   ctx.strokeRect(x + lw / 2, y + lw / 2, s - lw, s - lw);
@@ -744,9 +750,9 @@ function draw(){
   ctx.clearRect(0, 0, W, H);
 
   /* زجاج الشاشة والشبكة الباهتة التي تظهر فيه حتى وهي مُطفأة */
-  ctx.fillStyle = '#9aa885';
+  ctx.fillStyle = '#16211a';
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = 'rgba(32,38,26,.10)';
+  ctx.strokeStyle = 'rgba(184,224,138,.09)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let x = 1; x < COLS; x++){ ctx.moveTo(Math.round(x * cell) + .5, 0); ctx.lineTo(Math.round(x * cell) + .5, H); }
@@ -754,7 +760,7 @@ function draw(){
   ctx.stroke();
 
   if (flash > 0){
-    ctx.fillStyle = 'rgba(32,38,26,' + (flash * 0.18).toFixed(3) + ')';
+    ctx.fillStyle = 'rgba(184,224,138,' + (flash * 0.16).toFixed(3) + ')';
     ctx.fillRect(0, 0, W, H);
   }
 
