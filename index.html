@@ -74,7 +74,7 @@
     width: 100%;
     max-width: 720px;
     display: none;
-    grid-template-columns: 1fr 1fr 1.4fr;
+    grid-template-columns: 0.55fr 1fr 1fr 1.4fr;
     gap: 10px;
     direction: ltr;
   }
@@ -117,13 +117,14 @@
   </div>
   <div id="stage"><canvas id="game" width="384" height="384"></canvas></div>
   <div id="pad">
+    <button id="btnM" aria-label="القائمة">☰</button>
     <button id="btnL" aria-label="يسار">◀ 4</button>
     <button id="btnR" aria-label="يمين">6 ▶</button>
     <button id="btnJ" aria-label="قفز">2 ▲ قفز</button>
   </div>
   <div id="hint">
-    <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز. مرّ عبر كل الحلقات ليُفتح الباب.</span>
-    <span id="hint-touch">مرّ عبر كل الحلقات ليُفتح الباب. احذر الأشواك.</span>
+    <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز، Esc للإيقاف المؤقت والعودة للقائمة. التقدم يُحفظ تلقائياً.</span>
+    <span id="hint-touch">☰ للإيقاف المؤقت والعودة للقائمة. التقدم يُحفظ تلقائياً ويمكن استئنافه من Continue.</span>
   </div>
 </div>
 
@@ -433,13 +434,55 @@
     respawnC: 0, respawnR: 0, respawnSize: 12
   };
   let lives = 3, score = 0, rings = 0, levelCntr = 0, camX = 0, camRow = 0;
-  let mode = 'splash'; // splash | play | complete | over | won
+  let mode = 'splash'; // splash | menu | play | pause | complete | over | won
+  let menuSel = 0, pauseSel = 0, hiScore = 0;
   let modeSince = 0;
   let leaveLevel = false;
   const held = { left: false, right: false, up: false };
 
   function setMode(m) { mode = m; modeSince = performance.now(); }
   function heldDir() { return (held.left ? LEFT : 0) | (held.right ? RIGHT : 0) | (held.up ? UP : 0); }
+
+  // ------------------------------------------------------------------
+  // Saved game and high score (browser storage, like the phone's memory)
+  // ------------------------------------------------------------------
+  function loadHiScore() { try { hiScore = parseInt(localStorage.getItem('bounce_hiscore') || '0', 10) || 0; } catch (e) { hiScore = 0; } }
+  function updateHiScore() { if (score > hiScore) { hiScore = score; try { localStorage.setItem('bounce_hiscore', String(hiScore)); } catch (e) { /* ignore */ } } }
+  function hasSave() { try { return !!localStorage.getItem('bounce_save'); } catch (e) { return false; } }
+  function saveGame() {
+    try {
+      const hex = map.map(row => row.map(v => (v & 0xff).toString(16).padStart(2, '0')).join('')).join('');
+      localStorage.setItem('bounce_save', JSON.stringify({
+        level: levelNum, score, lives, rings, respawnC: ball.respawnC, respawnR: ball.respawnR, respawnSize: ball.respawnSize,
+        exitOffset: exit.offset, exitOpen: exit.open, hex
+      }));
+    } catch (e) { /* storage unavailable */ }
+  }
+  function clearSave() { try { localStorage.removeItem('bounce_save'); } catch (e) { /* ignore */ } }
+  function continueGame() {
+    let sv = null;
+    try { sv = JSON.parse(localStorage.getItem('bounce_save')); } catch (e) { sv = null; }
+    if (!sv || !LEVELS[sv.level - 1]) { newGame(); return; }
+    startLevel(sv.level);
+    score = sv.score; lives = sv.lives; rings = sv.rings;
+    if (sv.hex && sv.hex.length === ROWS * COLS * 2) {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) map[r][c] = parseInt(sv.hex.substr((r * COLS + c) * 2, 2), 16);
+    }
+    exit.offset = sv.exitOffset || 0; exit.open = !!sv.exitOpen; exit.opening = exit.open;
+    ball.respawnC = sv.respawnC; ball.respawnR = sv.respawnR; ball.respawnSize = sv.respawnSize || 12;
+    respawn();
+    levelCntr = 60;
+  }
+  const MENU_ITEMS = ['New game', 'Continue', 'High score'];
+  function openMenu() { loadHiScore(); menuSel = hasSave() ? 1 : 0; setMode('menu'); }
+  function menuSelect() {
+    if (menuSel === 0) newGame();
+    else if (menuSel === 1) { if (hasSave()) continueGame(); }
+  }
+  function pauseSelect() {
+    if (pauseSel === 0) setMode('play');
+    else { saveGame(); openMenu(); }
+  }
 
   function startLevel(n) {
     levelNum = n;
@@ -449,6 +492,7 @@
     respawn();
     camRow = Math.trunc(startRow / 7) * 7;
     setMode('play');
+    saveGame();
   }
   function newGame() { lives = 3; score = 0; startLevel(1); }
   function setSize(sz) {
@@ -572,6 +616,7 @@
         ball.respawnC = c; ball.respawnR = r; ball.respawnSize = ball.size;
         map[r][c] = 8 | w;
         play(SND_PICKUP);
+        saveGame();
         break;
       case 9:
         if (thinCollide(r, c, id)) {
@@ -786,7 +831,7 @@
     if (camRow < 0) camRow = 0;
     updateBall();
     if (ball.state === DEAD) {
-      if (lives < 0) { setMode('over'); return; }
+      if (lives < 0) { updateHiScore(); clearSave(); setMode('over'); return; }
       respawn();
     }
     updateMovers();
@@ -797,7 +842,7 @@
     }
     if (leaveLevel) {
       score += 5000;
-      setMode(levelNum >= LEVELS.length ? 'won' : 'complete');
+      if (levelNum >= LEVELS.length) { updateHiScore(); clearSave(); setMode('won'); } else setMode('complete');
     }
     camX = Math.max(0, Math.min(LEVEL_W - SW, ball.x - SW / 2));
   }
@@ -841,10 +886,32 @@
     const bonus = Math.max(ball.speedBonus, ball.gravBonus, ball.jumpBonus);
     if (bonus) { g.fillStyle = BONUS; g.fillRect(1, 128 - Math.trunc(3 * bonus / 30) - 5, 5, 128); }
   }
+  function drawList(title, items, sel, disabled) {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, SW, SW);
+    g.fillStyle = HUD_BG; g.fillRect(0, 0, SW, 16);
+    centerText(title, 5, WHITE);
+    let y = 30;
+    items.forEach((it, i) => {
+      if (i === sel) { g.fillStyle = HUD_BG; g.fillRect(4, y - 4, SW - 8, 15); }
+      const off = disabled && disabled.has(i);
+      drawText(it, 12, y, i === sel ? WHITE : (off ? '#a0a8b8' : '#000000'));
+      y += 20;
+    });
+  }
+  function drawMenu() {
+    const items = MENU_ITEMS.slice();
+    items[2] = 'High score ' + String(hiScore).padStart(8, '0');
+    drawList('Bounce', items, menuSel, hasSave() ? null : new Set([1]));
+    centerText('4 6 move  2 select', 112, '#6a7280');
+  }
+  function drawPause() {
+    drawList('Pause', ['Continue', 'Main menu'], pauseSel, null);
+    centerText('Level ' + levelNum + '  ' + String(score).padStart(8, '0'), 112, '#6a7280');
+  }
   function drawSplash() {
     g.drawImage(SPLASH, 0, 0);
     g.fillStyle = SPLASH_BG; g.fillRect(0, 0, SW, 18);
-    if (Math.floor(performance.now() / 500) % 2 === 0) centerText('New game', 112, '#000000');
+    if (Math.floor(performance.now() / 500) % 2 === 0) centerText('Press a key', 112, '#000000');
   }
   function drawDialog(lines, prompt) {
     g.fillStyle = '#ffffff'; g.fillRect(0, 0, SW, SW);
@@ -856,6 +923,8 @@
   function draw() {
     const sc = String(score).padStart(8, '0');
     if (mode === 'splash') drawSplash();
+    else if (mode === 'menu') drawMenu();
+    else if (mode === 'pause') { drawGame(); drawPause(); }
     else if (mode === 'play') drawGame();
     else if (mode === 'complete') drawDialog(['Level ' + levelNum, 'completed!', '', 'Score', sc], 'Continue');
     else if (mode === 'won') drawDialog(['Congrats!', '', 'Level ' + levelNum, 'completed!', '', 'Score', sc], 'New game');
@@ -891,8 +960,29 @@
 
   function press() {
     if (mode === 'play' || performance.now() - modeSince < 400) return;
-    if (mode === 'complete') startLevel(levelNum + 1);
-    else newGame();
+    if (mode === 'splash') openMenu();
+    else if (mode === 'menu') menuSelect();
+    else if (mode === 'pause') pauseSelect();
+    else if (mode === 'complete') startLevel(levelNum + 1);
+    else openMenu();
+  }
+  function moveSel(d) {
+    if (mode === 'menu') { menuSel = (menuSel + d + 3) % 3; }
+    else if (mode === 'pause') { pauseSel = (pauseSel + d + 2) % 2; }
+  }
+  function togglePause() {
+    if (mode === 'play') { pauseSel = 0; setMode('pause'); setKey('left', false); setKey('right', false); setKey('up', false); }
+    else if (mode === 'pause') setMode('play');
+  }
+  function tapAt(clientY) {
+    const rect = view.getBoundingClientRect();
+    const y = (clientY - rect.top) / rect.height * SW;
+    if (mode === 'menu' || mode === 'pause') {
+      const n = mode === 'menu' ? 3 : 2;
+      const i = Math.floor((y - 26) / 20);
+      if (i >= 0 && i < n) { if (mode === 'menu') menuSel = i; else pauseSel = i; }
+    }
+    press();
   }
   function setKey(k, on) { held[k] = on; ball.dir = heldDir(); }
   const KEYMAP = {
@@ -902,7 +992,16 @@
   };
   window.addEventListener('keydown', e => {
     unlockAudio();
+    if (e.code === 'Escape' || e.code === 'Backspace') { e.preventDefault(); if (!e.repeat) togglePause(); return; }
     const k = KEYMAP[e.code];
+    if (mode === 'menu' || mode === 'pause') {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (e.code === 'ArrowUp' || e.code === 'ArrowLeft' || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'Digit4' || e.code === 'Digit8' || e.code === 'Numpad4' || e.code === 'Numpad8') moveSel(-1);
+      else if (e.code === 'ArrowDown' || e.code === 'ArrowRight' || e.code === 'KeyS' || e.code === 'KeyD' || e.code === 'Digit6' || e.code === 'Numpad6' || e.code === 'Numpad2' || e.code === 'Digit2') moveSel(1);
+      else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Digit5' || e.code === 'Numpad5') press();
+      return;
+    }
     if (k) { e.preventDefault(); if (!e.repeat) setKey(k, true); }
     if (mode !== 'play' && !e.repeat && (k || e.code === 'Enter')) press();
   });
@@ -911,7 +1010,12 @@
 
   function bindTouch(id, k) {
     const el = document.getElementById(id);
-    const on = e => { e.preventDefault(); unlockAudio(); setKey(k, true); el.classList.add('down'); if (mode !== 'play') press(); };
+    const on = e => {
+      e.preventDefault(); unlockAudio(); el.classList.add('down');
+      if (mode === 'menu' || mode === 'pause') { if (k === 'left') moveSel(-1); else if (k === 'right') moveSel(1); else press(); return; }
+      setKey(k, true);
+      if (mode !== 'play') press();
+    };
     const off = e => { e.preventDefault(); setKey(k, false); el.classList.remove('down'); };
     el.addEventListener('pointerdown', on);
     el.addEventListener('pointerup', off);
@@ -920,7 +1024,9 @@
     el.addEventListener('touchend', off, { passive: false });
   }
   bindTouch('btnL', 'left'); bindTouch('btnR', 'right'); bindTouch('btnJ', 'up');
-  view.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); press(); });
+  const btnM = document.getElementById('btnM');
+  btnM.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu(); });
+  view.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); tapAt(e.clientY); });
 
   // ------------------------------------------------------------------
   // Loop: fixed 40 ms ticks
@@ -939,13 +1045,14 @@
     teleport(x, y) { ball.x = x; ball.y = y; ball.vx = 0; ball.vy = 0; ball.grounded = false; },
     size(n) { setSize(n); },
     exitPos() { return [exit.col, exit.row]; },
+    menu() { openMenu(); }, sel() { return [menuSel, pauseSel, hiScore, hasSave()]; },
     probe(x, y) { const ok = collisionDetection(x, y); const h = ball.half; const t = []; for (let r = Math.trunc((y - h) / T); r < Math.trunc((y - 1 + h) / T) + 1; r++) for (let c = Math.trunc((x - h) / T); c < Math.trunc((x - 1 + h) / T) + 1; c++) t.push([r, c, map[r] ? map[r][c] : -1]); return { ok, t, grounded: ball.grounded }; },
     startLevel(n) { startLevel(n); },
     collectAll() { for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const w = map[r][c] & 64, id = map[r][c] & 63; if (id === 13) { map[r][c] = 17 | w; rings++; } else if (id === 14) map[r][c] = 18 | w; else if (id === 15) { map[r][c] = 19 | w; rings++; } else if (id === 16) map[r][c] = 20 | w; else if (id === 21) { map[r][c] = 25 | w; rings++; } else if (id === 22) map[r][c] = 26 | w; else if (id === 23) { map[r][c] = 27 | w; rings++; } else if (id === 24) map[r][c] = 28 | w; } },
     renderLevel() { const c = mk(LEVEL_W, ROWS * T); drawWorld(c.getContext('2d'), 0, 0, LEVEL_W, ROWS * T); return c.toDataURL(); }
   };
 
-  loadGraphics().then(() => { loadLevel(1); resize(); requestAnimationFrame(frame); });
+  loadGraphics().then(() => { loadHiScore(); loadLevel(1); resize(); requestAnimationFrame(frame); });
 })();
 </script>
 </body>
