@@ -46,6 +46,13 @@ ICON_LINKS = (
     '<link rel="apple-touch-icon" sizes="120x120" href="./icon-120.png">\n'
     '<link rel="icon" sizes="192x192" href="./icon-192.png" type="image/png">\n'
 )
+# Keep the collection out of search results. robots.txt would be the usual
+# answer, but it only has any effect at the origin root
+# (hamadsnaif.github.io/robots.txt), which is served by a different repository —
+# a copy inside this project would sit at /Test/robots.txt and be ignored. The
+# meta tag is what search engines actually honour for a page like this.
+NOINDEX = '<meta name="robots" content="noindex, nofollow">'
+
 WEBAPP_META = [
     ('apple-mobile-web-app-capable', '<meta name="apple-mobile-web-app-capable" content="yes">'),
     ('mobile-web-app-capable', '<meta name="mobile-web-app-capable" content="yes">'),
@@ -61,6 +68,8 @@ def with_app_head(html, title):
     icon and open the page full screen when a game is added on its own.
     """
     add = ICON_LINKS
+    if 'name="robots"' not in html:
+        add += NOINDEX + '\n'
     for name, tag in WEBAPP_META:
         if f'name="{name}"' not in html:
             add += tag + '\n'
@@ -127,6 +136,7 @@ PWA_HEAD = ('<!DOCTYPE html>\n<html lang="ar" dir="rtl">\n<head>\n<meta charset=
             '<meta name="viewport" content="width=device-width, initial-scale=1.0, '
             'maximum-scale=1.0, user-scalable=no, viewport-fit=cover">\n'
             '<meta name="theme-color" content="#14171c">\n'
+            + NOINDEX + '\n' +
             '<meta name="apple-mobile-web-app-title" content="Hamad\'s Games">\n'
             '<meta name="mobile-web-app-capable" content="yes">\n'
             '<link rel="manifest" href="./manifest.webmanifest">\n'
