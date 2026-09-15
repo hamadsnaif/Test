@@ -21,10 +21,14 @@ python3 -m http.server 8000
 ## التثبيت كتطبيق على الآيفون
 اللعبة تطبيق ويب كامل (PWA): أيقونة خاصة، وضع ملء الشاشة بدون شريط المتصفح، وتعمل بدون إنترنت بعد أول فتح.
 
-1. فعّل GitHub Pages لهذا المستودع: Settings ثم Pages، واختر الفرع `claude/red-ball-game-xph1uj` والمجلد `/ (root)`.
-2. افتح الرابط الناتج في Safari على الآيفون (وليس Chrome).
-3. زر المشاركة ثم "إضافة إلى الشاشة الرئيسية".
-4. افتح اللعبة من الأيقونة الجديدة، فتعمل بملء الشاشة.
+تطبيق GitHub على الآيفون لا يحتوي شاشة Settings للمستودع، لذلك الخطوتان الأوليان تتمان من Safari على نفس الجوال.
+
+1. المستودع خاص حالياً، وGitHub Pages لا يعمل مع المستودعات الخاصة إلا باشتراك مدفوع. إن كان حسابك مجانياً اجعل المستودع عاماً من:
+   `https://github.com/hamadsnaif/Test/settings` ثم Danger Zone ثم Change visibility.
+2. فعّل Pages من `https://github.com/hamadsnaif/Test/settings/pages`: اختر **Deploy from a branch**، والفرع `claude/red-ball-game-xph1uj`، والمجلد `/ (root)`، ثم Save.
+3. بعد دقيقة افتح `https://hamadsnaif.github.io/Test/` في Safari.
+4. زر المشاركة ثم "إضافة إلى الشاشة الرئيسية".
+5. افتح اللعبة من الأيقونة الجديدة، فتعمل بملء الشاشة.
 
 الملفات المسؤولة: `manifest.webmanifest` و`sw.js` وأيقونات `icon-*.png`.
 

@@ -1,10 +1,9 @@
 name: Deploy to GitHub Pages
 
+# Run by hand. Only needed when the Pages source is set to "GitHub Actions";
+# with the simpler "Deploy from a branch" source, GitHub publishes the files
+# on its own and this workflow is not used.
 on:
-  push:
-    branches:
-      - main
-      - claude/red-ball-game-xph1uj
   workflow_dispatch:
 
 permissions:
