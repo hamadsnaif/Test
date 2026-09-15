@@ -1,19 +1,35 @@
 {
-  "name": "Bounce",
-  "short_name": "Bounce",
-  "description": "The original Nokia Bounce, all eleven levels.",
+  "name": "Hamad's Games",
+  "short_name": "Hamad's Games",
+  "description": "ثلاث ألعاب من زمن نوكيا: الكرة الحمراء، الدودة، وتتريس.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
-  "display_override": ["fullscreen", "standalone"],
+  "display_override": [
+    "fullscreen",
+    "standalone"
+  ],
   "orientation": "any",
-  "background_color": "#14161c",
-  "theme_color": "#14161c",
+  "background_color": "#14171c",
+  "theme_color": "#14171c",
   "lang": "ar",
   "dir": "rtl",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

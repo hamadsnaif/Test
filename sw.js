@@ -1,7 +1,8 @@
-// Offline cache for the Bounce web app. The game is a single self-contained
-// page, so the cache only holds the page, the manifest and the icons.
-const CACHE = 'bounce-v1';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
+// Offline cache for Hamad's Games. Each page is self contained, so the cache
+// only holds the launcher, the three games, the manifest and the icons.
+const CACHE = 'hamads-games-v2';
+const ASSETS = ['./', './index.html', './bounce.html', './snake.html', './tetris.html',
+  './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -20,7 +21,6 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(hit => {
       if (hit) {
-        // refresh the cached copy in the background
         fetch(e.request).then(res => { if (res && res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone())); }).catch(() => {});
         return hit;
       }
