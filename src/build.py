@@ -27,6 +27,17 @@ def emit(path, text):
     """Collect an output instead of writing it, so --check can compare first."""
     WRITTEN[path] = text.encode() if isinstance(text, str) else text
 
+
+def have(path):
+    """Is this page going to exist, counting what this run has produced?
+
+    Outputs are buffered rather than written as they are made, so asking the
+    disk alone answers "no" for every page this run is about to write. Building
+    a clean checkout would then quietly leave the games out of the worker's
+    offline list and out of the single file build.
+    """
+    return path in WRITTEN or os.path.exists(path)
+
 ICON_LINKS = (
     '<link rel="apple-touch-icon" href="./apple-touch-icon.png">\n'
     '<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">\n'
@@ -139,7 +150,7 @@ def b64(path):
     return base64.b64encode(open(path, 'rb').read()).decode()
 
 art_sources = {e['id']: {'b64': b64(os.path.join(REPO, e['file']))}
-               for e in ENTRIES if os.path.exists(os.path.join(REPO, e['file']))}
+               for e in ENTRIES if have(os.path.join(REPO, e['file']))}
 emit(os.path.join(BUILD_DIR, 'hamads-games.html'), fill(hub, REGISTRY_JSON, art_sources, False))
 
 # ---------- 3. app files
@@ -180,7 +191,7 @@ emit(os.path.join(REPO, 'manifest.webmanifest'), json.dumps({
 CACHED = ['./', './index.html', './games.json', './manifest.webmanifest',
           './apple-touch-icon.png', './icon-120.png', './icon-152.png',
           './icon-167.png', './icon-180.png', './icon-192.png', './icon-512.png']
-CACHED += ['./' + e['file'] for e in ENTRIES if os.path.exists(os.path.join(REPO, e['file']))]
+CACHED += ['./' + e['file'] for e in ENTRIES if have(os.path.join(REPO, e['file']))]
 CACHED = sorted(set(CACHED))
 
 SW_BODY = r"""// Offline cache for Hamad's Games, and the path new versions travel down.
