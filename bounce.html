@@ -48,8 +48,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    padding-inline: 16px;
+    padding-inline: 10px;
     padding-block: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom));
   }
   #top {
@@ -63,13 +64,59 @@
   }
   #brand { font-family: "Courier New", monospace; font-weight: 700; font-size: 16px; letter-spacing: 3px; color: var(--amber); margin: 0; }
   #sub { font-size: 12px; color: var(--muted); direction: rtl; }
-  #stage {
-    flex: 1 1 auto;
+  /* ---------- هيكل الجوال ---------- */
+  #phone {
+    position: relative;
+    flex: 0 1 auto;
+    max-height: 100%;
     min-height: 0;
     width: 100%;
+    max-width: 410px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 14px;
+    border-radius: 34px / 40px;      /* الاستدارة البيضوية المميّزة للهيكل */
+    background: linear-gradient(175deg, #4a4740 0%, #34322c 42%, #2a2823 100%);
+    border: 1px solid #55514a;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.14),
+      inset 0 -2px 6px rgba(0,0,0,.45),
+      0 10px 26px rgba(0,0,0,.5);
+  }
+  #grille {
+    flex: 0 0 auto;
+    width: 62px; height: 7px;
+    border-radius: 4px;
+    background: #16150f;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.08);
+  }
+  #nokia {
+    flex: 0 0 auto;
+    font-family: var(--font-pixel, monospace);
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: #cfc8b6;
+    opacity: .75;
+    direction: ltr;
+  }
+  #stage {
+    flex: 0 1 auto;
+    width: 100%;
+    aspect-ratio: 1;
+    min-height: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  /* الشاشة غائرة في الهيكل لا ملصقة عليه، والبئر بمقاس الصورة تماماً */
+  #screen {
+    padding: 9px;
+    border-radius: 10px;
+    background: #14130f;
+    box-shadow: inset 0 3px 8px rgba(0,0,0,.75), 0 1px 0 rgba(255,255,255,.07);
+    line-height: 0;
   }
   #game {
     display: block;
@@ -80,6 +127,98 @@
     image-rendering: crisp-edges;
     touch-action: none;
   }
+  /* ---------- الأزرار ---------- */
+  #keys {
+    flex: 0 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  #softrow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+  }
+  .soft {
+    height: 30px;
+    border: 1px solid #5d584f;
+    border-radius: 8px 8px 16px 16px;
+    background: linear-gradient(180deg, #565147, #3d3931);
+    color: #efe9dc;
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 0 6px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 2px 0 #1e1b16;
+    touch-action: none;
+  }
+  #softL { border-radius: 8px 16px 16px 8px; }
+  #softR { border-radius: 16px 8px 8px 16px; }
+  .soft:active, .soft.down { transform: translateY(2px); box-shadow: inset 0 1px 3px rgba(0,0,0,.5); }
+
+  /* مفتاح التنقّل: قرص واحد بأربعة اتجاهات ومركز */
+  #nav {
+    position: relative;
+    width: 96px; height: 62px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #575248, #3b372f);
+    border: 1px solid #5d584f;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 2px 0 #1e1b16;
+  }
+  .nv {
+    position: absolute;
+    border: 0;
+    background: transparent;
+    color: #e8e2d4;
+    font-size: 11px;
+    padding: 0;
+    touch-action: none;
+    line-height: 1;
+  }
+  #navU { top: 1px; left: 50%; transform: translateX(-50%); width: 38px; height: 20px; }
+  #navD { bottom: 1px; left: 50%; transform: translateX(-50%); width: 38px; height: 20px; }
+  #navL { left: 2px; top: 50%; transform: translateY(-50%); width: 24px; height: 34px; }
+  #navR { right: 2px; top: 50%; transform: translateY(-50%); width: 24px; height: 34px; }
+  #navC {
+    left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 30px; height: 24px; border-radius: 12px;
+    background: #2f2c26;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.6);
+  }
+  .nv:active, .nv.down { color: var(--accent, #9fd07a); filter: brightness(1.5); }
+
+  /* لوحة الأرقام: أربعة صفوف، والحروف تحت الرقم كما في الأصل */
+  #keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .num {
+    height: 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    border: 1px solid #5d584f;
+    border-radius: 9px;
+    background: linear-gradient(180deg, #565147, #3d3931);
+    color: #f1ece0;
+    font-family: inherit;
+    padding: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 2px 0 #1e1b16;
+    touch-action: none;
+  }
+  .num b { font-size: 15px; font-weight: 700; line-height: 1; direction: ltr; }
+  .num i { font-size: 8px; font-style: normal; letter-spacing: .6px; color: #a79f8d; direction: ltr; }
+  .num:active, .num.down { transform: translateY(2px); box-shadow: inset 0 1px 3px rgba(0,0,0,.5); background: #6b6558; }
+  /* المفاتيح التي تحرّك الكرة تُميَّز بلمسة لون، فيعرفها اللاعب دون شرح */
+  .num.live b { color: var(--accent, #9fd07a); }
+
+  body.joystick #keys { display: none; }
+  body:not(.joystick) #stickpad { display: none; }
+
   #pad {
     flex: 0 0 auto;
     width: 100%;
@@ -165,7 +304,44 @@
   body.touch.joystick #stickpad { display: block; }
   /* landscape: float the stick in the left margin so the game keeps the
      whole height */
+  /* شاشة قصيرة: المفاتيح تتنازل عن ارتفاعها للشاشة، لا العكس.
+     الشاشة تقيس بمضاعفات صحيحة، فكل بضعة بكسلات قد تعني درجة كاملة. */
+  @media (max-height: 740px) and (orientation: portrait) {
+    #phone { gap: 6px; padding-top: 8px; }
+    #grille { height: 5px; }
+    #nokia { font-size: 11px; }
+    #keys { gap: 5px; }
+    #keypad { gap: 4px; }
+    .num { height: 30px; }
+    .num b { font-size: 13px; }
+    .num i { display: none; }
+    #nav { width: 84px; height: 52px; }
+    .soft { height: 26px; }
+  }
+  @media (max-height: 620px) and (orientation: portrait) {
+    .num { height: 25px; }
+    #nav { width: 76px; height: 44px; }
+    #nokia, #grille { display: none; }
+  }
+
+  /* الوضع الأفقي: الجهاز العامودي لا يُقلب، فيتحوّل إلى هيئة عرضية —
+     الشاشة بكامل الارتفاع ومفتاح التنقّل والزرّان بجانبها. لوحة الأرقام
+     تحتاج ارتفاعاً لا يوجد هنا، فتُخفى بدل أن تسحق الشاشة إلى لا شيء. */
   @media (orientation: landscape) and (max-height: 560px) {
+    #phone {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      max-width: none;
+      gap: 14px;
+      padding: 10px 14px;
+    }
+    #grille, #nokia, #keypad { display: none; }
+    #stage { height: 100%; width: auto; aspect-ratio: 1; flex: 0 1 auto; }
+    #keys { width: auto; flex: 0 0 auto; }
+    #softrow { grid-template-columns: 1fr; justify-items: center; gap: 10px; }
+    .soft { width: 100%; }
+
     body.touch.joystick #shell { position: relative; }
     body.touch.joystick #stickpad {
       position: absolute;
@@ -210,24 +386,52 @@
 </head>
 <body>
 <div id="shell">
-  <div id="top">
-    <h1 id="brand">BOUNCE</h1>
-    <div id="sub">نوكيا، المراحل الإحدى عشرة الأصلية</div>
+  <!-- هيكل الجوال العامودي الكلاسيكي: سمّاعة، فوقها الاسم، ثم شاشة غائرة،
+       ثم زرّان جانبيان ومفتاح تنقّل رباعي، ثم لوحة الأرقام بحروفها.
+       الأرقام تعمل كما في نوكيا الأصلية لا كزينة. -->
+  <div id="phone">
+    <div id="grille" aria-hidden="true"></div>
+    <div id="nokia">NOKIA</div>
+    <div id="stage"><div id="screen"><canvas id="game" width="384" height="384"></canvas></div></div>
+
+    <div id="keys">
+      <div id="softrow">
+        <button class="soft" id="softL">القائمة</button>
+        <div id="nav">
+          <button class="nv" id="navU" aria-label="قفز">▲</button>
+          <button class="nv" id="navL" aria-label="يسار">◀</button>
+          <button class="nv" id="navC" aria-label="اختيار"></button>
+          <button class="nv" id="navR" aria-label="يمين">▶</button>
+          <button class="nv" id="navD" aria-label="أسفل">▼</button>
+        </div>
+        <button class="soft" id="softR">إيقاف</button>
+      </div>
+
+      <div id="keypad">
+        <button class="num" data-k="1"><b>1</b><i>∞</i></button>
+        <button class="num" data-k="2"><b>2</b><i>abc</i></button>
+        <button class="num" data-k="3"><b>3</b><i>def</i></button>
+        <button class="num" data-k="4"><b>4</b><i>ghi</i></button>
+        <button class="num" data-k="5"><b>5</b><i>jkl</i></button>
+        <button class="num" data-k="6"><b>6</b><i>mno</i></button>
+        <button class="num" data-k="7"><b>7</b><i>pqrs</i></button>
+        <button class="num" data-k="8"><b>8</b><i>tuv</i></button>
+        <button class="num" data-k="9"><b>9</b><i>wxyz</i></button>
+        <button class="num" data-k="*"><b>*</b><i>+</i></button>
+        <button class="num" data-k="0"><b>0</b><i>␣</i></button>
+        <button class="num" data-k="#"><b>#</b><i>↵</i></button>
+      </div>
+    </div>
+
+    <div id="stickpad">
+      <div id="stickzone"><div id="stickbase"><div id="stickknob"></div></div></div>
+      <button id="btnM2" aria-label="القائمة">☰</button>
+    </div>
   </div>
-  <div id="stage"><canvas id="game" width="384" height="384"></canvas></div>
-  <div id="pad">
-    <button id="btnM" aria-label="القائمة">☰</button>
-    <button id="btnL" aria-label="يسار">◀ 4</button>
-    <button id="btnR" aria-label="يمين">6 ▶</button>
-    <button id="btnJ" aria-label="قفز">2 ▲ قفز</button>
-  </div>
-  <div id="stickpad">
-    <div id="stickzone"><div id="stickbase"><div id="stickknob"></div></div></div>
-    <button id="btnM2" aria-label="القائمة">☰</button>
-  </div>
+
   <div id="hint">
-    <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز، Esc للإيقاف المؤقت والعودة للقائمة. التقدم يُحفظ تلقائياً.</span>
-    <span id="hint-touch">بدّل بين الأزرار والعصا من القائمة. ☰ للإيقاف المؤقت. التقدم يُحفظ تلقائياً.</span>
+    <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز، Esc للإيقاف المؤقت. التقدم يُحفظ تلقائياً.</span>
+    <span id="hint-touch">لوحة المفاتيح تعمل كما في نوكيا: 4 و6 للحركة، و2 أو 5 للقفز. بدّلها بعصا من القائمة.</span>
   </div>
 </div>
 
@@ -598,12 +802,12 @@
     respawn();
     levelCntr = 60;
   }
-  // The stick is the default: one thumb steers and jumps, and there is nothing
-  // small to hit. Anyone who has chosen the pad before keeps it.
-  let joystick = true;
+  // The phone's own keypad is the default now that there is a phone around the
+  // screen. The floating stick stays a choice for anyone who prefers a thumb
+  // that never leaves the glass.
+  let joystick = false;
   try {
-    const saved = localStorage.getItem('bounce_controls');
-    if (saved) joystick = saved === 'stick';
+    joystick = localStorage.getItem('bounce_controls') === 'stick';
   } catch (e) { /* storage off */ }
   function applyControls() { document.body.classList.toggle('joystick', joystick); }
   function toggleControls() {
@@ -615,12 +819,12 @@
   }
   function menuItems() {
     const items = ['New game', 'Continue', 'High score ' + String(hiScore).padStart(8, '0')];
-    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Pad'));
+    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Keys'));
     return items;
   }
   function pauseItems() {
     const items = ['Continue'];
-    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Pad'));
+    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Keys'));
     items.push('Main menu');
     return items;
   }
@@ -1094,7 +1298,7 @@
     const dpr = window.devicePixelRatio || 1;
     const stage = document.getElementById('stage');
     const aw = stage.clientWidth, ah = stage.clientHeight;
-    let k = Math.floor((Math.min(aw, ah) - 8) * dpr / SW);
+    let k = Math.floor((Math.min(aw, ah) - 26) * dpr / SW);   // 8 breathing room + the well's 9px each side
     if (k < 1) k = 1;
     view.width = view.height = SW * k;
     view.style.width = view.style.height = (SW * k / dpr) + 'px';
@@ -1176,28 +1380,67 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) { clearKeys(); persist(); } });
   window.addEventListener('pagehide', persist);
 
-  function bindTouch(id, k) {
-    const el = document.getElementById(id);
-    let id_ = null;
+
+  // ------------------------------------------------------------------
+  // The phone's own keys. A Nokia keypad is a direction grid around 5, so
+  // that is what these do: the row above 5 jumps, 4 and 6 steer, and the
+  // corners do both at once — which is how you take a gap at speed.
+  //
+  //   1 ↖   2 ↑   3 ↗
+  //   4 ←   5 ↑   6 →
+  //   7 ←   8 ·   9 →
+  // ------------------------------------------------------------------
+  const KEYPAD = {
+    '1': ['left', 'up'], '2': ['up'],   '3': ['right', 'up'],
+    '4': ['left'],       '5': ['up'],   '6': ['right'],
+    '7': ['left'],       '8': [],       '9': ['right'],
+    '*': [], '0': [], '#': []
+  };
+
+  function bindMulti(el, keys, menuAction) {
+    let pid = null;
     const on = e => {
-      e.preventDefault(); unlockAudio(); el.classList.add('down');
-      if (mode === 'menu' || mode === 'pause') { if (k === 'left') moveSel(-1); else if (k === 'right') moveSel(1); else press(); return; }
-      id_ = e.pointerId;
+      e.preventDefault(); unlockAudio();
+      el.classList.add('down');
+      if (mode === 'menu' || mode === 'pause') {
+        if (menuAction) { menuAction(); return; }
+        if (keys.indexOf('left') >= 0) moveSel(-1);
+        else if (keys.indexOf('right') >= 0) moveSel(1);
+        else press();
+        return;
+      }
+      pid = e.pointerId;
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
-      setFrom('pad', k, true);
-      if (mode !== 'play') press();
+      for (const k of keys) setFrom('pad', k, true);
+      if (mode !== 'play' && keys.length) press();
     };
     const off = e => {
-      if (id_ !== null && e.pointerId !== id_) return;
-      e.preventDefault(); id_ = null;
-      setFrom('pad', k, false);
+      if (pid !== null && e.pointerId !== pid) return;
+      e.preventDefault(); pid = null;
       el.classList.remove('down');
+      for (const k of keys) setFrom('pad', k, false);
     };
     el.addEventListener('pointerdown', on);
     el.addEventListener('pointerup', off);
     el.addEventListener('pointercancel', off);
   }
-  bindTouch('btnL', 'left'); bindTouch('btnR', 'right'); bindTouch('btnJ', 'up');
+
+  for (const el of document.querySelectorAll('#keypad .num')) {
+    const keys = KEYPAD[el.dataset.k] || [];
+    if (keys.length) el.classList.add('live');
+    bindMulti(el, keys);
+  }
+  bindMulti(document.getElementById('navL'), ['left']);
+  bindMulti(document.getElementById('navR'), ['right']);
+  bindMulti(document.getElementById('navU'), ['up']);
+  bindMulti(document.getElementById('navD'), [], () => moveSel(1));
+  bindMulti(document.getElementById('navC'), [], () => press());
+  // the two keys under the screen: the left one opens things, the right one stops
+  bindMulti(document.getElementById('softL'), [], () => press());
+  document.getElementById('softR').addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
+  });
   // Floating stick: the base jumps to wherever the thumb lands, so there is
   // nothing small to hit. The jump pad is a separate pointer, so steering and
   // jumping never interrupt each other.
@@ -1255,8 +1498,6 @@
     if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
   });
 
-  const btnM = document.getElementById('btnM');
-  btnM.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu(); });
   view.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); tapAt(e.clientY); });
 
   // ------------------------------------------------------------------

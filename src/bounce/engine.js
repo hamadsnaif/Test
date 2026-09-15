@@ -342,12 +342,12 @@
     respawn();
     levelCntr = 60;
   }
-  // The stick is the default: one thumb steers and jumps, and there is nothing
-  // small to hit. Anyone who has chosen the pad before keeps it.
-  let joystick = true;
+  // The phone's own keypad is the default now that there is a phone around the
+  // screen. The floating stick stays a choice for anyone who prefers a thumb
+  // that never leaves the glass.
+  let joystick = false;
   try {
-    const saved = localStorage.getItem('bounce_controls');
-    if (saved) joystick = saved === 'stick';
+    joystick = localStorage.getItem('bounce_controls') === 'stick';
   } catch (e) { /* storage off */ }
   function applyControls() { document.body.classList.toggle('joystick', joystick); }
   function toggleControls() {
@@ -359,12 +359,12 @@
   }
   function menuItems() {
     const items = ['New game', 'Continue', 'High score ' + String(hiScore).padStart(8, '0')];
-    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Pad'));
+    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Keys'));
     return items;
   }
   function pauseItems() {
     const items = ['Continue'];
-    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Pad'));
+    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Keys'));
     items.push('Main menu');
     return items;
   }
@@ -838,7 +838,7 @@
     const dpr = window.devicePixelRatio || 1;
     const stage = document.getElementById('stage');
     const aw = stage.clientWidth, ah = stage.clientHeight;
-    let k = Math.floor((Math.min(aw, ah) - 8) * dpr / SW);
+    let k = Math.floor((Math.min(aw, ah) - 26) * dpr / SW);   // 8 breathing room + the well's 9px each side
     if (k < 1) k = 1;
     view.width = view.height = SW * k;
     view.style.width = view.style.height = (SW * k / dpr) + 'px';
@@ -920,28 +920,67 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) { clearKeys(); persist(); } });
   window.addEventListener('pagehide', persist);
 
-  function bindTouch(id, k) {
-    const el = document.getElementById(id);
-    let id_ = null;
+
+  // ------------------------------------------------------------------
+  // The phone's own keys. A Nokia keypad is a direction grid around 5, so
+  // that is what these do: the row above 5 jumps, 4 and 6 steer, and the
+  // corners do both at once — which is how you take a gap at speed.
+  //
+  //   1 ↖   2 ↑   3 ↗
+  //   4 ←   5 ↑   6 →
+  //   7 ←   8 ·   9 →
+  // ------------------------------------------------------------------
+  const KEYPAD = {
+    '1': ['left', 'up'], '2': ['up'],   '3': ['right', 'up'],
+    '4': ['left'],       '5': ['up'],   '6': ['right'],
+    '7': ['left'],       '8': [],       '9': ['right'],
+    '*': [], '0': [], '#': []
+  };
+
+  function bindMulti(el, keys, menuAction) {
+    let pid = null;
     const on = e => {
-      e.preventDefault(); unlockAudio(); el.classList.add('down');
-      if (mode === 'menu' || mode === 'pause') { if (k === 'left') moveSel(-1); else if (k === 'right') moveSel(1); else press(); return; }
-      id_ = e.pointerId;
+      e.preventDefault(); unlockAudio();
+      el.classList.add('down');
+      if (mode === 'menu' || mode === 'pause') {
+        if (menuAction) { menuAction(); return; }
+        if (keys.indexOf('left') >= 0) moveSel(-1);
+        else if (keys.indexOf('right') >= 0) moveSel(1);
+        else press();
+        return;
+      }
+      pid = e.pointerId;
       try { el.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
-      setFrom('pad', k, true);
-      if (mode !== 'play') press();
+      for (const k of keys) setFrom('pad', k, true);
+      if (mode !== 'play' && keys.length) press();
     };
     const off = e => {
-      if (id_ !== null && e.pointerId !== id_) return;
-      e.preventDefault(); id_ = null;
-      setFrom('pad', k, false);
+      if (pid !== null && e.pointerId !== pid) return;
+      e.preventDefault(); pid = null;
       el.classList.remove('down');
+      for (const k of keys) setFrom('pad', k, false);
     };
     el.addEventListener('pointerdown', on);
     el.addEventListener('pointerup', off);
     el.addEventListener('pointercancel', off);
   }
-  bindTouch('btnL', 'left'); bindTouch('btnR', 'right'); bindTouch('btnJ', 'up');
+
+  for (const el of document.querySelectorAll('#keypad .num')) {
+    const keys = KEYPAD[el.dataset.k] || [];
+    if (keys.length) el.classList.add('live');
+    bindMulti(el, keys);
+  }
+  bindMulti(document.getElementById('navL'), ['left']);
+  bindMulti(document.getElementById('navR'), ['right']);
+  bindMulti(document.getElementById('navU'), ['up']);
+  bindMulti(document.getElementById('navD'), [], () => moveSel(1));
+  bindMulti(document.getElementById('navC'), [], () => press());
+  // the two keys under the screen: the left one opens things, the right one stops
+  bindMulti(document.getElementById('softL'), [], () => press());
+  document.getElementById('softR').addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
+  });
   // Floating stick: the base jumps to wherever the thumb lands, so there is
   // nothing small to hit. The jump pad is a separate pointer, so steering and
   // jumping never interrupt each other.
@@ -999,8 +1038,6 @@
     if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
   });
 
-  const btnM = document.getElementById('btnM');
-  btnM.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu(); });
   view.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); tapAt(e.clientY); });
 
   // ------------------------------------------------------------------
