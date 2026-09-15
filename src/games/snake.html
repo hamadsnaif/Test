@@ -7,10 +7,11 @@
 <style>
   :root {
     /* شاشة 3310: رمادي مخضرّ باهت، لا أخضر الغيم بوي الفاقع */
-    --lcd-bg: #9fb0c8;
-    --lcd-dark: #17202c;
-    --lcd-mid: #43536b;
-    --lcd-light: #b3c2d6;
+    --accent: #6fe38a;     /* لون اللعبة، يظهر في المؤشّرين وزرّ المنتصف */
+    --lcd-bg: #b3d492;
+    --lcd-dark: #182412;
+    --lcd-mid: #47643a;
+    --lcd-light: #c6e2a8;
     /* الغطاء الأمامي الأزرق الرمادي المميّز للجهاز */
     --face-hi: #d3dae1;
     --face: #b9c2cc;
@@ -41,191 +42,141 @@
   }
 
   /* ---------- Phone shell ---------- */
-  /* ==================== نوكيا 6310 ====================
-     الهدف أن يبدو صورةً لجهاز لا رسماً له. لذلك كل قطعة لها مادّتها:
-     البدن بلاستيك فحمي مطفأ، والواجهة شمبانيا معدنية، وجناح التنقّل
-     كروم، والمفاتيح مطاط داكن. والإضاءة من أعلى في كلّها، فالحوافّ
-     العليا تلمع والسفلى تظلّ — وهذا وحده ما يجعل السطح يبدو مجسّماً. */
-  .phone {
-    position: relative;
+  /* ==================== الهيكل ====================
+     ليس تقليداً لجهاز بعينه. سبيكة عامودية واحدة: شاشة كبيرة في أعلاها،
+     ولوحة تحكّم في أسفلها حيث يصل الإبهام فعلاً. القاعدة التي تحكم كل
+     مقاس هنا: لا زرّ أصغر من 48 بكسل، لأن ما دون ذلك يُخطئه الإبهام. */
+  .unit {
     width: 100%;
-    max-width: min(340px, 50vh);
-    padding: 0 0 10px;
+    max-width: min(400px, 56vh);
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-    /* البدن: أغمق عند الحواف وأفتح في الوسط، كأسطوانة لا كلوح */
+    gap: 10px;
+    padding: 12px 12px 14px;
+    border-radius: 26px;
     background:
-      linear-gradient(90deg,
-        #0d0d0f 0%, #202024 5%, #35353a 13%, #2a2a2e 50%,
-        #35353a 87%, #202024 95%, #0d0d0f 100%);
-    border-radius: 30px 30px 20px 20px / 44px 44px 18px 18px;
+      /* أربعة براغٍ في الزوايا: طابع الأجهزة القديمة بلا كلفة في المساحة */
+      radial-gradient(circle 4px at 16px 16px, #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
+      radial-gradient(circle 4px at calc(100% - 16px) 16px, #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
+      radial-gradient(circle 4px at 16px calc(100% - 16px), #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
+      radial-gradient(circle 4px at calc(100% - 16px) calc(100% - 16px), #16191e 0 52%, rgba(255,255,255,.10) 54% 68%, transparent 70%),
+      linear-gradient(168deg, #3a4048 0%, #24282e 46%, #171a1f 100%);
     box-shadow:
-      /* حافّة عليا مضيئة، وحافّة سفلى مظلمة، وظلّ على الأرضية */
-      inset 0 1.5px 0 rgba(255,255,255,.34),
-      inset 0 -2px 4px rgba(0,0,0,.85),
-      inset 2px 0 3px rgba(0,0,0,.5),
-      inset -2px 0 3px rgba(0,0,0,.5),
-      0 26px 46px rgba(0,0,0,.72),
-      0 6px 14px rgba(0,0,0,.55);
+      inset 0 1px 0 rgba(255,255,255,.14),
+      inset 0 -2px 6px rgba(0,0,0,.6),
+      0 20px 44px rgba(0,0,0,.7);
   }
 
-  /* الواجهة الذهبية: لوح معدني مغروز في البدن، فله ظلّ داخلي حوله */
-  .fascia {
-    margin: 7px 11px 8px;
-    padding: 9px 9px 10px;
-    border-radius: 24px 24px 16px 16px / 34px 34px 14px 14px;
-    background:
-      linear-gradient(103deg,
-        #8f7635 0%, #c7ad69 8%, #e8d7a4 22%, #d8c489 42%,
-        #c9b277 62%, #e2d09c 80%, #b99f5f 94%, #7e6730 100%);
+  /* شريط علوي: اسم اللعبة بين مؤشّرين، يعطي الهيكل وجهاً بلا زخرفة زائدة */
+  .cap {
+    flex: none;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    height: 16px;
+  }
+  .led {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .name {
+    font-family: var(--font-pixel, monospace);
+    font-size: 11px; letter-spacing: 5px; direction: ltr;
+    color: #8f98a5;
+  }
+
+  /* بئر الشاشة: غائر، وحافّته العليا مظلمة والسفلى مضيئة فيبدو محفوراً */
+  .well {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 9px;
+    border-radius: 14px;
+    background: #0c0e11;
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.62),
-      inset 0 -1px 2px rgba(90,70,20,.5),
-      0 0 0 1px rgba(0,0,0,.55),
-      0 2px 5px rgba(0,0,0,.6);
+      inset 0 3px 9px rgba(0,0,0,.9),
+      0 0 0 1px rgba(150,200,120,.14),
+      0 0 22px rgba(130,190,100,.10),
+      0 1px 0 rgba(255,255,255,.1);
+    display: flex;
+  }
+
+  /* لوحة التحكّم: لوح منفصل بأخدود يفصله عن البدن */
+  .deck {
+    flex: none;
     display: flex;
     flex-direction: column;
-    gap: 7px;
-  }
-
-  /* ثلاثة شقوق مائلة للسمّاعة، كما في الجهاز */
-  .earpiece { display: flex; justify-content: center; gap: 9px; height: 13px; margin-top: 1px; }
-  .earpiece i {
-    width: 2.5px; height: 13px;
-    transform: skewX(-17deg);
-    border-radius: 2px;
-    background: linear-gradient(180deg, #4a3d18, #2a2209);
-    box-shadow: 0 1px 0 rgba(255,255,255,.5), inset 0 1px 1px rgba(0,0,0,.9);
-  }
-
-  .brand {
-    text-align: center;
-    font-family: Arial, Helvetica, sans-serif;
-    font-weight: 700;
-    letter-spacing: .5px;
-    font-size: 15px;
-    color: #3d3115;
-    text-shadow: 0 1px 0 rgba(255,255,255,.45);
-    direction: ltr;
-    margin: -1px 0 1px;
-  }
-
-  /* جناح التنقّل: كروم مقوّس، بمفتاحَي اتصال أخضر وأحمر ومفتاح بينهما */
-  .navwing {
-    position: relative;
-    direction: ltr;          /* الأخضر يساراً والأحمر يميناً، كما هو مصبوب */
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    gap: 4px;
-    padding: 4px 5px;
-    border-radius: 26px / 20px;
-    background: linear-gradient(180deg, #f2f4f6 0%, #cdd2d8 38%, #9aa0a8 70%, #c2c7cd 100%);
+    gap: 10px;
+    padding: 11px 10px 9px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #2b3138, #1e2228);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.95),
-      inset 0 -2px 3px rgba(0,0,0,.35),
-      0 0 0 1px rgba(0,0,0,.45),
-      0 2px 4px rgba(0,0,0,.45);
+      inset 0 1px 0 rgba(255,255,255,.1),
+      0 1px 0 rgba(255,255,255,.06);
   }
-  .call, .end {
-    appearance: none; -webkit-appearance: none;
-    height: 26px;
-    border: 0;
-    border-radius: 16px 7px 7px 16px / 14px 7px 7px 14px;
-    font-size: 13px;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0;
-    touch-action: none;
-    color: #f6fff6;
-    text-shadow: 0 1px 1px rgba(0,0,0,.55);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.4);
-  }
-  .call { background: linear-gradient(180deg, #67c06e, #2f7a38 75%); }
-  .end  { background: linear-gradient(180deg, #e0685c, #9e2a22 75%); border-radius: 7px 16px 16px 7px / 7px 14px 14px 7px; }
-  .call span { display: inline-block; transform: scaleX(-1); }
 
-  .rocker { position: relative; width: 56px; height: 34px; }
-  .rk {
-    position: absolute; left: 0; width: 56px;
+  .pills { display: flex; gap: 10px; width: 100%; }
+  .pill {
+    flex: 1;
     appearance: none; -webkit-appearance: none;
-    border: 0; padding: 0; cursor: pointer; touch-action: none;
-    background: linear-gradient(180deg, #e6eaee, #aab0b8 70%, #c6cbd1);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 1px 2px rgba(0,0,0,.4);
-  }
-  .rk.up { top: 0; height: 13px; border-radius: 13px 13px 3px 3px; }
-  .rk.dn { bottom: 0; height: 13px; border-radius: 3px 3px 13px 13px; }
-  .rk.ok {
-    top: 12px; height: 10px; border-radius: 2px;
-    background: linear-gradient(180deg, #8f959d, #767c84);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
-  }
-  /* السهمان الأخضران المطبوعان على المفتاح */
-  .rk.up::after, .rk.dn::after {
-    content: ""; position: absolute; left: 50%; width: 0; height: 0;
-    transform: translateX(-50%);
-    border-left: 5px solid transparent; border-right: 5px solid transparent;
-  }
-  .rk.up::after { top: 3px; border-bottom: 6px solid #2f7a38; }
-  .rk.dn::after { bottom: 3px; border-top: 6px solid #2f7a38; }
-
-  /* المفاتيح: مطاط داكن، حافّة عليا تلمع وأخرى سفلى تغرق */
-  .keypad { display: flex; flex-direction: column; gap: 5px; direction: ltr; margin: 0 13px; }
-  .krow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-  .nk {
-    appearance: none; -webkit-appearance: none;
-    height: 30px;
-    border: 0;
-    border-radius: 9px / 11px;
-    background: linear-gradient(180deg, #4d4e53 0%, #35363a 42%, #232427 100%);
-    color: #eceef1;
+    height: 46px;                 /* لا شيء هنا دون 46: الإبهام يُخطئ ما دونها */
+    border: 1px solid #3d444d;
+    border-radius: 23px;
+    background: linear-gradient(180deg, #39404a, #262b32);
+    color: #dfe5ee;
     font-family: inherit;
+    font-size: 13px;
     cursor: pointer;
-    padding: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    line-height: 1;
     touch-action: none;
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.28),
-      inset 0 -2px 3px rgba(0,0,0,.6),
-      0 2px 3px rgba(0,0,0,.55);
-  }
-  .nk b { font-size: 13px; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
-  .nk i { font-size: 6.5px; font-style: normal; letter-spacing: .4px; color: #a7abb2; }
-  .nk.live b { color: #8fd79a; }
-
-  .call:active, .end:active, .rk:active, .nk:active,
-  .call.down, .end.down, .rk.down, .nk.down {
-    filter: brightness(1.35);
-    box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
-    transform: translateY(1px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 2px 0 #12151a;
   }
 
-  /* الشريط الفاتح أسفل الجهاز */
-  .chin {
-    margin: 9px auto 0;
-    width: 46%;
-    height: 12px;
-    border-radius: 4px 4px 8px 8px;
-    background: linear-gradient(180deg, #b9bcc2, #85888e);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 3px rgba(0,0,0,.6);
+  /* الصليب: ذراع 58 بكسل، أي 174 للمجموع — هدف يصيبه الإبهام دون نظر */
+  .pad {
+    position: relative;
+    width: 174px; height: 174px;
   }
+  .d {
+    position: absolute;
+    appearance: none; -webkit-appearance: none;
+    border: 1px solid #3d444d;
+    background: linear-gradient(180deg, #39404a, #262b32);
+    color: #cfd6e0;
+    font-size: 15px; line-height: 1;
+    padding: 0; cursor: pointer; touch-action: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 3px 0 #12151a;
+  }
+  .d.up    { left: 58px; top: 0;     width: 58px; height: 58px; border-radius: 14px 14px 4px 4px; }
+  .d.down  { left: 58px; bottom: 0;  width: 58px; height: 58px; border-radius: 4px 4px 14px 14px; }
+  .d.left  { left: 0;    top: 58px;  width: 58px; height: 58px; border-radius: 14px 4px 4px 14px; }
+  .d.right { right: 0;   top: 58px;  width: 58px; height: 58px; border-radius: 4px 14px 14px 4px; }
+  .d.mid   {
+    left: 58px; top: 58px; width: 58px; height: 58px;
+    border-radius: 3px;
+    font-size: 9px;
+    color: transparent;
+    background: linear-gradient(180deg, #2f353d, #20242a);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.5);
+  }
+  /* حلقة صغيرة بلون اللعبة في قلب الصليب: تدلّ على الزرّ وتكسر رتابة الجرافيت */
+  .d.mid::after {
+    content: "";
+    position: absolute; left: 50%; top: 50%;
+    width: 14px; height: 14px; margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    opacity: .55;
+  }
+  .pill:active, .pill.down, .d:active, .d.down {
+    transform: translateY(2px);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.5);
+    background: linear-gradient(180deg, #454d58, #2f353d);
+  }
+  .d.mid:active { transform: none; filter: brightness(1.4); }
 
   /* ---------- Screen ---------- */
-  .screen-bezel {
-    background: linear-gradient(180deg, #14161a, #23262c);
-    border-radius: 7px;
-    padding: 7px;
-    box-shadow:
-      inset 0 2px 6px rgba(0,0,0,.9),
-      0 0 0 1px rgba(60,48,16,.7),
-      0 1px 0 rgba(255,255,255,.4);
-  }
   /* انعكاس زجاج خفيف يقطع الشاشة قطرياً، كما في صورة أي جهاز */
-  .screen-bezel { position: relative; overflow: hidden; }
-  .screen-bezel::after {
+  .well { position: relative; overflow: hidden; }
+  .well::after {
     content: "";
     position: absolute; inset: 0;
     pointer-events: none;
@@ -239,7 +190,7 @@
     background: var(--lcd-bg);
     border-radius: 4px;
     overflow: hidden;
-    box-shadow: inset 0 0 20px rgba(23,32,44,.3);
+    box-shadow: inset 0 0 20px rgba(24,36,18,.3);
   }
 
   .screen::after {
@@ -248,8 +199,8 @@
     position: absolute; inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(rgba(23,32,44,.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(23,32,44,.08) 1px, transparent 1px);
+      linear-gradient(rgba(24,36,18,.09) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(24,36,18,.09) 1px, transparent 1px);
     background-size: 4px 4px;
   }
 
@@ -297,7 +248,7 @@
     color: var(--lcd-dark);
     text-align: center;
     padding: 16px;
-    background: rgba(159,176,200,.95);
+    background: rgba(179,212,146,.95);
   }
   .overlay.hidden { display: none; }
   .overlay { gap: 7px; padding: 10px; overflow: hidden; }
@@ -368,109 +319,106 @@
     .overlay .big { font-size: 19px; }
     .overlay .btn { font-size: 9px; padding: 4px 11px; margin-top: 0; }
     .levels button { width: 15px; height: 15px; font-size: 8px; border-width: 1px; }
-    .nk { height: 25px; }
-    .nk i { display: none; }
-    .brand { font-size: 12px; }
   }
-  /* إطار قصير جداً: الجهاز كله يصغر ليُرى بكامله */
-  @media (max-height: 470px) {
-    .phone { padding-bottom: 6px; }
-    .fascia { margin: 5px 8px 6px; padding: 6px 6px 7px; gap: 4px; }
-    .earpiece { height: 9px; } .earpiece i { height: 9px; }
-    .brand { font-size: 10px; margin: 0; }
-    .keypad { gap: 3px; margin: 0 9px; }
-    .krow { gap: 3px; }
-    .nk { height: 19px; }
-    .nk b { font-size: 11px; }
-    .call, .end { height: 19px; font-size: 10px; }
-    .rocker { width: 42px; height: 25px; }
-    .rk { width: 42px; }
-    .rk.up, .rk.dn { height: 10px; }
-    .rk.ok { top: 9px; height: 7px; }
-    .chin { height: 8px; margin-top: 5px; }
-    .screen-bezel { padding: 5px; }
+  /* إطار قصير: الشاشة تتنازل قبل الأزرار، فالأزرار هي ما يُلمس.
+     ولا ينزل الذراع تحت 48 بكسل مهما ضاق الإطار. */
+  @media (max-height: 700px) {
+    .unit { gap: 8px; padding: 10px 10px 12px; }
+    .pad { width: 156px; height: 156px; }
+    .d.up, .d.down { left: 52px; width: 52px; height: 52px; }
+    .d.left, .d.right { top: 52px; width: 52px; height: 52px; }
+    .d.mid { left: 52px; top: 52px; width: 52px; height: 52px; }
+    .pill { height: 44px; }
+    .deck { gap: 8px; padding: 9px 8px 8px; }
+  }
+  /* إطار عريض قصير: اللوحة إلى جانب الشاشة، فلا يُسحق أحدهما الآخر */
+  @media (orientation: landscape) and (max-height: 560px) {
+    .unit {
+      flex-direction: row;
+      align-items: center;
+      max-width: none;
+      width: auto;
+      height: 100%;
+      gap: 12px;
+    }
+    .cap { display: none; }
+    .well { flex: 0 1 auto; min-width: 0; align-self: stretch; }
+    .deck { flex: none; align-self: center; }
+    .pills { flex-direction: column; width: auto; }
+    /* flex:1 في عمود يجعل الأساس صفراً فينهار الارتفاع إلى 17 بكسل:
+       في هذا الاتجاه الزرّ يحتفظ بارتفاعه ولا يتقاسم شيئاً. */
+    .pill { flex: none; width: 104px; height: 46px; }
+  }
+  @media (max-height: 560px) and (orientation: portrait) {
+    .cap { display: none; }
+    .pad { width: 144px; height: 144px; }
+    .d.up, .d.down { left: 48px; width: 48px; height: 48px; }
+    .d.left, .d.right { top: 48px; width: 48px; height: 48px; }
+    .d.mid { left: 48px; top: 48px; width: 48px; height: 48px; }
+    .pill { height: 44px; font-size: 12px; }
+    .well { padding: 6px; }
   }
 </style>
 </head>
 <body>
 
-<div class="phone">
-  <!-- نوكيا 6310: بدن فحمي، وواجهة ذهبية في وسطه، ومجموعة تنقّل فضّية
-       بمفتاحَي اتصال، ثم مفاتيح داكنة. -->
-  <div class="fascia">
-    <div class="earpiece" aria-hidden="true"><i></i><i></i><i></i></div>
-    <div class="brand">Nokia</div>
+<div class="unit">
+  <div class="cap">
+    <span class="led" aria-hidden="true"></span>
+    <span class="name">SNAKE</span>
+    <span class="led" aria-hidden="true"></span>
+  </div>
 
-    <div class="screen-bezel">
-      <div class="screen">
-        <div class="hud">
-          <span id="score">0000</span>
-          <span id="bonus" class="bonus">★ <span id="bonusTimer">20</span></span>
-          <span class="hud-right">
-            <span id="best">TOP 0000</span>
-            <button id="muteBtn" class="mute" aria-label="كتم الصوت" title="الصوت (M)">♪</button>
-          </span>
-        </div>
-        <canvas id="game" width="320" height="240"></canvas>
-
-        <div id="menu" class="overlay">
-          <h1>SNAKE II</h1>
-          <p>الحواف مفتوحة: اخرج من جهة تعُد من المقابلة.</p>
-          <p>السرعة:</p>
-          <div class="levels" id="levels"></div>
-          <button class="btn" id="startBtn">ابدأ</button>
-          <p class="tiny">وجّه بمفاتيح الجهاز: 2 و4 و6 و8، أو بمفتاح التمرير.</p>
-        </div>
-
-        <div id="paused" class="overlay hidden">
-          <h2>إيقاف مؤقت</h2>
-          <p>اضغط مسافة للمتابعة</p>
-          <button class="btn" id="resumeBtn">متابعة</button>
-        </div>
-
-        <div id="gameover" class="overlay hidden">
-          <h2>انتهت اللعبة</h2>
-          <div class="big" id="finalScore">0</div>
-          <p id="recordMsg"></p>
-          <button class="btn" id="againBtn">العب مرة أخرى</button>
-          <button class="btn" id="menuBtn">القائمة</button>
-        </div>
+  <div class="well">
+    <div class="screen">
+      <div class="hud">
+        <span id="score">0000</span>
+        <span id="bonus" class="bonus">★ <span id="bonusTimer">20</span></span>
+        <span class="hud-right">
+          <span id="best">TOP 0000</span>
+          <button id="muteBtn" class="mute" aria-label="كتم الصوت" title="الصوت (M)">♪</button>
+        </span>
       </div>
-    </div>
-    <div class="navwing">
-      <button class="call" id="softLeft" aria-label="قائمة"><span>&#9742;</span></button>
-      <div class="rocker">
-        <button class="rk up" data-dir="up" aria-label="أعلى"></button>
-        <button class="rk ok" id="okBtn" aria-label="اختيار"></button>
-        <button class="rk dn" data-dir="down" aria-label="أسفل"></button>
+      <canvas id="game" width="320" height="240"></canvas>
+
+      <div id="menu" class="overlay">
+        <h1>SNAKE II</h1>
+        <p>الحواف مفتوحة: اخرج من جهة تعُد من المقابلة.</p>
+        <p>السرعة:</p>
+        <div class="levels" id="levels"></div>
+        <button class="btn" id="startBtn">ابدأ</button>
+        <p class="tiny">وجّه بالصليب أسفل الشاشة.</p>
       </div>
-      <button class="end" id="softRight" aria-label="إيقاف"><span>&#9742;</span></button>
+
+      <div id="paused" class="overlay hidden">
+        <h2>إيقاف مؤقت</h2>
+        <p>اضغط مسافة للمتابعة</p>
+        <button class="btn" id="resumeBtn">متابعة</button>
+      </div>
+
+      <div id="gameover" class="overlay hidden">
+        <h2>انتهت اللعبة</h2>
+        <div class="big" id="finalScore">0</div>
+        <p id="recordMsg"></p>
+        <button class="btn" id="againBtn">العب مرة أخرى</button>
+        <button class="btn" id="menuBtn">القائمة</button>
+      </div>
     </div>
   </div>
 
-  <div class="keypad">
-    <div class="krow">
-      <button class="nk" data-k="1"><b>1</b><i>&#8734;</i></button>
-      <button class="nk live" data-k="2" data-dir="up"><b>2</b><i>abc</i></button>
-      <button class="nk" data-k="3"><b>3</b><i>def</i></button>
+  <div class="deck">
+    <div class="pills">
+      <button class="pill" id="softLeft">قائمة</button>
+      <button class="pill" id="softRight">إيقاف</button>
     </div>
-    <div class="krow">
-      <button class="nk live" data-k="4" data-dir="left"><b>4</b><i>ghi</i></button>
-      <button class="nk" data-k="5"><b>5</b><i>jkl</i></button>
-      <button class="nk live" data-k="6" data-dir="right"><b>6</b><i>mno</i></button>
-    </div>
-    <div class="krow">
-      <button class="nk" data-k="7"><b>7</b><i>pqrs</i></button>
-      <button class="nk live" data-k="8" data-dir="down"><b>8</b><i>tuv</i></button>
-      <button class="nk" data-k="9"><b>9</b><i>wxyz</i></button>
-    </div>
-    <div class="krow">
-      <button class="nk" data-k="*"><b>*</b><i>+</i></button>
-      <button class="nk" data-k="0"><b>0</b><i>&nbsp;</i></button>
-      <button class="nk" data-k="#"><b>#</b><i>&nbsp;</i></button>
+    <div class="pad">
+      <button class="d up"    data-dir="up"    aria-label="أعلى">▲</button>
+      <button class="d left"  data-dir="left"  aria-label="يسار">◀</button>
+      <button class="d mid"   id="okBtn"       aria-label="ابدأ"></button>
+      <button class="d right" data-dir="right" aria-label="يمين">▶</button>
+      <button class="d down"  data-dir="down"  aria-label="أسفل">▼</button>
     </div>
   </div>
-  <div class="chin" aria-hidden="true"></div>
 </div>
 
 <script>
@@ -485,9 +433,9 @@
   const ctx = canvas.getContext('2d');
 
   /* ألوان شاشة 3310 نفسها: رمادي مخضرّ باهت وحبر شبه أسود */
-  const COLOR_BG   = '#9fb0c8';
-  const COLOR_DARK = '#17202c';
-  const COLOR_MID  = '#43536b';
+  const COLOR_BG   = '#b3d492';
+  const COLOR_DARK = '#182412';
+  const COLOR_MID  = '#47643a';
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
@@ -790,7 +738,7 @@
   });
 
   // كل مفتاح يحمل اتجاهاً يقود الدودة: مفتاح التمرير، و2/4/6/8 كما على الجهاز
-  document.querySelectorAll('.keypad [data-dir]').forEach(btn => {
+  document.querySelectorAll('.deck [data-dir]').forEach(btn => {
     const handler = e => {
       e.preventDefault();
       if (state === 'menu') startGame();
@@ -799,13 +747,6 @@
     btn.addEventListener('pointerdown', handler);
   });
 
-  // بقيّة الأرقام لا توجّه، لكنها تضغط: 5 يبدأ ويختار، وC يوقف
-  document.querySelectorAll('.nk:not([data-dir])').forEach(btn => {
-    btn.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      if (btn.dataset.k === '5' && (state === 'menu' || state === 'over')) startGame();
-    });
-  });
   /* مفتاح الإنهاء الأحمر يوقف، كما يفعل في الجهاز */
 
   $('okBtn').addEventListener('click', () => {

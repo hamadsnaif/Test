@@ -838,11 +838,26 @@
   function resize() {
     const dpr = window.devicePixelRatio || 1;
     const stage = document.getElementById('stage');
-    const aw = stage.clientWidth, ah = stage.clientHeight;
-    let k = Math.floor((Math.min(aw, ah) - 26) * dpr / SW);   // 8 breathing room + the well's 9px each side
+    const well = stage.parentElement;
+    const unit = stage.closest('.unit');
+    // Pass 1 - measure: body fills the viewport, the well swallows the free
+    // space, the stage takes none. What the well reports is all we may use.
+    // The wide-frame layout lays deck beside well, and there the body is
+    // shrink-to-fit: without this it would measure its own emptiness.
+    if (unit) { unit.style.height = '100%'; unit.style.width = '100%'; }
+    well.style.flexGrow = '1';
+    stage.style.width = stage.style.height = '0px';
+    const aw = well.clientWidth, ah = well.clientHeight;
+    let k = Math.floor((Math.min(aw, ah) - 22) * dpr / SW);   // 8 breathing room + the well's 7px each side
     if (k < 1) k = 1;
     view.width = view.height = SW * k;
-    view.style.width = view.style.height = (SW * k / dpr) + 'px';
+    const css = SW * k / dpr;
+    view.style.width = view.style.height = css + 'px';
+    // Pass 2 - settle: the well hugs the square picture and the body hugs the
+    // well, so no black bands are left above and below the game.
+    stage.style.width = stage.style.height = css + 'px';
+    well.style.flexGrow = '0';
+    if (unit) { unit.style.height = 'auto'; unit.style.width = ''; }
     if (IMG[0]) draw();
     if (typeof restStick === 'function') restStick();
   }
@@ -933,9 +948,7 @@
   // ------------------------------------------------------------------
   const KEYPAD = {
     '1': ['left', 'up'], '2': ['up'],   '3': ['right', 'up'],
-    '4': ['left'],       '5': ['up'],   '6': ['right'],
-    '7': ['left'],       '8': [],       '9': ['right'],
-    '*': [], '0': [], '#': []
+    '4': ['left'],       '5': ['up'],   '6': ['right']
   };
 
   function bindMulti(el, keys, menuAction) {
@@ -971,12 +984,7 @@
     if (keys.length) el.classList.add('live');
     bindMulti(el, keys);
   }
-  bindMulti(document.getElementById('navL'), ['left']);
-  bindMulti(document.getElementById('navR'), ['right']);
-  bindMulti(document.getElementById('navU'), ['up']);
-  bindMulti(document.getElementById('navD'), [], () => moveSel(1));
-  bindMulti(document.getElementById('navC'), [], () => press());
-  // the two keys under the screen: the left one opens things, the right one stops
+  // the two pills above the stick: one opens things, the other stops
   bindMulti(document.getElementById('softL'), [], () => press());
   document.getElementById('softR').addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
@@ -1034,10 +1042,6 @@
   stickZone.addEventListener('pointerup', stickOff);
   stickZone.addEventListener('pointercancel', stickOff);
 
-  document.getElementById('btnM2').addEventListener('pointerdown', e => {
-    e.preventDefault(); unlockAudio();
-    if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
-  });
 
   view.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); tapAt(e.clientY); });
 
