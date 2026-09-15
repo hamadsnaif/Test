@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14161c">
+<meta name="apple-mobile-web-app-title" content="Bounce">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-192.png" type="image/png">
 <title>Bounce</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -107,6 +113,12 @@
     #pad button { height: 56px; font-size: 22px; }
   }
   @media (max-width: 400px) { #sub { display: none; } }
+  /* installed as an app: give the whole screen to the game */
+  @media (display-mode: standalone), (display-mode: fullscreen) {
+    #top, #hint { display: none; }
+    #shell { gap: 8px; }
+  }
+  body.standalone #top, body.standalone #hint { display: none; }
 </style>
 </head>
 <body>
@@ -954,6 +966,7 @@
   // ------------------------------------------------------------------
   const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches;
   if (isTouch) document.body.classList.add('touch');
+  if (navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches) document.body.classList.add('standalone');
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('gesturestart', e => e.preventDefault());
   document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
@@ -1054,6 +1067,11 @@
 
   loadGraphics().then(() => { loadHiScore(); loadLevel(1); resize(); requestAnimationFrame(frame); });
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); });
+}
 </script>
 </body>
 </html>
