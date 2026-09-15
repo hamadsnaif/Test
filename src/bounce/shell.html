@@ -3,13 +3,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root {
-    --ground: #14161c;
-    --key: #2b3040;
-    --key-down: #3d4460;
-    --key-ink: #dfe6f5;
+    --ground: #14161c;          /* الصفحة تبقى داكنة ليبرز البدن الفاتح */
+    --body-hi: #e3e6ea;         /* أعلى البدن الفضّي */
+    --body: #c4c8cf;
+    --body-lo: #a3a8b1;
+    --key: #e8eaee;             /* مفاتيح فضّية فاتحة */
+    --key-down: #c0c5cd;
+    --key-ink: #23262c;         /* حبر داكن عليها */
     --amber: #e59a4d;
     --muted: #8a93a8;
-    --border: #3a4152;
+    --border: #969ca6;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
@@ -61,28 +64,28 @@
     align-items: center;
     gap: 8px;
     padding: 10px 10px 14px;
-    border-radius: 34px / 40px;      /* الاستدارة البيضوية المميّزة للهيكل */
-    background: linear-gradient(175deg, #4a4740 0%, #34322c 42%, #2a2823 100%);
-    border: 1px solid #55514a;
+    border-radius: 30px / 36px;
+    background: linear-gradient(174deg, var(--body-hi) 0%, var(--body) 46%, var(--body-lo) 100%);
+    border: 1px solid #eef0f3;
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,.14),
-      inset 0 -2px 6px rgba(0,0,0,.45),
-      0 10px 26px rgba(0,0,0,.5);
+      inset 0 1px 0 rgba(255,255,255,.9),
+      inset 0 -3px 8px rgba(0,0,0,.16),
+      0 14px 32px rgba(0,0,0,.55);
   }
   #grille {
     flex: 0 0 auto;
-    width: 62px; height: 7px;
+    width: 58px; height: 6px;
     border-radius: 4px;
-    background: #16150f;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.08);
+    background: #6f757f;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.75);
   }
   #nokia {
     flex: 0 0 auto;
     font-family: var(--font-pixel, monospace);
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 4px;
-    color: #cfc8b6;
-    opacity: .75;
+    color: #4d525a;
+    opacity: .9;
     direction: ltr;
   }
   #stage {
@@ -96,10 +99,10 @@
   }
   /* الشاشة غائرة في الهيكل لا ملصقة عليه، والبئر بمقاس الصورة تماماً */
   #screen {
-    padding: 9px;
-    border-radius: 10px;
-    background: #14130f;
-    box-shadow: inset 0 3px 8px rgba(0,0,0,.75), 0 1px 0 rgba(255,255,255,.07);
+    padding: 10px;
+    border-radius: 8px;
+    background: #23262b;
+    box-shadow: inset 0 2px 7px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.75);
     line-height: 0;
   }
   #game {
@@ -127,14 +130,14 @@
   }
   .soft {
     height: 30px;
-    border: 1px solid #5d584f;
+    border: 1px solid #9aa0aa;
     border-radius: 8px 8px 16px 16px;
-    background: linear-gradient(180deg, #565147, #3d3931);
-    color: #efe9dc;
+    background: linear-gradient(180deg, var(--key), var(--key-down));
+    color: var(--key-ink);
     font-family: inherit;
     font-size: 12.5px;
     padding: 0 6px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 2px 0 #1e1b16;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 2px 0 #8b9199;
     touch-action: none;
   }
   #softL { border-radius: 8px 16px 16px 8px; }
@@ -146,15 +149,15 @@
     position: relative;
     width: 96px; height: 62px;
     border-radius: 50%;
-    background: linear-gradient(180deg, #575248, #3b372f);
-    border: 1px solid #5d584f;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 2px 0 #1e1b16;
+    background: linear-gradient(180deg, var(--key), var(--key-down));
+    border: 1px solid #9aa0aa;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 2px 0 #8b9199;
   }
   .nv {
     position: absolute;
     border: 0;
     background: transparent;
-    color: #e8e2d4;
+    color: var(--key-ink);
     font-size: 11px;
     padding: 0;
     touch-action: none;
@@ -167,8 +170,8 @@
   #navC {
     left: 50%; top: 50%; transform: translate(-50%, -50%);
     width: 30px; height: 24px; border-radius: 12px;
-    background: #2f2c26;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.6);
+    background: #b9bec6;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.28);
   }
   .nv:active, .nv.down { color: var(--accent, #9fd07a); filter: brightness(1.5); }
 
@@ -185,23 +188,35 @@
     align-items: center;
     justify-content: center;
     gap: 1px;
-    border: 1px solid #5d584f;
+    border: 1px solid #9aa0aa;
     border-radius: 9px;
-    background: linear-gradient(180deg, #565147, #3d3931);
-    color: #f1ece0;
+    background: linear-gradient(180deg, var(--key), var(--key-down));
+    color: var(--key-ink);
     font-family: inherit;
     padding: 0;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 2px 0 #1e1b16;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 2px 0 #8b9199;
     touch-action: none;
   }
   .num b { font-size: 15px; font-weight: 700; line-height: 1; direction: ltr; }
-  .num i { font-size: 8px; font-style: normal; letter-spacing: .6px; color: #a79f8d; direction: ltr; }
-  .num:active, .num.down { transform: translateY(2px); box-shadow: inset 0 1px 3px rgba(0,0,0,.5); background: #6b6558; }
+  .num i { font-size: 8px; font-style: normal; letter-spacing: .6px; color: #6b707a; direction: ltr; }
+  .num:active, .num.down { transform: translateY(2px); box-shadow: inset 0 1px 3px rgba(0,0,0,.28); background: #aeb4bd; }
   /* المفاتيح التي تحرّك الكرة تُميَّز بلمسة لون، فيعرفها اللاعب دون شرح */
-  .num.live b { color: var(--accent, #9fd07a); }
+  .num.live b { color: #1d6a2f; }
 
-  body.joystick #keys { display: none; }
+  body.joystick #keypad,
+  body.joystick #nav { display: none; }
+  body.joystick #softrow { grid-template-columns: 1fr 1fr; gap: 12px; }
   body:not(.joystick) #stickpad { display: none; }
+  body.joystick #stickpad { display: block; }
+  /* البدن نفسه يحمل العصا، فلا تطفو فوق اللعبة ولا تحتاج زرّاً خاصاً بها */
+  body.joystick #stickpad { height: 148px; }
+  body.joystick #btnM2 { display: none; }
+  body.joystick #stickzone {
+    border-radius: 999px;
+    border: 1px solid #9aa0aa;
+    background: linear-gradient(180deg, #d3d7dd, #b4b9c2);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.2), 0 2px 0 #8b9199;
+  }
 
   #pad {
     flex: 0 0 auto;
@@ -254,8 +269,8 @@
     position: absolute;
     width: 104px; height: 104px;
     border-radius: 50%;
-    border: 2px solid var(--border);
-    background: rgba(43, 48, 64, 0.5);
+    border: 2px solid rgba(90,96,106,.55);
+    background: rgba(255,255,255,.35);
     left: 14px; top: 14px;
     pointer-events: none;
     opacity: .6;
@@ -266,11 +281,11 @@
     left: 28px; top: 28px;
     width: 48px; height: 48px;
     border-radius: 50%;
-    background: var(--key);
-    border: 1px solid var(--border);
-    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35);
+    background: radial-gradient(circle at 38% 32%, #fbfcfd, #c6cbd3 72%);
+    border: 1px solid #8b9199;
+    box-shadow: 0 2px 4px rgba(0,0,0,.35), inset 0 -2px 3px rgba(0,0,0,.18);
   }
-  #stickbase.active #stickknob { background: var(--key-down); }
+  #stickbase.active #stickknob { background: radial-gradient(circle at 38% 32%, #e9ecf0, #a9aeb7 72%); }
   #btnM2 {
     position: absolute;
     right: 10px; top: 10px;
@@ -414,7 +429,7 @@
 
   <div id="hint">
     <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز، Esc للإيقاف المؤقت. التقدم يُحفظ تلقائياً.</span>
-    <span id="hint-touch">لوحة المفاتيح تعمل كما في نوكيا: 4 و6 للحركة، و2 أو 5 للقفز. بدّلها بعصا من القائمة.</span>
+    <span id="hint-touch">حرّك الفرّار للجانبين، وادفعه لأعلى للقفز. لوحة الأرقام بديل من القائمة.</span>
   </div>
 </div>
 

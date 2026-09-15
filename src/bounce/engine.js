@@ -342,12 +342,13 @@
     respawn();
     levelCntr = 60;
   }
-  // The phone's own keypad is the default now that there is a phone around the
-  // screen. The floating stick stays a choice for anyone who prefers a thumb
-  // that never leaves the glass.
-  let joystick = false;
+  // The stick is the control this game is played with: one thumb steers and
+  // jumps, and there is nothing small to hit. The number pad is the
+  // alternative for anyone who wants the keys.
+  let joystick = true;
   try {
-    joystick = localStorage.getItem('bounce_controls') === 'stick';
+    const saved = localStorage.getItem('bounce_controls');
+    if (saved) joystick = saved === 'stick';
   } catch (e) { /* storage off */ }
   function applyControls() { document.body.classList.toggle('joystick', joystick); }
   function toggleControls() {
