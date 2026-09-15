@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "id": "bounce",
+      "file": "bounce.html",
+      "ar": "الكرة الحمراء",
+      "en": "BOUNCE",
+      "stripe": "#e8231f",
+      "desc": "المراحل الإحدى عشرة الأصلية برسومها وفيزيائها، مع حفظ التقدم واختيار نظام التحكم.",
+      "thumb": {
+        "builtin": "bounce"
+      }
+    },
+    {
+      "id": "snake",
+      "file": "snake.html",
+      "ar": "الدودة",
+      "en": "SNAKE II",
+      "stripe": "#9bbc0f",
+      "desc": "أسطورة نوكيا على شاشة خضراء، بسرعات متدرجة وأعلى نتيجة محفوظة.",
+      "thumb": {
+        "builtin": "snake"
+      }
+    },
+    {
+      "id": "tetris",
+      "file": "tetris.html",
+      "ar": "تتريس",
+      "en": "TETRIS",
+      "stripe": "#e0a45e",
+      "desc": "القطع الكلاسيكية بطابع نوكيا، بموسيقى ومؤثرات وأزرار مهيأة للمس.",
+      "thumb": {
+        "builtin": "tetris"
+      }
+    }
+  ]
+}
