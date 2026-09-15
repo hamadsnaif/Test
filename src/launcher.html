@@ -110,6 +110,7 @@
     letter-spacing: 1px;
     color: var(--stripe, #6c7a8c);
     direction: ltr;
+    text-align: end;
     display: block;
     margin-bottom: 5px;
   }
@@ -189,7 +190,7 @@
   <header>
     <h1 id="wordmark">HAMAD'S GAMES</h1>
     <div id="rule"></div>
-    <p id="tagline">ثلاث ألعاب من زمن هواتف نوكيا، أُعيد بناؤها للمتصفح. اختر لعبة لتبدأ.</p>
+    <p id="tagline">ألعاب من زمن هواتف نوكيا، أُعيد بناؤها للمتصفح. اختر لعبة لتبدأ.</p>
   </header>
 
   <div id="list"></div>
@@ -405,6 +406,9 @@
       tile.className = 'tile';
       tile.style.setProperty('--stripe', g.stripe);
       tile.setAttribute('aria-label', 'تشغيل لعبة ' + g.ar);
+      // aria-label replaces the tile's contents for a screen reader, so the
+      // description has to be pointed at explicitly or it is never announced
+      tile.setAttribute('aria-describedby', 'desc-' + g.id);
 
       const mid = document.createElement('div');
       const h = document.createElement('p');
@@ -415,13 +419,14 @@
       en.textContent = g.en;
       const d = document.createElement('p');
       d.className = 'desc';
+      d.id = 'desc-' + g.id;
       d.textContent = g.desc;
       mid.append(h, en, d);
 
       const chev = document.createElement('span');
       chev.className = 'chev';
       chev.setAttribute('aria-hidden', 'true');
-      chev.textContent = '‹';
+      chev.textContent = '\u203a';   // mirrored under dir=rtl, so this draws as ‹
 
       tile.append(thumbFor(g), mid, chev);
       tile.addEventListener('click', () => open(g.id));
@@ -483,6 +488,13 @@
     if (pendingRender) { pendingRender = false; render(); }
     if (pendingReload) applyUpdate();
   }
+
+  // Touching the bar's empty space used to move focus out of the game, and a
+  // game that watches for blur — Tetris does — would pause itself. Only the
+  // dead space is neutralised, so the back button still focuses and clicks.
+  bar.addEventListener('mousedown', e => {
+    if (!e.target.closest('button')) e.preventDefault();
+  });
 
   back.addEventListener('click', () => close(false));
   window.addEventListener('popstate', () => close(true));

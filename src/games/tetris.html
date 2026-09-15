@@ -10,6 +10,11 @@
 <meta name="apple-mobile-web-app-title" content="تتريس">
 <meta name="description" content="لعبة تتريس بطابع هواتف نوكيا القديمة، مهيأة للعب على الآيفون.">
 <title>تتريس نوكيا</title>
+<script>
+/* before first paint: is this page inside the launcher's frame? */
+try { if (window.self !== window.top) document.documentElement.className += ' framed'; }
+catch (e) { document.documentElement.className += ' framed'; }
+</script>
 <style>
 /* الخطوط مضمّنة داخل الملف (data URI) فتعمل بلا إنترنت ولا تعتمد على أي خادم خارجي.
    Handjet و IBM Plex Sans Arabic — رخصة SIL Open Font License 1.1 */
@@ -79,6 +84,13 @@
       calc(8px + env(safe-area-inset-bottom))
       calc(8px + env(safe-area-inset-left));
   }
+  /* Inside the launcher the top bar has already cleared the notch, so paying
+     the top inset again here is a dead band. The board is locked to 10x20, so
+     losing height shrinks it in both directions — about a quarter of its area
+     on a notched iPhone. Only the top is zeroed; the other three are still ours
+     to pay. The class is set before first paint, otherwise the board visibly
+     jumps as the game opens. */
+  :root.framed body { padding-top: 8px; }
 
   /* ---------- هيكل الجوال ---------- */
   .phone{
@@ -875,7 +887,7 @@ function updateStats(){
   elScore.textContent = score;
   elLevel.textContent = level;
   elLines.textContent = lines;
-  elBest.textContent = Math.max(best, score);
+  elBest.textContent = best;   // show what is actually stored, not a record that is not saved yet
 }
 
 /* ============================ الشاشات والحالات ============================ */

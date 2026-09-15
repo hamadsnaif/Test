@@ -5,7 +5,7 @@
 // deliberately does not change when a game or games.json changes, because those
 // are read from the network first and need no new worker to arrive. Editing a
 // game therefore costs nobody a re-download of the other 400KB.
-const BUILD = '68538526b0ed';
+const BUILD = '08a6eb45abbe';
 const CACHE = 'hamads-games';
 const ASSETS = ["./", "./apple-touch-icon.png", "./bounce.html", "./games.json", "./icon-120.png", "./icon-152.png", "./icon-167.png", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./index.html", "./manifest.webmanifest", "./snake.html", "./tetris.html"];
 const NET_TIMEOUT = 4000;
@@ -92,7 +92,12 @@ async function networkFirst(req, budget) {
     if (first !== 'slow') {
       if (first.res && first.res.ok) return first.res;
       const stale = await caches.match(req, { ignoreSearch: true });
-      return stale || first.res;
+      if (stale) return stale;
+      // A game listed in games.json whose page is missing or not published yet
+      // would otherwise draw the host's own 404 — in English, inside an Arabic
+      // shelf, with nothing saying which name was wrong.
+      if (req.destination === 'iframe') return notFound(fileName(req.url));
+      return first.res;
     }
   } catch (err) {
     /* offline, or the server refused */
@@ -125,7 +130,7 @@ async function networkFirst(req, budget) {
   return Response.error();
 }
 
-function notSaved() {
+function page(lines) {
   return new Response(
     '<!DOCTYPE html><html lang="ar" dir="rtl"><meta charset="UTF-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -134,12 +139,28 @@ function notSaved() {
     'font:15px/1.6 system-ui,sans-serif;text-align:center;padding:24px}' +
     'p{margin:0;max-width:22em}small{color:#8a94a3}' +
     'button{font:inherit;padding:9px 18px;border-radius:9px;border:1px solid #2c333d;' +
-    'background:#1b1f26;color:inherit}</style>' +
-    '<p>هذه اللعبة لم تُحفظ للعمل بدون إنترنت بعد.</p>' +
-    '<small>افتحها مرة واحدة والاتصال متاح، ثم ستعمل بدونه.</small>' +
+    'background:#1b1f26;color:inherit}code{color:#e7ecf3;background:#1b1f26;' +
+    'padding:2px 6px;border-radius:5px;direction:ltr;display:inline-block}</style>' +
+    lines +
     '<button onclick="location.reload()">إعادة المحاولة</button>',
     { headers: { 'content-type': 'text/html; charset=utf-8' } }
   );
+}
+
+function notSaved() {
+  return page('<p>هذه اللعبة لم تُحفظ للعمل بدون إنترنت بعد.</p>' +
+              '<small>افتحها مرة واحدة والاتصال متاح، ثم ستعمل بدونه.</small>');
+}
+
+function fileName(u) {
+  try { return new URL(u).pathname.split('/').pop() || ''; } catch (e) { return ''; }
+}
+
+function notFound(name) {
+  const safe = String(name || '').replace(/[&<>"]/g, '');
+  return page('<p>لم يُعثر على صفحة هذه اللعبة.</p>' +
+              '<small>تأكّد أن الملف <code>' + safe + '</code> موجود في المستودع وأن اسمه ' +
+              'مطابق لما في <code>games.json</code>. وإن كنت قد رفعته للتو فقد يحتاج دقائق للنشر.</small>');
 }
 
 async function cacheFirst(req) {

@@ -902,7 +902,18 @@
   });
   window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) setKey(k, false); });
   window.addEventListener('blur', clearKeys);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) clearKeys(); });
+
+  // Leaving through the launcher's رجوع, or the swipe back gesture, destroys
+  // this frame outright — and iOS may discard it while the app is in the
+  // background. Without this the level is handed back as it was at the last
+  // start or checkpoint, silently losing every ring picked up since, which is
+  // the opposite of what the game's own hint promises. Exiting through the
+  // pause menu already saves; this makes every other way out behave the same.
+  // saveGame writes one synchronous localStorage entry, so it completes inside
+  // the teardown, and the guard keeps half finished states out of the save.
+  const persist = () => { if (mode === 'play' || mode === 'pause') saveGame(); };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { clearKeys(); persist(); } });
+  window.addEventListener('pagehide', persist);
 
   function bindTouch(id, k) {
     const el = document.getElementById(id);
