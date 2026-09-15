@@ -119,36 +119,14 @@
     direction: ltr;
     touch-action: none;
   }
-  #stickzone, #jumpzone {
+  #stickzone {
     position: absolute;
-    top: 0;
-    height: 100%;
-    width: 42%;
+    inset: 0;
     touch-action: none;
     border-radius: 16px;
     border: 1px solid var(--border);
     background: rgba(43, 48, 64, 0.35);
   }
-  #stickzone { left: 0; }
-  #jumpzone {
-    right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-    color: var(--key-ink);
-  }
-  #jumpzone.down { background: var(--key-down); }
-  #jumpdot {
-    width: 92px; height: 92px;
-    border-radius: 50%;
-    background: var(--key);
-    border: 1px solid var(--border);
-    box-shadow: inset 0 -4px 0 rgba(0,0,0,.35);
-    display: flex; align-items: center; justify-content: center;
-    pointer-events: none;
-  }
-  #jumpzone.down #jumpdot { background: var(--key-down); box-shadow: inset 0 3px 0 rgba(0,0,0,.35); }
   #stickbase {
     position: absolute;
     width: 104px; height: 104px;
@@ -172,9 +150,8 @@
   #stickbase.active #stickknob { background: var(--key-down); }
   #btnM2 {
     position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-    width: 52px; height: 52px;
+    right: 10px; top: 10px;
+    width: 44px; height: 44px;
     border-radius: 14px;
     border: 1px solid var(--border);
     background: var(--key);
@@ -186,8 +163,8 @@
   #btnM2:active { background: var(--key-down); }
   body.touch.joystick #pad { display: none; }
   body.touch.joystick #stickpad { display: block; }
-  /* landscape: float the stick and the jump pad in the side margins so the
-     game itself can use the whole height */
+  /* landscape: float the stick in the left margin so the game keeps the
+     whole height */
   @media (orientation: landscape) and (max-height: 560px) {
     body.touch.joystick #shell { position: relative; }
     body.touch.joystick #stickpad {
@@ -197,16 +174,12 @@
       max-width: none;
       pointer-events: none;
     }
-    body.touch.joystick #stickzone,
-    body.touch.joystick #jumpzone {
+    body.touch.joystick #stickzone {
       pointer-events: auto;
-      width: min(150px, 22vw);
-      height: min(160px, 46vh);
-      top: auto;
-      bottom: max(10px, env(safe-area-inset-bottom));
+      inset: auto auto max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      width: min(190px, 30vw);
+      height: min(190px, 52vh);
     }
-    body.touch.joystick #stickzone { left: max(10px, env(safe-area-inset-left)); }
-    body.touch.joystick #jumpzone { right: max(10px, env(safe-area-inset-right)); }
     body.touch.joystick #btnM2 {
       pointer-events: auto;
       left: auto; top: max(8px, env(safe-area-inset-top));
@@ -225,7 +198,6 @@
     #stickpad { height: 104px; }
     #stickbase { width: 88px; height: 88px; }
     #stickknob { left: 22px; top: 22px; width: 42px; height: 42px; }
-    #jumpdot { width: 76px; height: 76px; }
   }
   @media (max-width: 400px) { #sub { display: none; } }
   /* installed as an app: give the whole screen to the game */
@@ -252,7 +224,6 @@
   <div id="stickpad">
     <div id="stickzone"><div id="stickbase"><div id="stickknob"></div></div></div>
     <button id="btnM2" aria-label="القائمة">☰</button>
-    <div id="jumpzone"><div id="jumpdot">قفز</div></div>
   </div>
   <div id="hint">
     <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز، Esc للإيقاف المؤقت والعودة للقائمة. التقدم يُحفظ تلقائياً.</span>
@@ -627,8 +598,13 @@
     respawn();
     levelCntr = 60;
   }
-  let joystick = false;
-  try { joystick = localStorage.getItem('bounce_controls') === 'stick'; } catch (e) { /* storage off */ }
+  // The stick is the default: one thumb steers and jumps, and there is nothing
+  // small to hit. Anyone who has chosen the pad before keeps it.
+  let joystick = true;
+  try {
+    const saved = localStorage.getItem('bounce_controls');
+    if (saved) joystick = saved === 'stick';
+  } catch (e) { /* storage off */ }
   function applyControls() { document.body.classList.toggle('joystick', joystick); }
   function toggleControls() {
     joystick = !joystick;
@@ -1228,8 +1204,7 @@
   const stickZone = document.getElementById('stickzone');
   const stickBase = document.getElementById('stickbase');
   const stickKnob = document.getElementById('stickknob');
-  const jumpZone = document.getElementById('jumpzone');
-  const R_MAX = 44, DEAD_X = 9, DEAD_Y = 26;
+  const R_MAX = 44, DEAD_X = 9, DEAD_Y = 18;   // up on the stick is the jump now
   let stickId = null, sx0 = 0, sy0 = 0;
 
   function knob(dx, dy) { stickKnob.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)'; }
@@ -1274,24 +1249,6 @@
   };
   stickZone.addEventListener('pointerup', stickOff);
   stickZone.addEventListener('pointercancel', stickOff);
-
-  let jumpId = null;
-  jumpZone.addEventListener('pointerdown', e => {
-    e.preventDefault(); unlockAudio();
-    if (mode !== 'play') { press(); return; }
-    jumpId = e.pointerId;
-    try { jumpZone.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
-    jumpZone.classList.add('down');
-    setFrom('jump', 'up', true);
-  });
-  const jumpOff = e => {
-    if (jumpId !== null && e.pointerId !== jumpId) return;
-    e.preventDefault(); jumpId = null;
-    jumpZone.classList.remove('down');
-    setFrom('jump', 'up', false);
-  };
-  jumpZone.addEventListener('pointerup', jumpOff);
-  jumpZone.addEventListener('pointercancel', jumpOff);
 
   document.getElementById('btnM2').addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();

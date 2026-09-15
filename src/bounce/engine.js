@@ -342,8 +342,13 @@
     respawn();
     levelCntr = 60;
   }
-  let joystick = false;
-  try { joystick = localStorage.getItem('bounce_controls') === 'stick'; } catch (e) { /* storage off */ }
+  // The stick is the default: one thumb steers and jumps, and there is nothing
+  // small to hit. Anyone who has chosen the pad before keeps it.
+  let joystick = true;
+  try {
+    const saved = localStorage.getItem('bounce_controls');
+    if (saved) joystick = saved === 'stick';
+  } catch (e) { /* storage off */ }
   function applyControls() { document.body.classList.toggle('joystick', joystick); }
   function toggleControls() {
     joystick = !joystick;
@@ -943,8 +948,7 @@
   const stickZone = document.getElementById('stickzone');
   const stickBase = document.getElementById('stickbase');
   const stickKnob = document.getElementById('stickknob');
-  const jumpZone = document.getElementById('jumpzone');
-  const R_MAX = 44, DEAD_X = 9, DEAD_Y = 26;
+  const R_MAX = 44, DEAD_X = 9, DEAD_Y = 18;   // up on the stick is the jump now
   let stickId = null, sx0 = 0, sy0 = 0;
 
   function knob(dx, dy) { stickKnob.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)'; }
@@ -989,24 +993,6 @@
   };
   stickZone.addEventListener('pointerup', stickOff);
   stickZone.addEventListener('pointercancel', stickOff);
-
-  let jumpId = null;
-  jumpZone.addEventListener('pointerdown', e => {
-    e.preventDefault(); unlockAudio();
-    if (mode !== 'play') { press(); return; }
-    jumpId = e.pointerId;
-    try { jumpZone.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
-    jumpZone.classList.add('down');
-    setFrom('jump', 'up', true);
-  });
-  const jumpOff = e => {
-    if (jumpId !== null && e.pointerId !== jumpId) return;
-    e.preventDefault(); jumpId = null;
-    jumpZone.classList.remove('down');
-    setFrom('jump', 'up', false);
-  };
-  jumpZone.addEventListener('pointerup', jumpOff);
-  jumpZone.addEventListener('pointercancel', jumpOff);
 
   document.getElementById('btnM2').addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
