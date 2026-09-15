@@ -53,6 +53,18 @@ ICON_LINKS = (
 # meta tag is what search engines actually honour for a page like this.
 NOINDEX = '<meta name="robots" content="noindex, nofollow">'
 
+# A game page carries apple-mobile-web-app-capable and its own title, so it can
+# be added to the Home Screen by itself — but on iOS such an app gets its own
+# website data store, so the launcher's worker does not reach it and without
+# this it would have no offline support at all. The protocol gate matters: these
+# pages are also inlined into the single file build and injected with srcdoc,
+# where a relative URL resolves against whatever host that page is opened from.
+SW_REGISTER = (
+    "<script>if('serviceWorker' in navigator && /^https?:$/.test(location.protocol))"
+    "addEventListener('load',function(){navigator.serviceWorker"
+    ".register('sw.js',{updateViaCache:'none'}).catch(function(){});});</script>"
+)
+
 WEBAPP_META = [
     ('apple-mobile-web-app-capable', '<meta name="apple-mobile-web-app-capable" content="yes">'),
     ('mobile-web-app-capable', '<meta name="mobile-web-app-capable" content="yes">'),
@@ -70,6 +82,8 @@ def with_app_head(html, title):
     add = ICON_LINKS
     if 'name="robots"' not in html:
         add += NOINDEX + '\n'
+    if 'serviceWorker' not in html:
+        add += SW_REGISTER + '\n'
     for name, tag in WEBAPP_META:
         if f'name="{name}"' not in html:
             add += tag + '\n'
@@ -307,9 +321,16 @@ async function networkFirst(req, budget) {
   }
   const hit = await caches.match(req, { ignoreSearch: true });
   if (hit) return hit;
+  // Nothing cached, so waiting a little longer still beats a blank error — but
+  // bounded. Offline rejects at once; a connection that accepts the request and
+  // then never answers would otherwise hang here forever, which is the exact
+  // failure the first timer exists to prevent, one step further down.
   try {
-    const res = await net;   // nothing cached: waiting still beats a blank error
-    if (res) return res;
+    let t2;
+    const grace = new Promise(r => { t2 = setTimeout(() => r('slow'), NET_TIMEOUT); });
+    const second = await Promise.race([net.then(res => ({ res })), grace]);
+    clearTimeout(t2);
+    if (second !== 'slow' && second.res) return second.res;
   } catch (err) { /* really offline */ }
 
   // A top level page must never end up with an error page: fullscreen means no

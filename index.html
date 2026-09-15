@@ -164,7 +164,13 @@
     height: 36px;
     box-sizing: content-box;
     padding-top: env(safe-area-inset-top);
-    padding-inline: 6px max(10px, env(safe-area-inset-right));
+    /* Physical sides on purpose. This document is dir="rtl", so padding-inline
+       start/end map to the physical RIGHT/LEFT — which sends the right-edge
+       inset to the left, where there is no cutout, and pins the back button
+       6px from the physical right edge where the display's rounded corner
+       clips it in landscape. */
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
     background: var(--surface);
     border-bottom: 1px solid var(--edge);
   }
@@ -404,6 +410,7 @@
   // Launcher
   // ------------------------------------------------------------------
   const list = document.getElementById('list');
+  const shelf = document.getElementById('shelf');
   const player = document.getElementById('player');
   const bar = document.getElementById('bar');
   const back = document.getElementById('back');
@@ -456,6 +463,11 @@
   // outright, so every game starts clean and nothing keeps running behind the
   // launcher.
   function open(id) {
+    // inert already keeps the tiles out of reach while a game is up, but the
+    // invariant is worth stating outright: opening a second game over the first
+    // would push a history entry that close() never pops, and the back gesture
+    // would be dead for the rest of the session.
+    if (!player.hidden) return;
     const game = GAMES.find(g => g.id === id);
     if (!game) return;
     const inline = SOURCES[id];
@@ -469,6 +481,11 @@
     player.replaceChildren(bar, frame);
     document.body.classList.add('playing');
     player.hidden = false;
+    // The overlay blocks pointers but not a screen reader or programmatic
+    // focus, so without this the tiles under the game stay announceable and
+    // launchable — and launching one from there pushes a second history entry
+    // that close() never pops.
+    shelf.inert = true;
     history.pushState({ hg: id }, '');
     setTimeout(() => { try { frame.contentWindow.focus(); } catch (e) { /* cross document */ } }, 60);
   }
@@ -477,6 +494,7 @@
     if (player.hidden) return;
     player.replaceChildren(bar);
     player.hidden = true;
+    shelf.inert = false;
     document.body.classList.remove('playing');
     if (!fromPop && history.state && history.state.hg) history.back();
     // anything that had to wait for the game to end happens now

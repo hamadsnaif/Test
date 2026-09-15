@@ -5,7 +5,7 @@
 // deliberately does not change when a game or games.json changes, because those
 // are read from the network first and need no new worker to arrive. Editing a
 // game therefore costs nobody a re-download of the other 400KB.
-const BUILD = 'd1db5b575702';
+const BUILD = '68538526b0ed';
 const CACHE = 'hamads-games';
 const ASSETS = ["./", "./apple-touch-icon.png", "./bounce.html", "./games.json", "./icon-120.png", "./icon-152.png", "./icon-167.png", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./index.html", "./manifest.webmanifest", "./snake.html", "./tetris.html"];
 const NET_TIMEOUT = 4000;
@@ -101,9 +101,16 @@ async function networkFirst(req, budget) {
   }
   const hit = await caches.match(req, { ignoreSearch: true });
   if (hit) return hit;
+  // Nothing cached, so waiting a little longer still beats a blank error — but
+  // bounded. Offline rejects at once; a connection that accepts the request and
+  // then never answers would otherwise hang here forever, which is the exact
+  // failure the first timer exists to prevent, one step further down.
   try {
-    const res = await net;   // nothing cached: waiting still beats a blank error
-    if (res) return res;
+    let t2;
+    const grace = new Promise(r => { t2 = setTimeout(() => r('slow'), NET_TIMEOUT); });
+    const second = await Promise.race([net.then(res => ({ res })), grace]);
+    clearTimeout(t2);
+    if (second !== 'slow' && second.res) return second.res;
   } catch (err) { /* really offline */ }
 
   // A top level page must never end up with an error page: fullscreen means no
