@@ -7,10 +7,10 @@
 <style>
   :root {
     /* شاشة 3310: رمادي مخضرّ باهت، لا أخضر الغيم بوي الفاقع */
-    --lcd-bg: #a8b593;
-    --lcd-dark: #21261a;
-    --lcd-mid: #4a5340;
-    --lcd-light: #b6c2a2;
+    --lcd-bg: #9fb0c8;
+    --lcd-dark: #17202c;
+    --lcd-mid: #43536b;
+    --lcd-light: #b3c2d6;
     /* الغطاء الأمامي الأزرق الرمادي المميّز للجهاز */
     --face-hi: #d3dae1;
     --face: #b9c2cc;
@@ -41,50 +41,197 @@
   }
 
   /* ---------- Phone shell ---------- */
-  /* ==================== نوكيا 3310 ====================
-     الجهاز بكامله: غطاء أمامي أزرق رمادي، سمّاعة، شاشة غائرة، ثم صفّ
-     المفاتيح الوظيفية بمفتاح C الأحمر، ثم أربعة صفوف مقوّسة من الأرقام.
-     التقويس هو أبرز ما يُعرف به الجهاز، فكل صف قطعة واحدة منحنية. */
+  /* ==================== نوكيا 6310 ====================
+     الهدف أن يبدو صورةً لجهاز لا رسماً له. لذلك كل قطعة لها مادّتها:
+     البدن بلاستيك فحمي مطفأ، والواجهة شمبانيا معدنية، وجناح التنقّل
+     كروم، والمفاتيح مطاط داكن. والإضاءة من أعلى في كلّها، فالحوافّ
+     العليا تلمع والسفلى تظلّ — وهذا وحده ما يجعل السطح يبدو مجسّماً. */
   .phone {
+    position: relative;
     width: 100%;
-    max-width: min(380px, 52vh);
-    background:
-      linear-gradient(174deg, var(--face-hi) 0%, var(--face) 44%, var(--face-lo) 100%);
-    border-radius: 46px 46px 34px 34px / 58px 58px 30px 30px;
-    padding: 16px 14px 18px;
-    border: 1px solid #e6ebf0;
-    box-shadow:
-      0 26px 54px rgba(0,0,0,.66),
-      inset 0 2px 0 rgba(255,255,255,.95),
-      inset 0 -4px 10px rgba(0,0,0,.14);
+    max-width: min(340px, 50vh);
+    padding: 0 0 10px;
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    align-items: stretch;
+    /* البدن: أغمق عند الحواف وأفتح في الوسط، كأسطوانة لا كلوح */
+    background:
+      linear-gradient(90deg,
+        #0d0d0f 0%, #202024 5%, #35353a 13%, #2a2a2e 50%,
+        #35353a 87%, #202024 95%, #0d0d0f 100%);
+    border-radius: 30px 30px 20px 20px / 44px 44px 18px 18px;
+    box-shadow:
+      /* حافّة عليا مضيئة، وحافّة سفلى مظلمة، وظلّ على الأرضية */
+      inset 0 1.5px 0 rgba(255,255,255,.34),
+      inset 0 -2px 4px rgba(0,0,0,.85),
+      inset 2px 0 3px rgba(0,0,0,.5),
+      inset -2px 0 3px rgba(0,0,0,.5),
+      0 26px 46px rgba(0,0,0,.72),
+      0 6px 14px rgba(0,0,0,.55);
   }
 
-  .speaker {
-    width: 56px; height: 7px; margin: 0 auto 1px;
-    border-radius: 5px;
-    background: #6d7784;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.85);
+  /* الواجهة الذهبية: لوح معدني مغروز في البدن، فله ظلّ داخلي حوله */
+  .fascia {
+    margin: 7px 11px 8px;
+    padding: 9px 9px 10px;
+    border-radius: 24px 24px 16px 16px / 34px 34px 14px 14px;
+    background:
+      linear-gradient(103deg,
+        #8f7635 0%, #c7ad69 8%, #e8d7a4 22%, #d8c489 42%,
+        #c9b277 62%, #e2d09c 80%, #b99f5f 94%, #7e6730 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.62),
+      inset 0 -1px 2px rgba(90,70,20,.5),
+      0 0 0 1px rgba(0,0,0,.55),
+      0 2px 5px rgba(0,0,0,.6);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  /* ثلاثة شقوق مائلة للسمّاعة، كما في الجهاز */
+  .earpiece { display: flex; justify-content: center; gap: 9px; height: 13px; margin-top: 1px; }
+  .earpiece i {
+    width: 2.5px; height: 13px;
+    transform: skewX(-17deg);
+    border-radius: 2px;
+    background: linear-gradient(180deg, #4a3d18, #2a2209);
+    box-shadow: 0 1px 0 rgba(255,255,255,.5), inset 0 1px 1px rgba(0,0,0,.9);
   }
 
   .brand {
     text-align: center;
     font-family: Arial, Helvetica, sans-serif;
     font-weight: 700;
-    letter-spacing: 4px;
-    font-size: 13px;
-    color: #4a5460;
+    letter-spacing: .5px;
+    font-size: 15px;
+    color: #3d3115;
+    text-shadow: 0 1px 0 rgba(255,255,255,.45);
     direction: ltr;
+    margin: -1px 0 1px;
+  }
+
+  /* جناح التنقّل: كروم مقوّس، بمفتاحَي اتصال أخضر وأحمر ومفتاح بينهما */
+  .navwing {
+    position: relative;
+    direction: ltr;          /* الأخضر يساراً والأحمر يميناً، كما هو مصبوب */
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 5px;
+    border-radius: 26px / 20px;
+    background: linear-gradient(180deg, #f2f4f6 0%, #cdd2d8 38%, #9aa0a8 70%, #c2c7cd 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.95),
+      inset 0 -2px 3px rgba(0,0,0,.35),
+      0 0 0 1px rgba(0,0,0,.45),
+      0 2px 4px rgba(0,0,0,.45);
+  }
+  .call, .end {
+    appearance: none; -webkit-appearance: none;
+    height: 26px;
+    border: 0;
+    border-radius: 16px 7px 7px 16px / 14px 7px 7px 14px;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    touch-action: none;
+    color: #f6fff6;
+    text-shadow: 0 1px 1px rgba(0,0,0,.55);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.4);
+  }
+  .call { background: linear-gradient(180deg, #67c06e, #2f7a38 75%); }
+  .end  { background: linear-gradient(180deg, #e0685c, #9e2a22 75%); border-radius: 7px 16px 16px 7px / 7px 14px 14px 7px; }
+  .call span { display: inline-block; transform: scaleX(-1); }
+
+  .rocker { position: relative; width: 56px; height: 34px; }
+  .rk {
+    position: absolute; left: 0; width: 56px;
+    appearance: none; -webkit-appearance: none;
+    border: 0; padding: 0; cursor: pointer; touch-action: none;
+    background: linear-gradient(180deg, #e6eaee, #aab0b8 70%, #c6cbd1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 1px 2px rgba(0,0,0,.4);
+  }
+  .rk.up { top: 0; height: 13px; border-radius: 13px 13px 3px 3px; }
+  .rk.dn { bottom: 0; height: 13px; border-radius: 3px 3px 13px 13px; }
+  .rk.ok {
+    top: 12px; height: 10px; border-radius: 2px;
+    background: linear-gradient(180deg, #8f959d, #767c84);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.5);
+  }
+  /* السهمان الأخضران المطبوعان على المفتاح */
+  .rk.up::after, .rk.dn::after {
+    content: ""; position: absolute; left: 50%; width: 0; height: 0;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent; border-right: 5px solid transparent;
+  }
+  .rk.up::after { top: 3px; border-bottom: 6px solid #2f7a38; }
+  .rk.dn::after { bottom: 3px; border-top: 6px solid #2f7a38; }
+
+  /* المفاتيح: مطاط داكن، حافّة عليا تلمع وأخرى سفلى تغرق */
+  .keypad { display: flex; flex-direction: column; gap: 5px; direction: ltr; margin: 0 13px; }
+  .krow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+  .nk {
+    appearance: none; -webkit-appearance: none;
+    height: 30px;
+    border: 0;
+    border-radius: 9px / 11px;
+    background: linear-gradient(180deg, #4d4e53 0%, #35363a 42%, #232427 100%);
+    color: #eceef1;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    line-height: 1;
+    touch-action: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.28),
+      inset 0 -2px 3px rgba(0,0,0,.6),
+      0 2px 3px rgba(0,0,0,.55);
+  }
+  .nk b { font-size: 13px; font-weight: 700; text-shadow: 0 1px 1px rgba(0,0,0,.7); }
+  .nk i { font-size: 6.5px; font-style: normal; letter-spacing: .4px; color: #a7abb2; }
+  .nk.live b { color: #8fd79a; }
+
+  .call:active, .end:active, .rk:active, .nk:active,
+  .call.down, .end.down, .rk.down, .nk.down {
+    filter: brightness(1.35);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.6);
+    transform: translateY(1px);
+  }
+
+  /* الشريط الفاتح أسفل الجهاز */
+  .chin {
+    margin: 9px auto 0;
+    width: 46%;
+    height: 12px;
+    border-radius: 4px 4px 8px 8px;
+    background: linear-gradient(180deg, #b9bcc2, #85888e);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 3px rgba(0,0,0,.6);
   }
 
   /* ---------- Screen ---------- */
   .screen-bezel {
-    background: #2f3740;
+    background: linear-gradient(180deg, #14161a, #23262c);
     border-radius: 7px;
-    padding: 8px;
-    box-shadow: inset 0 2px 7px rgba(0,0,0,.85), 0 1px 0 rgba(255,255,255,.8);
+    padding: 7px;
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,.9),
+      0 0 0 1px rgba(60,48,16,.7),
+      0 1px 0 rgba(255,255,255,.4);
+  }
+  /* انعكاس زجاج خفيف يقطع الشاشة قطرياً، كما في صورة أي جهاز */
+  .screen-bezel { position: relative; overflow: hidden; }
+  .screen-bezel::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: linear-gradient(118deg,
+      rgba(255,255,255,.16) 0%, rgba(255,255,255,.05) 26%,
+      transparent 42%, transparent 100%);
   }
 
   .screen {
@@ -92,7 +239,7 @@
     background: var(--lcd-bg);
     border-radius: 4px;
     overflow: hidden;
-    box-shadow: inset 0 0 20px rgba(33,38,26,.28);
+    box-shadow: inset 0 0 20px rgba(23,32,44,.3);
   }
 
   .screen::after {
@@ -101,8 +248,8 @@
     position: absolute; inset: 0;
     pointer-events: none;
     background-image:
-      linear-gradient(rgba(33,38,26,.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(33,38,26,.07) 1px, transparent 1px);
+      linear-gradient(rgba(23,32,44,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23,32,44,.08) 1px, transparent 1px);
     background-size: 4px 4px;
   }
 
@@ -150,7 +297,7 @@
     color: var(--lcd-dark);
     text-align: center;
     padding: 16px;
-    background: rgba(168,181,147,.94);
+    background: rgba(159,176,200,.95);
   }
   .overlay.hidden { display: none; }
   .overlay { gap: 7px; padding: 10px; overflow: hidden; }
@@ -198,101 +345,10 @@
   }
   .levels button.sel { background: var(--lcd-dark); color: var(--lcd-bg); }
 
-  /* ---------- Keypad ---------- */
-  .keypad { display: flex; flex-direction: column; gap: 7px; direction: ltr; }
-
-  /* صفّ الوظائف. المفتاحان الجانبيان مائلان للخارج كما في الجهاز، ومفتاح
-     التمرير بينهما، وC أحمر إلى اليمين. */
-  .fnrow {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr auto;
-    align-items: center;
-    gap: 6px;
-  }
-  .soft, .ckey, .sc, .nk {
-    appearance: none; -webkit-appearance: none;
-    border: 1px solid #8f99a6;
-    background: linear-gradient(180deg, var(--key-hi), var(--key-bg) 65%, var(--key-lo));
-    color: var(--key-ink);
-    font-family: inherit;
-    cursor: pointer;
-    padding: 0;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), 0 2px 0 #79838f;
-    touch-action: none;
-  }
-  .soft {
-    height: 33px;
-    font-size: 12.5px;
-  }
-  .soft.l { border-radius: 16px 6px 6px 16px; }
-  .soft.r { border-radius: 6px 16px 16px 6px; }
-  .ckey {
-    width: 42px; height: 33px;
-    border-radius: 6px 16px 16px 6px;
-    background: linear-gradient(180deg, #e0655a, #b23a2e 70%);
-    border-color: #8f2a20;
-    color: #fff1ee;
-    font-weight: 700;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 2px 0 #71180f;
-  }
-  /* مفتاح التمرير: قطعة واحدة بسهمين ومركز */
-  .scroll {
-    position: relative;
-    width: 66px; height: 48px;
-  }
-  .sc { position: absolute; left: 0; width: 66px; font-size: 10px; }
-  .sc.up { top: 0; height: 19px; border-radius: 15px 15px 3px 3px; }
-  .sc.dn { bottom: 0; height: 19px; border-radius: 3px 3px 15px 15px; }
-  .sc.ok {
-    top: 17px; height: 14px; border-radius: 2px;
-    background: linear-gradient(180deg, #9aa4b0, #828d9a);
-    box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
-  }
-
-  /* الأرقام. كل صف قطعة واحدة مقوّسة، والتقويس يزداد نزولاً — وهذا
-     بالذات ما يجعل الجهاز يُعرف من صورته. */
-  .rows { display: flex; flex-direction: column; gap: 6px; }
-  .krow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-  .nk {
-    height: 38px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 0;
-    line-height: 1;
-  }
-  .krow:nth-child(1) .nk { border-radius: 16px 16px 8px 8px / 20px 20px 8px 8px; }
-  .krow:nth-child(2) .nk,
-  .krow:nth-child(3) .nk { border-radius: 10px / 14px; }
-  .krow:nth-child(4) .nk { border-radius: 8px 8px 18px 18px / 8px 8px 22px 22px; }
-  .krow .nk:first-child { border-top-left-radius: 20px; border-bottom-left-radius: 20px; }
-  .krow .nk:last-child  { border-top-right-radius: 20px; border-bottom-right-radius: 20px; }
-  .nk b { font-size: 15px; font-weight: 700; }
-  .nk i { font-size: 7px; font-style: normal; letter-spacing: .5px; color: #5c6672; }
-  /* المفاتيح التي تقود الدودة تحمل لمسة لون، كما على الجهاز الحقيقي
-     تُعرف 2 و4 و6 و8 بالأسهم المطبوعة عليها */
-  .nk.live b { color: #14502a; }
-
-  .soft:active, .ckey:active, .sc:active, .nk:active,
-  .soft.down, .ckey.down, .sc.down, .nk.down {
-    transform: translateY(2px);
-    box-shadow: inset 0 1px 3px rgba(0,0,0,.3);
-    filter: brightness(.96);
-  }
 
 
-  @media (max-height: 780px) {
-    .phone { padding: 12px 11px 13px; gap: 7px; }
-    .nk { height: 29px; }
-    .nk i { display: none; }
-    .soft, .ckey { height: 27px; }
-    .scroll { height: 40px; }
-    .sc.up, .sc.dn { height: 15px; }
-    .sc.ok { top: 13px; }
-  }
-  @media (max-height: 640px) {
-    .phone { gap: 5px; padding: 9px 9px 10px; }
-    .nk { height: 24px; }
-    .nk b { font-size: 13px; }
-    .brand { font-size: 11px; }
+  /* النصّ داخل الشاشة يُقاس على قدرها، وهي تصغر مع الإطار */
+  @media (max-height: 800px) {
     .overlay { gap: 5px; padding: 7px; }
     .overlay h1 { font-size: 17px; }
     .overlay h2 { font-size: 15px; }
@@ -300,116 +356,121 @@
     .overlay p.tiny { font-size: 8.5px; }
     .overlay .big { font-size: 24px; }
     .overlay .btn { font-size: 11px; padding: 5px 14px; }
+    .levels { gap: 3px; }
     .levels button { width: 19px; height: 19px; font-size: 9.5px; }
   }
-  /* إطار قصير جداً: الجهاز كله يصغر ليُرى بكامله، وهو المطلوب */
-  @media (max-height: 470px) {
-    .phone { gap: 3px; padding: 6px 7px 7px; border-width: 1px; }
-    .speaker { display: none; }
-    .brand { font-size: 9px; letter-spacing: 2px; }
-    .nk { height: 19px; }
-    .nk b { font-size: 11px; }
-    .soft, .ckey { height: 20px; font-size: 9.5px; }
-    .scroll { width: 48px; height: 30px; }
-    .sc { width: 48px; }
-    .sc.up, .sc.dn { height: 12px; }
-    .sc.ok { top: 10px; height: 9px; }
-    .rows, .keypad { gap: 3px; }
-    .krow { gap: 3px; }
-    .screen-bezel { padding: 5px; }
-    /* الشاشة هنا صغيرة فعلاً، فالنصّ يُقاس على قدرها */
+  @media (max-height: 620px) {
     .overlay { gap: 3px; padding: 5px; }
-    .overlay h1 { font-size: 13px; letter-spacing: 1px; }
+    .overlay h1 { font-size: 14px; letter-spacing: 1px; }
     .overlay h2 { font-size: 12px; }
-    .overlay p { font-size: 7.5px; line-height: 1.4; }
+    .overlay p { font-size: 8px; line-height: 1.35; }
     .overlay p.tiny { display: none; }
     .overlay .big { font-size: 19px; }
     .overlay .btn { font-size: 9px; padding: 4px 11px; margin-top: 0; }
-    .levels { gap: 3px; }
     .levels button { width: 15px; height: 15px; font-size: 8px; border-width: 1px; }
+    .nk { height: 25px; }
+    .nk i { display: none; }
+    .brand { font-size: 12px; }
+  }
+  /* إطار قصير جداً: الجهاز كله يصغر ليُرى بكامله */
+  @media (max-height: 470px) {
+    .phone { padding-bottom: 6px; }
+    .fascia { margin: 5px 8px 6px; padding: 6px 6px 7px; gap: 4px; }
+    .earpiece { height: 9px; } .earpiece i { height: 9px; }
+    .brand { font-size: 10px; margin: 0; }
+    .keypad { gap: 3px; margin: 0 9px; }
+    .krow { gap: 3px; }
+    .nk { height: 19px; }
+    .nk b { font-size: 11px; }
+    .call, .end { height: 19px; font-size: 10px; }
+    .rocker { width: 42px; height: 25px; }
+    .rk { width: 42px; }
+    .rk.up, .rk.dn { height: 10px; }
+    .rk.ok { top: 9px; height: 7px; }
+    .chin { height: 8px; margin-top: 5px; }
+    .screen-bezel { padding: 5px; }
   }
 </style>
 </head>
 <body>
 
 <div class="phone">
-  <div class="speaker"></div>
-  <div class="brand">NOKIA</div>
+  <!-- نوكيا 6310: بدن فحمي، وواجهة ذهبية في وسطه، ومجموعة تنقّل فضّية
+       بمفتاحَي اتصال، ثم مفاتيح داكنة. -->
+  <div class="fascia">
+    <div class="earpiece" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="brand">Nokia</div>
 
-  <div class="screen-bezel">
-    <div class="screen">
-      <div class="hud">
-        <span id="score">0000</span>
-        <span id="bonus" class="bonus">★ <span id="bonusTimer">20</span></span>
-        <span class="hud-right">
-          <span id="best">TOP 0000</span>
-          <button id="muteBtn" class="mute" aria-label="كتم الصوت" title="الصوت (M)">♪</button>
-        </span>
-      </div>
-      <canvas id="game" width="320" height="240"></canvas>
+    <div class="screen-bezel">
+      <div class="screen">
+        <div class="hud">
+          <span id="score">0000</span>
+          <span id="bonus" class="bonus">★ <span id="bonusTimer">20</span></span>
+          <span class="hud-right">
+            <span id="best">TOP 0000</span>
+            <button id="muteBtn" class="mute" aria-label="كتم الصوت" title="الصوت (M)">♪</button>
+          </span>
+        </div>
+        <canvas id="game" width="320" height="240"></canvas>
 
-      <div id="menu" class="overlay">
-        <h1>SNAKE II</h1>
-        <p>الحواف مفتوحة: اخرج من جهة تعُد من المقابلة.</p>
-        <p>السرعة:</p>
-        <div class="levels" id="levels"></div>
-        <button class="btn" id="startBtn">ابدأ</button>
-        <p class="tiny">وجّه بمفاتيح الجهاز: 2 و4 و6 و8، أو بمفتاح التمرير.</p>
-      </div>
+        <div id="menu" class="overlay">
+          <h1>SNAKE II</h1>
+          <p>الحواف مفتوحة: اخرج من جهة تعُد من المقابلة.</p>
+          <p>السرعة:</p>
+          <div class="levels" id="levels"></div>
+          <button class="btn" id="startBtn">ابدأ</button>
+          <p class="tiny">وجّه بمفاتيح الجهاز: 2 و4 و6 و8، أو بمفتاح التمرير.</p>
+        </div>
 
-      <div id="paused" class="overlay hidden">
-        <h2>إيقاف مؤقت</h2>
-        <p>اضغط مسافة للمتابعة</p>
-        <button class="btn" id="resumeBtn">متابعة</button>
-      </div>
+        <div id="paused" class="overlay hidden">
+          <h2>إيقاف مؤقت</h2>
+          <p>اضغط مسافة للمتابعة</p>
+          <button class="btn" id="resumeBtn">متابعة</button>
+        </div>
 
-      <div id="gameover" class="overlay hidden">
-        <h2>انتهت اللعبة</h2>
-        <div class="big" id="finalScore">0</div>
-        <p id="recordMsg"></p>
-        <button class="btn" id="againBtn">العب مرة أخرى</button>
-        <button class="btn" id="menuBtn">القائمة</button>
+        <div id="gameover" class="overlay hidden">
+          <h2>انتهت اللعبة</h2>
+          <div class="big" id="finalScore">0</div>
+          <p id="recordMsg"></p>
+          <button class="btn" id="againBtn">العب مرة أخرى</button>
+          <button class="btn" id="menuBtn">القائمة</button>
+        </div>
       </div>
+    </div>
+    <div class="navwing">
+      <button class="call" id="softLeft" aria-label="قائمة"><span>&#9742;</span></button>
+      <div class="rocker">
+        <button class="rk up" data-dir="up" aria-label="أعلى"></button>
+        <button class="rk ok" id="okBtn" aria-label="اختيار"></button>
+        <button class="rk dn" data-dir="down" aria-label="أسفل"></button>
+      </div>
+      <button class="end" id="softRight" aria-label="إيقاف"><span>&#9742;</span></button>
     </div>
   </div>
 
   <div class="keypad">
-    <!-- صفّ الوظائف: مفتاحان جانبيان، ومفتاح التمرير بينهما، وC الأحمر -->
-    <div class="fnrow">
-      <button class="soft l" id="softLeft">قائمة</button>
-      <div class="scroll">
-        <button class="sc up" data-dir="up" aria-label="أعلى">▲</button>
-        <button class="sc ok" id="okBtn" aria-label="اختيار"></button>
-        <button class="sc dn" data-dir="down" aria-label="أسفل">▼</button>
-      </div>
-      <button class="soft r" id="softRight">إيقاف</button>
-      <button class="ckey" id="clearKey" aria-label="إيقاف">C</button>
+    <div class="krow">
+      <button class="nk" data-k="1"><b>1</b><i>&#8734;</i></button>
+      <button class="nk live" data-k="2" data-dir="up"><b>2</b><i>abc</i></button>
+      <button class="nk" data-k="3"><b>3</b><i>def</i></button>
     </div>
-
-    <!-- الأرقام: أربعة صفوف مقوّسة، وهي أبرز معالم الجهاز -->
-    <div class="rows">
-      <div class="krow">
-        <button class="nk" data-k="1"><b>1</b><i>&nbsp;</i></button>
-        <button class="nk live" data-k="2" data-dir="up"><b>2</b><i>abc</i></button>
-        <button class="nk" data-k="3"><b>3</b><i>def</i></button>
-      </div>
-      <div class="krow">
-        <button class="nk live" data-k="4" data-dir="left"><b>4</b><i>ghi</i></button>
-        <button class="nk" data-k="5"><b>5</b><i>jkl</i></button>
-        <button class="nk live" data-k="6" data-dir="right"><b>6</b><i>mno</i></button>
-      </div>
-      <div class="krow">
-        <button class="nk" data-k="7"><b>7</b><i>pqrs</i></button>
-        <button class="nk live" data-k="8" data-dir="down"><b>8</b><i>tuv</i></button>
-        <button class="nk" data-k="9"><b>9</b><i>wxyz</i></button>
-      </div>
-      <div class="krow">
-        <button class="nk" data-k="*"><b>*</b><i>+</i></button>
-        <button class="nk" data-k="0"><b>0</b><i>&nbsp;</i></button>
-        <button class="nk" data-k="#"><b>#</b><i>&nbsp;</i></button>
-      </div>
+    <div class="krow">
+      <button class="nk live" data-k="4" data-dir="left"><b>4</b><i>ghi</i></button>
+      <button class="nk" data-k="5"><b>5</b><i>jkl</i></button>
+      <button class="nk live" data-k="6" data-dir="right"><b>6</b><i>mno</i></button>
+    </div>
+    <div class="krow">
+      <button class="nk" data-k="7"><b>7</b><i>pqrs</i></button>
+      <button class="nk live" data-k="8" data-dir="down"><b>8</b><i>tuv</i></button>
+      <button class="nk" data-k="9"><b>9</b><i>wxyz</i></button>
+    </div>
+    <div class="krow">
+      <button class="nk" data-k="*"><b>*</b><i>+</i></button>
+      <button class="nk" data-k="0"><b>0</b><i>&nbsp;</i></button>
+      <button class="nk" data-k="#"><b>#</b><i>&nbsp;</i></button>
     </div>
   </div>
+  <div class="chin" aria-hidden="true"></div>
 </div>
 
 <script>
@@ -424,9 +485,9 @@
   const ctx = canvas.getContext('2d');
 
   /* ألوان شاشة 3310 نفسها: رمادي مخضرّ باهت وحبر شبه أسود */
-  const COLOR_BG   = '#a8b593';
-  const COLOR_DARK = '#21261a';
-  const COLOR_MID  = '#4a5340';
+  const COLOR_BG   = '#9fb0c8';
+  const COLOR_DARK = '#17202c';
+  const COLOR_MID  = '#43536b';
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
@@ -745,10 +806,7 @@
       if (btn.dataset.k === '5' && (state === 'menu' || state === 'over')) startGame();
     });
   });
-  $('clearKey').addEventListener('pointerdown', e => {
-    e.preventDefault();
-    if (state === 'playing' || state === 'paused') togglePause();
-  });
+  /* مفتاح الإنهاء الأحمر يوقف، كما يفعل في الجهاز */
 
   $('okBtn').addEventListener('click', () => {
     if (state === 'menu' || state === 'over') startGame();
