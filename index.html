@@ -103,14 +103,124 @@
     transform: translateY(2px);
   }
   #pad button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  /* joystick scheme */
+  #stickpad {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 720px;
+    height: 132px;
+    display: none;
+    position: relative;
+    direction: ltr;
+    touch-action: none;
+  }
+  #stickzone, #jumpzone {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 42%;
+    touch-action: none;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(43, 48, 64, 0.35);
+  }
+  #stickzone { left: 0; }
+  #jumpzone {
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    color: var(--key-ink);
+  }
+  #jumpzone.down { background: var(--key-down); }
+  #jumpdot {
+    width: 92px; height: 92px;
+    border-radius: 50%;
+    background: var(--key);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  #jumpzone.down #jumpdot { background: var(--key-down); box-shadow: inset 0 3px 0 rgba(0,0,0,.35); }
+  #stickbase {
+    position: absolute;
+    width: 104px; height: 104px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: rgba(43, 48, 64, 0.5);
+    left: 14px; top: 14px;
+    pointer-events: none;
+    opacity: .6;
+  }
+  #stickbase.active { opacity: 1; }
+  #stickknob {
+    position: absolute;
+    left: 28px; top: 28px;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--key);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35);
+  }
+  #stickbase.active #stickknob { background: var(--key-down); }
+  #btnM2 {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--key);
+    color: var(--key-ink);
+    font-size: 20px;
+    padding: 0;
+    touch-action: none;
+  }
+  #btnM2:active { background: var(--key-down); }
+  body.touch.joystick #pad { display: none; }
+  body.touch.joystick #stickpad { display: block; }
+  /* landscape: float the stick and the jump pad in the side margins so the
+     game itself can use the whole height */
+  @media (orientation: landscape) and (max-height: 560px) {
+    body.touch.joystick #shell { position: relative; }
+    body.touch.joystick #stickpad {
+      position: absolute;
+      inset: 0;
+      height: auto;
+      max-width: none;
+      pointer-events: none;
+    }
+    body.touch.joystick #stickzone,
+    body.touch.joystick #jumpzone {
+      pointer-events: auto;
+      width: min(150px, 22vw);
+      height: min(160px, 46vh);
+      top: auto;
+      bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    body.touch.joystick #stickzone { left: max(10px, env(safe-area-inset-left)); }
+    body.touch.joystick #jumpzone { right: max(10px, env(safe-area-inset-right)); }
+    body.touch.joystick #btnM2 {
+      pointer-events: auto;
+      left: auto; top: max(8px, env(safe-area-inset-top));
+      right: max(10px, env(safe-area-inset-right));
+      transform: none;
+    }
+  }
   #hint { font-size: 12px; color: var(--muted); direction: rtl; text-align: center; flex: 0 0 auto; }
-  body.touch #pad { display: grid; }
+  body.touch:not(.joystick) #pad { display: grid; }
   body.touch #hint-keys { display: none; }
   body:not(.touch) #hint-touch { display: none; }
   @media (max-height: 460px) {
     #shell { gap: 6px; }
     #top, #hint { display: none; }
     #pad button { height: 56px; font-size: 22px; }
+    #stickpad { height: 104px; }
+    #stickbase { width: 88px; height: 88px; }
+    #stickknob { left: 22px; top: 22px; width: 42px; height: 42px; }
+    #jumpdot { width: 76px; height: 76px; }
   }
   @media (max-width: 400px) { #sub { display: none; } }
   /* installed as an app: give the whole screen to the game */
@@ -134,9 +244,14 @@
     <button id="btnR" aria-label="يمين">6 ▶</button>
     <button id="btnJ" aria-label="قفز">2 ▲ قفز</button>
   </div>
+  <div id="stickpad">
+    <div id="stickzone"><div id="stickbase"><div id="stickknob"></div></div></div>
+    <button id="btnM2" aria-label="القائمة">☰</button>
+    <div id="jumpzone"><div id="jumpdot">قفز</div></div>
+  </div>
   <div id="hint">
     <span id="hint-keys">← → أو 4 / 6 للحركة، ↑ أو 2 أو المسافة للقفز، Esc للإيقاف المؤقت والعودة للقائمة. التقدم يُحفظ تلقائياً.</span>
-    <span id="hint-touch">☰ للإيقاف المؤقت والعودة للقائمة. التقدم يُحفظ تلقائياً ويمكن استئنافه من Continue.</span>
+    <span id="hint-touch">بدّل بين الأزرار والعصا من القائمة. ☰ للإيقاف المؤقت. التقدم يُحفظ تلقائياً.</span>
   </div>
 </div>
 
@@ -448,12 +563,34 @@
   let lives = 3, score = 0, rings = 0, levelCntr = 0, camX = 0, camRow = 0;
   let mode = 'splash'; // splash | menu | play | pause | complete | over | won
   let menuSel = 0, pauseSel = 0, hiScore = 0;
+  let jumpBuffer = 0;                 // remembers a jump tapped just before landing
+  let JUMP_BUFFER_TICKS = 6;          // about 240 ms
   let modeSince = 0;
   let leaveLevel = false;
   const held = { left: false, right: false, up: false };
 
   function setMode(m) { mode = m; modeSince = performance.now(); }
   function heldDir() { return (held.left ? LEFT : 0) | (held.right ? RIGHT : 0) | (held.up ? UP : 0); }
+
+  // Every input surface keeps its own state, so releasing one never cancels
+  // another that is still held (left thumb steering while the right taps jump).
+  const sources = {
+    key: { left: false, right: false, up: false },
+    pad: { left: false, right: false, up: false },
+    stick: { left: false, right: false, up: false },
+    jump: { left: false, right: false, up: false }
+  };
+  function refreshKeys() {
+    const wasUp = held.up;
+    for (const k of ['left', 'right', 'up']) held[k] = sources.key[k] || sources.pad[k] || sources.stick[k] || sources.jump[k];
+    if (held.up && !wasUp) jumpBuffer = JUMP_BUFFER_TICKS;
+    ball.dir = heldDir();
+  }
+  function setFrom(source, k, on) { sources[source][k] = on; refreshKeys(); }
+  function clearKeys() {
+    for (const s of Object.keys(sources)) for (const k of ['left', 'right', 'up']) sources[s][k] = false;
+    refreshKeys();
+  }
 
   // ------------------------------------------------------------------
   // Saved game and high score (browser storage, like the phone's memory)
@@ -485,15 +622,39 @@
     respawn();
     levelCntr = 60;
   }
-  const MENU_ITEMS = ['New game', 'Continue', 'High score'];
+  let joystick = false;
+  try { joystick = localStorage.getItem('bounce_controls') === 'stick'; } catch (e) { /* storage off */ }
+  function applyControls() { document.body.classList.toggle('joystick', joystick); }
+  function toggleControls() {
+    joystick = !joystick;
+    try { localStorage.setItem('bounce_controls', joystick ? 'stick' : 'pad'); } catch (e) { /* storage off */ }
+    applyControls();
+    clearKeys();
+    requestAnimationFrame(resize);
+  }
+  function menuItems() {
+    const items = ['New game', 'Continue', 'High score ' + String(hiScore).padStart(8, '0')];
+    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Pad'));
+    return items;
+  }
+  function pauseItems() {
+    const items = ['Continue'];
+    if (isTouch) items.push('Controls: ' + (joystick ? 'Stick' : 'Pad'));
+    items.push('Main menu');
+    return items;
+  }
   function openMenu() { loadHiScore(); menuSel = hasSave() ? 1 : 0; setMode('menu'); }
   function menuSelect() {
     if (menuSel === 0) newGame();
     else if (menuSel === 1) { if (hasSave()) continueGame(); }
+    else if (menuSel === 3) toggleControls();
   }
   function pauseSelect() {
-    if (pauseSel === 0) setMode('play');
-    else { saveGame(); openMenu(); }
+    const items = pauseItems();
+    const pick = items[pauseSel];
+    if (pick === 'Continue') setMode('play');
+    else if (pick === 'Main menu') { saveGame(); openMenu(); }
+    else toggleControls();
   }
 
   function startLevel(n) {
@@ -515,6 +676,7 @@
     ball.x = ball.respawnC * T + ball.half; ball.y = ball.respawnR * T + ball.half;
     ball.vx = 0; ball.vy = 0; ball.grounded = false; ball.state = NORMAL; ball.pop = 0;
     ball.jumpOffset = 0; ball.speedBonus = 0; ball.gravBonus = 0; ball.jumpBonus = 0; ball.rubber = false; ball.ramp = false; ball.slide = 0;
+    jumpBuffer = 0;
     ball.dir = heldDir();
     camRow = Math.trunc(ball.respawnR / 7) * 7;
   }
@@ -782,7 +944,7 @@
         if (s > 0 || (inv && s < 0)) {
           b.vy = Math.trunc(-b.vy / 2);
           b.grounded = true;
-          if (b.rubber && (b.dir & UP)) { b.rubber = false; b.jumpOffset += inv ? 10 : -10; }
+          if (b.rubber && ((b.dir & UP) || jumpBuffer > 0)) { b.rubber = false; b.jumpOffset += inv ? 10 : -10; }
           else if (b.jumpBonus === 0) b.jumpOffset = 0;
           if (b.vy < 10 && b.vy > -10) b.vy = inv ? -10 : 10;
           break;
@@ -807,7 +969,7 @@
     else if (b.vx < 0) b.vx += 4;
 
     if (large && b.jumpBonus === 0) b.jumpOffset += inv ? 5 : -5;
-    if (b.grounded && (b.dir & UP)) { b.vy = (inv ? 67 : -67) + b.jumpOffset; b.grounded = false; }
+    if (b.grounded && ((b.dir & UP) || jumpBuffer > 0)) { b.vy = (inv ? 67 : -67) + b.jumpOffset; b.grounded = false; jumpBuffer = 0; }
 
     const steps = Math.trunc(Math.abs(b.vx) / 10);
     for (let i = 0; i < steps; i++) {
@@ -837,6 +999,7 @@
   function tick() {
     if (mode !== 'play') return;
     if (levelCntr > 0) levelCntr--;
+    if (jumpBuffer > 0) jumpBuffer--;
     // vertical screen flip (7-tile pages, as in the original)
     if (ball.y - camRow * T < 0) camRow -= 7;
     else if (ball.y - camRow * T > 96) camRow += 7;
@@ -911,13 +1074,11 @@
     });
   }
   function drawMenu() {
-    const items = MENU_ITEMS.slice();
-    items[2] = 'High score ' + String(hiScore).padStart(8, '0');
-    drawList('Bounce', items, menuSel, hasSave() ? null : new Set([1]));
+    drawList('Bounce', menuItems(), menuSel, hasSave() ? null : new Set([1]));
     centerText('4 6 move  2 select', 112, '#6a7280');
   }
   function drawPause() {
-    drawList('Pause', ['Continue', 'Main menu'], pauseSel, null);
+    drawList('Pause', pauseItems(), pauseSel, null);
     centerText('Level ' + levelNum + '  ' + String(score).padStart(8, '0'), 112, '#6a7280');
   }
   function drawSplash() {
@@ -957,6 +1118,7 @@
     view.width = view.height = SW * k;
     view.style.width = view.style.height = (SW * k / dpr) + 'px';
     if (IMG[0]) draw();
+    if (typeof restStick === 'function') restStick();
   }
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
@@ -980,24 +1142,24 @@
     else openMenu();
   }
   function moveSel(d) {
-    if (mode === 'menu') { menuSel = (menuSel + d + 3) % 3; }
-    else if (mode === 'pause') { pauseSel = (pauseSel + d + 2) % 2; }
+    if (mode === 'menu') { const n = menuItems().length; menuSel = (menuSel + d + n) % n; }
+    else if (mode === 'pause') { const n = pauseItems().length; pauseSel = (pauseSel + d + n) % n; }
   }
   function togglePause() {
-    if (mode === 'play') { pauseSel = 0; setMode('pause'); setKey('left', false); setKey('right', false); setKey('up', false); }
+    if (mode === 'play') { pauseSel = 0; setMode('pause'); clearKeys(); }
     else if (mode === 'pause') setMode('play');
   }
   function tapAt(clientY) {
     const rect = view.getBoundingClientRect();
     const y = (clientY - rect.top) / rect.height * SW;
     if (mode === 'menu' || mode === 'pause') {
-      const n = mode === 'menu' ? 3 : 2;
+      const n = (mode === 'menu' ? menuItems() : pauseItems()).length;
       const i = Math.floor((y - 26) / 20);
       if (i >= 0 && i < n) { if (mode === 'menu') menuSel = i; else pauseSel = i; }
     }
     press();
   }
-  function setKey(k, on) { held[k] = on; ball.dir = heldDir(); }
+  function setKey(k, on) { setFrom('key', k, on); }
   const KEYMAP = {
     ArrowLeft: 'left', KeyA: 'left', Digit4: 'left', Numpad4: 'left',
     ArrowRight: 'right', KeyD: 'right', Digit6: 'right', Numpad6: 'right',
@@ -1019,24 +1181,107 @@
     if (mode !== 'play' && !e.repeat && (k || e.code === 'Enter')) press();
   });
   window.addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) setKey(k, false); });
-  window.addEventListener('blur', () => { setKey('left', false); setKey('right', false); setKey('up', false); });
+  window.addEventListener('blur', clearKeys);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clearKeys(); });
 
   function bindTouch(id, k) {
     const el = document.getElementById(id);
+    let id_ = null;
     const on = e => {
       e.preventDefault(); unlockAudio(); el.classList.add('down');
       if (mode === 'menu' || mode === 'pause') { if (k === 'left') moveSel(-1); else if (k === 'right') moveSel(1); else press(); return; }
-      setKey(k, true);
+      id_ = e.pointerId;
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+      setFrom('pad', k, true);
       if (mode !== 'play') press();
     };
-    const off = e => { e.preventDefault(); setKey(k, false); el.classList.remove('down'); };
+    const off = e => {
+      if (id_ !== null && e.pointerId !== id_) return;
+      e.preventDefault(); id_ = null;
+      setFrom('pad', k, false);
+      el.classList.remove('down');
+    };
     el.addEventListener('pointerdown', on);
     el.addEventListener('pointerup', off);
     el.addEventListener('pointercancel', off);
-    el.addEventListener('pointerleave', off);
-    el.addEventListener('touchend', off, { passive: false });
   }
   bindTouch('btnL', 'left'); bindTouch('btnR', 'right'); bindTouch('btnJ', 'up');
+  // Floating stick: the base jumps to wherever the thumb lands, so there is
+  // nothing small to hit. The jump pad is a separate pointer, so steering and
+  // jumping never interrupt each other.
+  const stickZone = document.getElementById('stickzone');
+  const stickBase = document.getElementById('stickbase');
+  const stickKnob = document.getElementById('stickknob');
+  const jumpZone = document.getElementById('jumpzone');
+  const R_MAX = 44, DEAD_X = 9, DEAD_Y = 26;
+  let stickId = null, sx0 = 0, sy0 = 0;
+
+  function knob(dx, dy) { stickKnob.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)'; }
+  function restStick() {
+    const r = stickZone.getBoundingClientRect();
+    if (!r.width) return;
+    const half = stickBase.offsetWidth / 2;
+    stickBase.style.left = (r.width / 2 - half) + 'px';
+    stickBase.style.top = (r.height / 2 - half) + 'px';
+  }
+  stickZone.addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    if (mode !== 'play') { press(); return; }
+    stickId = e.pointerId;
+    try { stickZone.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+    sx0 = e.clientX; sy0 = e.clientY;
+    const r = stickZone.getBoundingClientRect();
+    const half = stickBase.offsetWidth / 2;
+    stickBase.style.left = Math.max(0, Math.min(r.width - half * 2, e.clientX - r.left - half)) + 'px';
+    stickBase.style.top = Math.max(0, Math.min(r.height - half * 2, e.clientY - r.top - half)) + 'px';
+    stickBase.classList.add('active');
+    knob(0, 0);
+  });
+  stickZone.addEventListener('pointermove', e => {
+    if (e.pointerId !== stickId) return;
+    e.preventDefault();
+    let dx = e.clientX - sx0, dy = e.clientY - sy0;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d > R_MAX) { dx = dx / d * R_MAX; dy = dy / d * R_MAX; }
+    knob(dx, dy);
+    setFrom('stick', 'left', dx < -DEAD_X);
+    setFrom('stick', 'right', dx > DEAD_X);
+    setFrom('stick', 'up', dy < -DEAD_Y);
+  });
+  const stickOff = e => {
+    if (e.pointerId !== stickId) return;
+    e.preventDefault(); stickId = null;
+    stickBase.classList.remove('active');
+    knob(0, 0);
+    restStick();
+    setFrom('stick', 'left', false); setFrom('stick', 'right', false); setFrom('stick', 'up', false);
+  };
+  stickZone.addEventListener('pointerup', stickOff);
+  stickZone.addEventListener('pointercancel', stickOff);
+
+  let jumpId = null;
+  jumpZone.addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    if (mode !== 'play') { press(); return; }
+    jumpId = e.pointerId;
+    try { jumpZone.setPointerCapture(e.pointerId); } catch (err) { /* older engines */ }
+    jumpZone.classList.add('down');
+    setFrom('jump', 'up', true);
+  });
+  const jumpOff = e => {
+    if (jumpId !== null && e.pointerId !== jumpId) return;
+    e.preventDefault(); jumpId = null;
+    jumpZone.classList.remove('down');
+    setFrom('jump', 'up', false);
+  };
+  jumpZone.addEventListener('pointerup', jumpOff);
+  jumpZone.addEventListener('pointercancel', jumpOff);
+
+  document.getElementById('btnM2').addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
+  });
+
   const btnM = document.getElementById('btnM');
   btnM.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu(); });
   view.addEventListener('pointerdown', e => { e.preventDefault(); unlockAudio(); tapAt(e.clientY); });
@@ -1059,12 +1304,17 @@
     size(n) { setSize(n); },
     exitPos() { return [exit.col, exit.row]; },
     menu() { openMenu(); }, sel() { return [menuSel, pauseSel, hiScore, hasSave()]; },
+    keys() { return { held: Object.assign({}, held), buffer: jumpBuffer, joystick, sources: JSON.parse(JSON.stringify(sources)) }; },
+    setControls(j) { if (j !== joystick) toggleControls(); },
+    setBufferTicks(n) { JUMP_BUFFER_TICKS = n; },
     probe(x, y) { const ok = collisionDetection(x, y); const h = ball.half; const t = []; for (let r = Math.trunc((y - h) / T); r < Math.trunc((y - 1 + h) / T) + 1; r++) for (let c = Math.trunc((x - h) / T); c < Math.trunc((x - 1 + h) / T) + 1; c++) t.push([r, c, map[r] ? map[r][c] : -1]); return { ok, t, grounded: ball.grounded }; },
     startLevel(n) { startLevel(n); },
     collectAll() { for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) { const w = map[r][c] & 64, id = map[r][c] & 63; if (id === 13) { map[r][c] = 17 | w; rings++; } else if (id === 14) map[r][c] = 18 | w; else if (id === 15) { map[r][c] = 19 | w; rings++; } else if (id === 16) map[r][c] = 20 | w; else if (id === 21) { map[r][c] = 25 | w; rings++; } else if (id === 22) map[r][c] = 26 | w; else if (id === 23) { map[r][c] = 27 | w; rings++; } else if (id === 24) map[r][c] = 28 | w; } },
     renderLevel() { const c = mk(LEVEL_W, ROWS * T); drawWorld(c.getContext('2d'), 0, 0, LEVEL_W, ROWS * T); return c.toDataURL(); }
   };
 
+  applyControls();
+  restStick();
   loadGraphics().then(() => { loadHiScore(); loadLevel(1); resize(); requestAnimationFrame(frame); });
 })();
 </script>
