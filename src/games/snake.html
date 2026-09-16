@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Nokia Snake II - لعبة الدودة</title>
+<title>الدودة — Snake II</title>
+<meta name="apple-mobile-web-app-title" content="Snake II">
 <style>
 /* ==================== المادة المشتركة: «عاج وألمنيوم مؤكسد» ====================
    جسم من بلاستيك عاجي دافئ كأجهزة السبعينات (آلة حاسبة، راديو جيب)، ولوحة
@@ -129,8 +130,9 @@
   background:radial-gradient(circle at 38% 32%, #fff 0 12%, var(--acc-hi) 30%, var(--acc) 60%, var(--acc-lo) 100%);
   box-shadow: 0 0 7px var(--acc-glow), 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4);
 }
-/* مصباح مطفأ: يُستعمل لمصباح RUN حين تكون اللعبة متوقفة، ولمصباح الصوت حين يُكتم */
-.lamp.off, body:not([data-state="playing"]) .lamp.run {
+/* مصباح مطفأ: حالة واحدة فقط — مصباح RUN حين تكون اللعبة متوقفة. مصباح الصوت
+   نقطة داخل مفتاح الصوت (.fn .dot) وله قاعدته الخاصة، فلا داعي لمُحدِّد ثانٍ لا يمسّ شيئاً */
+body:not([data-state="playing"]) .lamp.run {
   background:radial-gradient(circle at 38% 32%, #d9d0bd 0 12%, #8f8674 45%, #5a5244 100%);
   box-shadow: 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4), inset 0 1px 2px rgba(0,0,0,.5);
 }
@@ -153,7 +155,9 @@
 .cap { flex:none; height:24px; display:flex; align-items:center; gap:10px; direction:ltr; padding:0 8px; }
 .cap .grille { flex:1; height:10px; max-width:120px; margin-left:auto; opacity:.8; }
 .foot { flex:none; height:26px; display:none; align-items:center; gap:12px; direction:ltr; padding:0 12px; }
-.foot .grille { flex:1; height:12px; opacity:.85; }
+/* عرض الشريط مرن ولا يقبل القسمة على 6 دائماً، فـ round يمطّ خطوة الثقوب قليلاً
+   لتنتهي الشبكة بثقب كامل بدل نصف ثقب مقطوع عند الحافة */
+.foot .grille { flex:1; height:12px; opacity:.85; background-repeat:round; }
 @media (min-height: 760px) { .foot { display:flex; } .cap { height:30px; } .foot { height:30px; } }
 /* ---- الحركة: لا رسوم متحرّكة دائمة؛ ما يتحرّك يحترم تفضيل المستخدم ---- */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
@@ -237,7 +241,7 @@ canvas#game { display:block; width:100%; height:auto; image-rendering:pixelated;
 .overlay h1 { font:900 23px/1 "Arial Black", Arial, sans-serif; letter-spacing:2px; direction:ltr; }
 .overlay p { font-size:11.5px; line-height:1.55; max-width:100%; }
 .overlay p.lbl { font-weight:700; font-size:11px; letter-spacing:.04em; }
-.overlay p.hint { font-size:10px; opacity:.85; }
+.overlay p.hint { font-size:11px; opacity:.85; }   /* لا نصّ أصغر من 11 هنا: السطر تعليمة تُقرأ، لا حاشية */
 .overlay .big { font-size:32px; font-weight:900; line-height:1.1; }
 /* الصفّان اللذان يظهر تحتهما صفّ القائمة يتركان له 56 بكسلاً كي لا يجلس على النصّ */
 #paused, #gameover { padding-bottom:56px; }
@@ -254,13 +258,15 @@ body[data-state="paused"] .tray, body[data-state="over"] .tray { display:flex; }
   .overlay { gap:5px; padding:8px; }
   .overlay h1 { font-size:19px; }
   .overlay p { font-size:10.5px; line-height:1.45; }
-  .overlay p.hint { font-size:9.5px; }
+  .overlay p.hint { font-size:10.5px; }
   .overlay .big { font-size:26px; }
   .lvl { font-size:16px; padding:4px 10px; }
 }
 
 /* ---- لوحة المفاتيح: الصليب تحت الإبهام الأيسر، ومفتاح البدء الأخضر تحت الأيمن ---- */
-.deck { flex:none; width:100%; display:flex; flex-direction:column; align-items:center; gap:10px; padding:10px 10px 12px; }
+/* كل صفّ مادي في الجهاز يُقرأ من اليسار: الصليب يساراً والعمود يميناً في كل
+   الاتجاهات، فلا تنقلب الأسهم مع اتجاه الصفحة العربي */
+.deck { flex:none; width:100%; display:flex; flex-direction:column; align-items:center; direction:ltr; gap:10px; padding:10px 10px 12px; }
 .field { width:100%; display:flex; align-items:center; justify-content:space-between; direction:ltr; padding:0 4px; }
 /* الصليب: ذراع 58 بكسل، أي 174 للمجموع — هدف يصيبه الإبهام دون نظر؛ تحته صليب مصبوب في العاج */
 .pad { position:relative; width:174px; height:174px; flex:none; }
@@ -294,9 +300,11 @@ body[data-state="paused"] .tray, body[data-state="over"] .tray { display:flex; }
   box-shadow:0 0 0 1px rgba(0,0,0,.3), inset 0 1px 1px rgba(0,0,0,.5);
 }
 /* مفتاح البدء/الإيقاف: قبّة خضراء في تجويف دائري مصبوب، وتحتها نقش يقول ما سيفعله الآن */
-.ok { position:relative; display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 12px 0; }
+/* الفجوة 14 لا 8: النقش يجلس تحت حافّة التجويف المصبوب لا عليها، فلا تمرّ
+   الحلقة في نزول حروف «ابدأ/إيقاف/متابعة» */
+.ok { position:relative; display:flex; flex-direction:column; align-items:center; gap:14px; padding:10px 12px 0; }
 .ok::before {
-  content:""; position:absolute; left:50%; top:0; width:92px; height:92px; margin-left:-46px; border-radius:50%; pointer-events:none;
+  content:""; position:absolute; left:50%; top:0; width:86px; height:86px; margin-left:-43px; border-radius:50%; pointer-events:none;
   background:radial-gradient(circle at 50% 40%, rgba(80,60,30,.16), rgba(80,60,30,.09) 70%, rgba(80,60,30,0) 72%);
   box-shadow:inset 0 1px 2px rgba(90,70,40,.25), 0 1px 0 rgba(255,255,255,.7);
 }
@@ -310,7 +318,16 @@ body[data-state="playing"] .cap-pause, body[data-state="paused"] .cap-resume { d
 
 /* ---- الطبقات: الطول يقرّر، لا العرض. الشاشة تتنازل قبل الأزرار،
    ولا ينزل الذراع تحت 48 بكسل مهما ضاق الإطار ---- */
+/* بين 700 و759 لا يظهر الشريط السفلي، فيكفي سقف أوسع ليبقى المفتاح في المدى
+   نفسه ولا يقفز موضعه عند حدود الطبقة */
+@media (min-height: 700px) { body::after { max-height:48px; } }
 @media (min-height: 760px) {
+  /* فوق 760 يكبر الفائض الرأسي، وثلاثة أثمانه تحت الجهاز كانت ترفع مفتاح البدء
+     إلى 208 بكسلاً عن الحافّة السفلى: ارتفاع لا يبلغه الإبهام دون إعادة إمساك
+     الجهاز. فيُسقَّف الفراغ السفلي عند 8 بكسلات — يضاف إليها حشو الجسم ومنطقة
+     الأمان في الأجهزة الحقيقية — ويذهب الفائض كلّه فوق الجهاز، فيستقرّ المفتاح
+     عند ~141 بكسلاً مهما زاد الطول: 794 أو 844 أو 932، ولا تتقلّص الشاشة بكسلاً */
+  body::after { max-height:8px; }
   .pad { width:186px; height:186px; } .pad .d { width:62px; height:62px; }
   .pad .up { left:62px; } .pad .left { top:62px; } .pad .right { left:124px; top:62px; } .pad .dn { left:62px; top:124px; }
   .pad .hub { left:66px; top:66px; width:54px; height:54px; }
@@ -324,18 +341,21 @@ body[data-state="playing"] .cap-pause, body[data-state="paused"] .cap-resume { d
   .pad .hub { left:54px; top:54px; width:48px; height:48px; }
   .pad::before { background-size:56px 100%, 100% 56px; }
   .col { height:156px; }
-  .fn { width:46px; height:46px; }
   #okBtn { width:60px; height:60px; }
-  .ok::before { width:86px; height:86px; margin-left:-43px; }
+  .ok::before { width:80px; height:80px; margin-left:-40px; }
   .deck { gap:8px; padding:8px 8px 10px; }
 }
+/* اللوحة العلوية أول ما يسقط حين يقصر الطول: عتبة واحدة لكل ألعاب المجموعة */
+@media (max-height: 620px) and (orientation: portrait) { .cap { display:none; } }
 @media (max-height: 560px) and (orientation: portrait) {
-  .cap { display:none; } .well { padding:6px; }
+  .well { padding:6px; }
   .pad { width:144px; height:144px; } .pad .d { width:48px; height:48px; }
   .pad .up { left:48px; } .pad .left { top:48px; } .pad .right { left:96px; top:48px; } .pad .dn { left:48px; top:96px; }
   .pad .hub { left:50px; top:50px; width:44px; height:44px; }
   .pad::before { background-size:52px 100%, 100% 52px; }
-  .col { height:144px; }
+  /* 152 لا 144: العمود يحمل مفتاح صوت 48 ونقشاً تحت مفتاح البدء، والفجوة 14
+     بينهما؛ 144 كانت تُلصق المفتاحين ببعضهما بعد توسيع الفجوة */
+  .col { height:152px; }
 }
 /* إطار عريض قصير: الصليب جناحاً أيسر للشاشة، ومفتاحا الصوت والبدء جناحاً أيمن */
 @media (orientation: landscape) and (max-height: 560px) {
@@ -691,7 +711,8 @@ body[data-state="playing"] .cap-pause, body[data-state="paused"] .cap-resume { d
       if (flashTicks <= 0) {
         clearInterval(flash);
         finalScoreEl.textContent = score;
-        recordMsgEl.textContent = record ? '🏆 رقم قياسي جديد!' : 'أفضل نتيجة: ' + best;
+        // A star the UI font draws in ink, not a full-colour emoji: the LCD is one colour.
+        recordMsgEl.textContent = record ? '★ رقم قياسي جديد!' : 'أفضل نتيجة: ' + best;
         showOverlay('over');
       }
     }, 150);
@@ -718,7 +739,7 @@ body[data-state="playing"] .cap-pause, body[data-state="paused"] .cap-resume { d
     ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
     w: 'up', s: 'down', a: 'left', d: 'right',
     W: 'up', S: 'down', A: 'left', D: 'right',
-    // Nokia keypad layout: 2 up, 8 down, 4 left, 6 right
+    // Phone keypad layout: 2 up, 8 down, 4 left, 6 right
     '2': 'up', '8': 'down', '4': 'left', '6': 'right',
   };
 

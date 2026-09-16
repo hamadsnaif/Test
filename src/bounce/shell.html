@@ -126,8 +126,8 @@
   background:radial-gradient(circle at 38% 32%, #fff 0 12%, var(--acc-hi) 30%, var(--acc) 60%, var(--acc-lo) 100%);
   box-shadow: 0 0 7px var(--acc-glow), 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4);
 }
-/* مصباح مطفأ: يُستعمل لمصباح RUN حين تكون اللعبة متوقفة */
-.lamp.off, body:not([data-mode="play"]) .lamp.run {
+/* مصباح RUN مطفأ: كل حالة غير اللعب تُطفئه */
+body:not([data-mode="play"]) .lamp.run {
   background:radial-gradient(circle at 38% 32%, #d9d0bd 0 12%, #8f8674 45%, #5a5244 100%);
   box-shadow: 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4), inset 0 1px 2px rgba(0,0,0,.5);
 }
@@ -148,10 +148,15 @@
 }
 /* ---- اللوحة العلوية والشريط السفلي: يمتصّان الفراغ الرأسي ويختفيان حين يضيق الطول ---- */
 .cap { flex:none; height:24px; display:flex; align-items:center; gap:10px; direction:ltr; padding:0 8px; }
-.cap .grille { flex:1; height:10px; max-width:120px; margin-left:auto; opacity:.8; }
+.cap .grille { flex:1; height:10px; max-width:120px; margin-left:auto; opacity:.8; background-repeat:round; }
 .foot { flex:none; height:26px; display:none; align-items:center; gap:12px; direction:ltr; padding:0 12px; }
-.foot .grille { flex:1; height:12px; opacity:.85; }
-@media (min-height: 760px) { .foot { display:flex; } .cap { height:30px; } .foot { height:30px; } }
+.foot .grille { flex:1; height:12px; opacity:.85; background-repeat:round; }
+@media (min-height: 760px) {
+  .foot { display:flex; height:30px; }
+  .cap { height:30px; }
+  /* الشريط السفلي حاضر هنا بشبكته، فلا داعي لشبكة ثانية في صفّ المفتاح */
+  .side .grille { display:none; }
+}
 /* ---- الحركة: لا رسوم متحرّكة دائمة؛ ما يتحرّك يحترم تفضيل المستخدم ---- */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 
@@ -176,6 +181,17 @@ body {
 }
 #shell::before { content:""; flex:5 1 0; min-height:0; }
 #shell::after  { content:""; flex:3 1 0; min-height:0; }
+/* الشاشات الطويلة تترك فائضاً كبيراً؛ نسبة 6:2 تدفع الجهاز كلّه إلى أسفل حتى
+   يهبط صفّ المفاتيح إلى حيث يستريح الإبهام بدل أن يعوم في المنتصف */
+@media (min-height: 760px) {
+  #shell::before { flex:6 1 0; }
+  #shell::after  { flex:2 1 0; }
+}
+/* لا تُلصق الهيكل بحافة الشاشة: 3 بكسل لازمة عند 390 وحدها كي تبقى درجة
+   التكبير 8، وما دون ذلك يأخذ الجهاز هامشاً كهوامش أخوته */
+@media (max-width: 380px) {
+  #shell { padding-inline:max(7px, env(safe-area-inset-left)) max(7px, env(safe-area-inset-right)); }
+}
 .unit {
   width:100%; max-width:430px;
   display:flex; flex-direction:column; gap:8px;
@@ -189,20 +205,30 @@ body {
 #stage { width:100%; display:flex; align-items:center; justify-content:center; }
 #game { display:block; background:#000; border-radius:3px; image-rendering:pixelated; image-rendering:crisp-edges; touch-action:none; }
 
-/* ---- المنصة: عمود مفتاح الإيقاف على اليسار (الإبهام الحرّ)، والطبق يملأ
-   الباقي على اليمين (إبهام اللعب). صفّ مادي فاتجاهه يسار→يمين دائماً ---- */
-.deck { flex:none; width:100%; display:flex; align-items:center; gap:12px; padding:10px; direction:ltr; }
-.side { flex:none; width:64px; display:flex; flex-direction:column; align-items:center; gap:6px; }
-/* مفتاح الإيقاف: 60 بكسل، رمزه يتبدّل مع الحالة (❚❚ أثناء اللعب، ▶ أثناء التوقّف) */
+/* ---- المنصة: طبقتان فوق بعضهما. الطبق يأخذ عرض المنصة كاملاً كما كان قبل
+   إعادة التصميم (العصا هي أداة اللعب، فلا يقتطع منها عمود جانبي)، ومفتاح
+   الإيقاف يهبط إلى صفّ خاص تحته: بذلك يصل مركزه إلى ارتفاع الإبهام المستريح
+   بدل أن يعلو معه. صفّ مادي فاتجاهه يسار→يمين دائماً ---- */
+.deck { flex:none; width:100%; display:flex; flex-direction:column; align-items:stretch; gap:10px; padding:10px 6px; direction:ltr; }
+/* صفّ المفتاح: المفتاح إلى اليسار وبجانبه نقشه المحفور، وشبكة تملأ ما تبقّى */
+.side { flex:none; width:100%; display:flex; flex-direction:row; align-items:center; gap:10px; padding:0; }
+.side .grille { flex:1; height:12px; min-width:0; opacity:.75; background-repeat:round; }
+/* مفتاح الإيقاف: 60 بكسل، رمزه ونقشه يتبدّلان مع حالة اللعبة لا مع التوقّف
+   وحده: ❚❚ أثناء اللعب، ▶ في كل حالة أخرى — فلا يكون المفتاح ميّتاً أبداً */
 #softR { width:60px; height:60px; font-size:20px; }
 #softR .ic.pause { font-size:22px; letter-spacing:-2px; }
 #softR .ic.play { font-size:19px; padding-left:3px; }
-body.paused #softR .ic.pause, body:not(.paused) #softR .ic.play,
-body.paused .cap-pause, body:not(.paused) .cap-resume { display:none; }
+body:not([data-mode="play"]) #softR .ic.pause, body[data-mode="play"] #softR .ic.play { display:none; }
+.cap-pause, .cap-resume, .cap-start { display:none; }
+body[data-mode="play"] .cap-pause,
+body[data-mode="pause"] .cap-resume,
+body:not([data-mode="play"]):not([data-mode="pause"]) .cap-start { display:inline; }
 
 /* ---- الطبق: ألمنيوم مخروط بحلقات خراطة، العصا تظهر حيث يقع الإبهام،
    وعليه رموز محفورة تشرح الاتجاهات دون أن تكون أهدافاً ---- */
-#stickpad { flex:1 1 auto; min-width:0; height:186px; position:relative; direction:ltr; touch-action:none; }
+/* الطبق يُزاح 2 بكسل إلى الداخل عن حافة الحوض: مفتاح الإيقاف تحته يبدأ عند
+   الحافة نفسها، فيبقى يسار الطبق قياساً لا شكلاً فقط (شرط ترتيب الاتجاه) */
+#stickpad { flex:none; height:186px; margin-inline:2px; position:relative; direction:ltr; touch-action:none; }
 #stickzone {
   position:absolute; inset:0; border-radius:999px; touch-action:none;
   background:
@@ -213,14 +239,17 @@ body.paused .cap-pause, body:not(.paused) .cap-resume { display:none; }
     inset 0 4px 9px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.14),
     0 1px 0 rgba(255,255,255,.7), 0 0 0 1px rgba(0,0,0,.45);
 }
+/* النقوش على الطبق تُقرأ كنقش على ألمنيوم: حبرها فاتح بما يكفي ليُقرأ كدليل
+   مفاتيح من مسافة الذراع، والظلّ الداكن تحتها يبقيها غائرة لا مطبوعة */
 .etch {
   position:absolute; pointer-events:none; font:700 10px/1 var(--font-ui);
-  color:rgba(255,255,255,.28); letter-spacing:.1em; white-space:nowrap;
+  color:rgba(255,255,255,.42); letter-spacing:.1em; white-space:nowrap;
   text-shadow:0 -1px 0 rgba(0,0,0,.7);
 }
 .etch.l { left:14px; top:50%; transform:translateY(-50%); }
 .etch.r { right:14px; top:50%; transform:translateY(-50%); }
-.etch.t { top:8px; left:50%; transform:translateX(-50%); }
+/* نقش القفز أعلى الطبق هو الأهم، فيكبر بكسلاً واحداً عن نقشي الجهتين */
+.etch.t { top:8px; left:50%; transform:translateX(-50%); font-size:11px; }
 #stickbase {
   position:absolute; width:112px; height:112px; border-radius:50%;
   border:2px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03);
@@ -241,7 +270,7 @@ body.paused .cap-pause, body:not(.paused) .cap-resume { display:none; }
 /* ---- لوحة الأسهم البديلة (من القائمة): ثلاثة مفاتيح فقط — يسار، قفز، يمين.
    القفز هو المفتاح الملوّن الوحيد في هذا النظام ---- */
 #keypad {
-  display:none; flex:1 1 auto; min-width:0;
+  display:none; margin-inline:2px;
   grid-template-columns:1fr 84px 1fr; gap:10px; align-items:center; direction:ltr;
 }
 .num { width:100%; height:72px; font-size:22px; }
@@ -253,16 +282,26 @@ body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { di
 @media (max-height: 700px) {
   .unit { gap:8px; padding:8px 7px 10px; }
   #stickpad { height:140px; }
-  .deck { gap:10px; padding:8px 8px 9px; }
+  .deck { gap:8px; padding:8px 6px 9px; }
   #softR { width:56px; height:56px; }
 }
-@media (max-height: 640px) { .cap { display:none; } }
+/* عتبة واحدة متّفق عليها للأجهزة الثلاثة: اللوحة المكتوب عليها الاسم تختفي
+   عند الطول نفسه في الثلاثة، فتظل الأجهزة تبدو إخوة عند 375 و320 */
+@media (max-height: 620px) and (orientation: portrait) { .cap { display:none; } }
 @media (max-height: 560px) and (orientation: portrait) {
   #stickpad { height:116px; }
   #softR { width:48px; height:48px; }
-  .side { width:56px; }
   .num { height:56px; }
   .num.round { width:56px; height:56px; }
+}
+/* نافذة عريضة قصيرة على الحاسوب (مثل 900×650): صفّ المفتاح تحت الطبق يكلّف
+   من الطول أكثر مما تبقّى، وإنزال درجة التكبير ممنوع — فيعود المفتاح هنا
+   وحده إلى جانب الطبق كما كان */
+@media (orientation: landscape) and (min-height: 561px) and (max-height: 660px) {
+  .deck { flex-direction:row; align-items:center; gap:10px; padding:8px 6px 9px; }
+  .side { order:-1; width:56px; flex:none; flex-direction:column; gap:6px; padding:0; }
+  .side .grille { display:none; }
+  #stickpad, #keypad { flex:1 1 auto; width:auto; min-width:0; }
 }
 /* ---- إطار عريض قصير: شبكة ثلاثة أعمدة (كل خلية مثبّتة في الصفّ الأول كي لا يزحف
    التوزيع التلقائي بالجناح إلى صفّ ثانٍ) — جناح الإيقاف يساراً (الإبهام الأيسر)،
@@ -276,6 +315,8 @@ body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { di
   .well { grid-column:2; grid-row:1; align-self:stretch; min-width:0; }
   .deck { display:contents; }
   .side { grid-column:1; grid-row:1; width:auto; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; padding:6px 0; gap:6px; }
+  /* الجناح ضيّق ورأسي: لا شبكة فيه، وإلا مطّت نفسها ورفعت المفتاح عن أسفله */
+  .side .grille { display:none; }
   /* الاسم محفوراً رأسياً في الجناح، مكان اللوحة العلوية المخفية */
   .side::before {
     content:"BOUNCE"; writing-mode:vertical-rl; transform:rotate(180deg); margin-bottom:auto;
@@ -285,9 +326,13 @@ body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { di
   #softR { width:60px; height:60px; }
   #stickpad { grid-column:3; grid-row:1; width:180px; height:auto; align-self:stretch; justify-self:center; }
   #stickzone { border-radius:90px; }
-  #keypad { grid-column:3; grid-row:1; grid-template-columns:1fr; align-content:center; }
-  .num, .num.round { width:100%; height:72px; }
-  .num.round { width:72px; }
+  /* الأسهم في الوضع العريض: عمودان لا عمود واحد — القفز المستدير يعلو الصفّ
+     كلّه، ويسار ويمين تحته كلٌّ في جهته، فلا يصير «اليسار» هو المفتاح الأعلى */
+  #keypad { grid-column:3; grid-row:1; grid-template-columns:1fr 1fr; align-content:center; }
+  .num { width:100%; height:72px; }
+  .num[data-k="5"] { grid-column:1 / -1; grid-row:1; width:72px; height:72px; justify-self:center; }
+  .num[data-k="4"] { grid-column:1; grid-row:2; }
+  .num[data-k="6"] { grid-column:2; grid-row:2; }
 }
 </style>
 
@@ -296,15 +341,16 @@ body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { di
     <div class="cap"><span class="lamp run" aria-hidden="true"></span><span class="name">BOUNCE</span><span class="grille" aria-hidden="true"></span></div>
     <div class="well plate"><div id="stage"><canvas id="game" width="384" height="384"></canvas></div></div>
     <div class="deck">
-      <div class="side">
-        <button class="key round" id="softR" type="button" aria-label="إيقاف / متابعة"><span class="ic pause">&#x2016;</span><span class="ic play">&#x25B6;&#xFE0E;</span></button>
-        <span class="engr ar cap-pause">إيقاف</span><span class="engr ar cap-resume">متابعة</span>
-      </div>
       <div id="stickpad"><div id="stickzone"><span class="etch l">&#x25C0;&#xFE0E;</span><span class="etch r">&#x25B6;&#xFE0E;</span><span class="etch t">&#x25B2;&#xFE0E; قفز</span><div id="stickbase"><div id="stickknob"></div></div></div></div>
       <div id="keypad">
         <button class="key num" data-k="4" type="button" aria-label="يسار">&#x25C0;&#xFE0E;</button>
         <button class="key num round acc" data-k="5" type="button" aria-label="قفز">&#x25B2;&#xFE0E;</button>
         <button class="key num" data-k="6" type="button" aria-label="يمين">&#x25B6;&#xFE0E;</button>
+      </div>
+      <div class="side">
+        <button class="key round" id="softR" type="button" aria-label="إيقاف / متابعة / ابدأ"><span class="ic pause">&#x2016;</span><span class="ic play">&#x25B6;&#xFE0E;</span></button>
+        <span class="engr ar cap-pause">إيقاف</span><span class="engr ar cap-resume">متابعة</span><span class="engr ar cap-start">ابدأ</span>
+        <span class="grille" aria-hidden="true"></span>
       </div>
     </div>
     <div class="foot"><span class="engr">Model B·128</span><span class="grille" aria-hidden="true"></span><span class="engr">1 Player</span></div>

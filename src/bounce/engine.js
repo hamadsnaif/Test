@@ -51,8 +51,11 @@
     s: '4854545420', t: '043F444020', u: '3C4040207C', v: '1C2040201C', w: '3C4030403C', x: '4428102844',
     y: '0C5050503C', z: '4464544C44',
     '!': '00005F0000', '.': '0060600000', ':': '0036360000', '-': '0808080808', ' ': '0000000000',
-    '?': '0201510906', "'": '0005030000', ',': '0050300000'
+    '?': '0201510906', "'": '0005030000', ',': '0050300000',
+    // arrows: the same three triangles engraved on the chassis keys
+    '\u25C0': '081C3E7F00', '\u25B6': '7F3E1C0800', '\u25B2': '60787C7860'
   };
+  const LEFT_GL = '\u25C0', RIGHT_GL = '\u25B6', UP_GL = '\u25B2';
   const FONT = {};
   for (const k in FONT_SRC) FONT[k] = [0, 1, 2, 3, 4].map(i => parseInt(FONT_SRC[k].substr(i * 2, 2), 16));
 
@@ -807,7 +810,10 @@
   }
   function drawMenu() {
     drawList('Bounce', menuItems(), menuSel, hasSave() ? null : new Set([1]));
-    centerText('4 6 move  2 select', 112, '#6a7280');
+    // The hint names the controls this player actually has under the screen:
+    // the dish (steer with it, tap anything to confirm) or the three arrow
+    // keys. 21 characters is the widest line the 128 px screen takes.
+    centerText(joystick ? 'Stick move  Tap ok' : LEFT_GL + ' ' + RIGHT_GL + ' move  ' + UP_GL + ' select', 112, '#6a7280');
   }
   function drawPause() {
     drawList('Pause', pauseItems(), pauseSel, null);
@@ -874,8 +880,6 @@
   // Input
   // ------------------------------------------------------------------
   const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches;
-  if (isTouch) document.body.classList.add('touch');
-  if (navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches) document.body.classList.add('standalone');
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('gesturestart', e => e.preventDefault());
   document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
@@ -984,16 +988,16 @@
   }
 
   for (const el of document.querySelectorAll('#keypad .num')) {
-    const keys = KEYPAD[el.dataset.k] || [];
-    if (keys.length) el.classList.add('live');
-    bindMulti(el, keys);
+    bindMulti(el, KEYPAD[el.dataset.k] || []);
   }
-  // The one round key beside the dish: pause / resume, and it wakes the
-  // splash. Confirming is the dish, the canvas, key 5 or Enter.
+  // The one round key under the dish (beside it in landscape): pause and
+  // resume while a level runs, and elsewhere it confirms, so it is never a
+  // dead key. Confirming is also the dish, the canvas, key 5 or Enter.
   const softR = document.getElementById('softR');
   softR.addEventListener('pointerdown', e => {
     e.preventDefault(); unlockAudio();
-    if (mode === 'play' || mode === 'pause') togglePause(); else if (mode === 'splash') openMenu();
+    if (mode === 'play' || mode === 'pause') togglePause();
+    else press();          // splash, menu, complete, over, won: it confirms
   });
   // pressed look only; the action above fires on the same pointerdown
   softR.addEventListener('pointerdown', () => softR.classList.add('down'));

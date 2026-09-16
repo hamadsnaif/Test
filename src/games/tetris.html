@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="تتريس">
-<meta name="description" content="لعبة تتريس بطابع هواتف نوكيا القديمة، مهيأة للعب على الآيفون.">
-<title>تتريس نوكيا</title>
+<meta name="description" content="لعبة تتريس على جهاز عاجي صغير بشاشة خضراء، مهيأة للعب على الآيفون.">
+<title>تتريس</title>
 <script>
 /* before first paint: is this page inside the launcher's frame? */
 try { if (window.self !== window.top) document.documentElement.className += ' framed'; }
@@ -197,9 +197,10 @@ catch (e) { document.documentElement.className += ' framed'; }
   }
   /* ---- اللوحة العلوية والشريط السفلي: يمتصّان الفراغ الرأسي ويختفيان حين يضيق الطول ---- */
   .cap { flex:none; height:24px; display:flex; align-items:center; gap:10px; direction:ltr; padding:0 8px; }
-  .cap .grille { flex:1; height:10px; max-width:120px; margin-left:auto; opacity:.8; }
+  .cap .grille { flex:1; height:10px; max-width:120px; margin-left:auto; opacity:.8; background-repeat:round; }
   .foot { flex:none; height:26px; display:none; align-items:center; gap:12px; direction:ltr; padding:0 12px; }
-  .foot .grille { flex:1; height:12px; opacity:.85; }
+  /* round: يمطّ دورة الثقوب قليلاً ليخرج عدد صحيح منها، فلا ينتهي الشريط بنصف ثقب مقصوص */
+  .foot .grille { flex:1; height:12px; opacity:.85; background-repeat:round; }
   @media (min-height: 760px) { .foot { display:flex; } .cap { height:30px; } .foot { height:30px; } }
   /* ---- الحركة: لا رسوم متحرّكة دائمة؛ ما يتحرّك يحترم تفضيل المستخدم ---- */
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
@@ -269,6 +270,13 @@ catch (e) { document.documentElement.className += ' framed'; }
     padding:12px 12px 14px;
     border-radius:20px 20px 28px 28px;
   }
+  /* نافذة عريضة قصيرة (شاشة مكتب): البدن كان يلامس حافتي النافذة (٨ و٨).
+     هنا وحده يوجد فائض ارتفاع يُصرف على البساط: عشرون بكسلاً تُقتطع من البدن
+     فيطفو كما يطفو جهازا الكرة والدودة. الرقعة تبقى فوق أصغر مقاس مقبول
+     (٤٣٤ مقابل حدّ ٤٣٠، و٣٨٤ مقابل ٣٨٠ داخل إطار المشغّل). */
+  @media (min-width:700px) and (orientation:landscape) and (min-height:600px){
+    .brick{max-height:calc(100% - 20px);}
+  }
 
   /* لوحة الألمنيوم التي تحمل الزجاج */
   .lcd-frame{ flex:1 1 auto; min-height:0; padding:8px; border-radius:8px; display:flex; }
@@ -295,12 +303,19 @@ catch (e) { document.documentElement.className += ' framed'; }
     padding:8px; overflow-y:auto;
     background:rgba(22,33,26,.95); color:var(--lcd-ink);
     text-align:center; font-size:11px; line-height:1.7; font-family:var(--font-ar);
+    /* الزجاج نفسه ltr (الرقعة واللوحة الجانبية إنجليزيتان)، أمّا نصّ الشاشة فعربي:
+       بدون هذا السطر يُرتَّب السطر المختلط من اليسار، فتقع النجمة في آخر الجملة
+       بدل أوّلها وتنقلب مواضع «◀ ▶ حركة · ▼ نزول». الرقم الكبير يبقى ltr بقاعدته. */
+    direction:rtl;
   }
   .overlay[hidden]{display:none;}
   /* الهوامش التلقائية توسّط المحتوى ما دام يتّسع، وتصفّره من الأعلى حين يفيض فيبقى الرأس في متناول التمرير */
   #ovMsg{display:flex;flex-direction:column;gap:6px;align-items:center;margin-top:auto;flex:none;}
   #ovSetup{display:flex;flex-direction:column;gap:6px;width:100%;align-items:center;margin-top:4px;margin-bottom:auto;flex:none;}
   .go span{white-space:nowrap;}
+  /* سطر المفاتيح في شاشة البدء: اللعب صار بالمفاتيح وحدها بعد إلغاء إيماءات الرقعة،
+     فالشاشة تسمّيها بخطّ الواجهة العربي وبحبر أخفت قليلاً كي لا ينافس نصّ اللعبة */
+  .overlay .hint{font-size:10px;line-height:1.55;opacity:.8;letter-spacing:0;}
   .overlay h1{font:700 23px/1.2 var(--font-head);}
   .overlay h2{font:700 19px/1.2 var(--font-head);}
   .overlay p{max-width:100%;}
@@ -316,8 +331,12 @@ catch (e) { document.documentElement.className += ' framed'; }
   .sv .v.long{font-size:13px;}
   .sv.next{border:0;margin-top:2px;}
   #next{width:100%;height:34px;display:block;}
-  .meter{margin-top:auto;display:flex;flex-direction:column-reverse;gap:3px;}
-  .meter i{display:block;height:7px;border:1.5px solid var(--lcd-dim);border-radius:2px;opacity:.6;}
+  /* سلّم المستوى: يملأ الزجاج تحت NEXT بدل أن يُدفع إلى القاع ويترك فراغاً في وسطه.
+     flex:1 يعطيه ما بقي من العمود، وspace-between يوزّع الدرجات العشر عليه كسلّم
+     جهاز قياس؛ والحدّ الأقصى يمنعه من التمطّط حتى تتباعد الدرجات عن بعضها. */
+  .meter{flex:1 1 auto;min-height:0;max-height:190px;margin-top:6px;overflow:hidden;
+         display:flex;flex-direction:column-reverse;justify-content:space-between;gap:3px;}
+  .meter i{display:block;flex:none;height:7px;border:1.5px solid var(--lcd-dim);border-radius:2px;opacity:.6;}
   .meter i.on{background:var(--lcd-ink);border-color:var(--lcd-ink);opacity:1;}
 
   /* ==================== لوحة الإبهامين ====================
@@ -339,39 +358,49 @@ catch (e) { document.documentElement.className += ' framed'; }
   }
   .rocker .key:first-child{border-radius:14px 6px 6px 14px;}
   .rocker .key:last-child{border-radius:6px 14px 14px 6px;}
-  .dk{width:66px;height:56px;font-size:20px;}
-  .dk.bar{width:142px;height:48px;border-radius:12px;font-size:16px;gap:6px;}
+  /* ◀ ▶ مربّعان لا مستطيلان: عرضهما هو ما موّل اتّساع حوض DROP/ROTATE على اليمين،
+     وارتفاعهما ٥٦ كما كان. الهزّاز والشريط بعرض واحد (١٢٢) فيقرأ العنقود كقطعة واحدة. */
+  .dk{width:56px;height:56px;font-size:20px;}
+  .dk.bar{width:122px;height:48px;border-radius:12px;font-size:16px;gap:6px;}
   .dk.bar small{margin-top:0;font-family:var(--font-ar);font-size:9px;letter-spacing:0;}
   .pod.C{flex:1 1 auto;justify-content:center;align-self:center;}
-  #btnPause{width:60px;height:60px;font-size:11px;flex-direction:column;gap:2px;letter-spacing:.06em;}
+  /* كلمة RESUME أطول من START: القياس على أطول كلمة لا على أقصرها، فلا تلمس حافّتي القبّة */
+  #btnPause{width:60px;height:60px;font-size:10px;flex-direction:column;gap:2px;letter-spacing:.04em;}
   #btnPause small{font-size:7px;margin-top:0;}
-  .acts{position:relative;width:124px;height:116px;}
+  /* الفراغ بين DROP وROTATE هو المسألة: زلّة إبهام عن أكثر المفاتيح ضغطاً كانت
+     تُسقط القطعة فوراً (١٠٫٦ بكسل بين الحافتين). الحوض الآن ١٥٠×١٣٤ بدل ١٢٤×١١٦،
+     والمفتاحان في طرفي قطره، فالمسافة بين حافتيهما ≈٤٢ بكسل. ROTATE يبقى الأكبر
+     والأسفل يميناً، وDROP يبقى داكن المادة لا صغير الحجم وحسب. */
+  .acts{position:relative;width:150px;height:134px;}
   .acts .big{position:absolute;right:0;bottom:0;width:76px;height:76px;font-size:22px;flex-direction:column;gap:1px;}
   .acts .big small{font-size:8px;letter-spacing:.1em;margin-top:0;}
   .acts .small{position:absolute;left:0;top:0;width:56px;height:56px;font-size:10px;letter-spacing:.06em;}
 
   /* ---------- الدرجات: كلها بالارتفاع، فالإطار الأقصر في المشغّل يختار درجته وحده ---------- */
   /* شاشة قصيرة: البدن يتنازل قبل الشاشة. */
+  /* ▼ هو المفتاح الذي يبقى الإبهام عليه أطول وقت، فارتفاعه ٤٨ في كل الدرجات لا ٤٤. */
   @media (max-height:740px) and (orientation:portrait){
     .brick{gap:7px;padding:10px 12px 12px;}
-    .top{display:none;}
-    .dk{width:60px;height:52px;} .dk.bar{width:128px;height:44px;}
-    #btnPause{width:56px;height:56px;}
-    .acts .small{width:50px;height:50px;} .acts .big{width:68px;height:68px;} .acts{width:112px;height:100px;}
+    .dk{width:52px;height:52px;} .dk.bar{width:114px;height:48px;}
+    #btnPause{width:56px;height:56px;font-size:9.5px;}
+    .acts .small{width:48px;height:48px;} .acts .big{width:68px;height:68px;} .acts{width:134px;height:124px;}
     .side{width:64px;} .sv .v{font-size:14px;}
   }
+  /* اسم الجهاز يختفي هنا لا قبله: العائلة كلها تخفي لوحة الاسم عند ٦٢٠ */
   @media (max-height:620px) and (orientation:portrait){
-    .dk{width:56px;height:48px;} .dk.bar{width:120px;height:44px;}
-    #btnPause{width:48px;height:48px;}
-    .acts .small{width:48px;height:48px;} .acts .big{width:60px;height:60px;} .acts{width:100px;height:96px;}
+    .top{display:none;}
+    .dk{width:48px;height:48px;} .dk.bar{width:110px;height:48px;}
+    #btnPause{width:48px;height:48px;font-size:8.5px;letter-spacing:.03em;}
+    .acts .small{width:48px;height:48px;} .acts .big{width:60px;height:60px;} .acts{width:122px;height:112px;}
     .side{width:58px;} #next{height:26px;} .sv .v{font-size:13px;}
   }
   @media (max-width:340px){
-    .dk{width:56px;height:48px;} .dk.bar{width:120px;height:44px;}
-    #btnPause{width:48px;height:48px;}
-    .acts .small{width:48px;height:48px;} .acts .big{width:60px;height:60px;} .acts{width:100px;height:96px;}
+    .brick{padding:10px 10px 12px;}
+    .dk{width:48px;height:48px;} .dk.bar{width:102px;height:48px;}
+    #btnPause{width:48px;height:48px;font-size:8.5px;letter-spacing:.03em;}
+    .acts .small{width:48px;height:48px;} .acts .big{width:60px;height:60px;} .acts{width:114px;height:112px;}
     .side{width:58px;} .sv .v{font-size:13px;}
-    .pads{gap:6px;} .rocker{padding:3px;}
+    .pads{gap:6px;} .rocker{padding:2px;}
   }
 
   /* الوضع الأفقي: هذا جهاز عامودي، فلا يُقلب. شبكة صريحة من اليسار لليمين:
@@ -389,7 +418,8 @@ catch (e) { document.documentElement.className += ' framed'; }
     .lcd-frame{grid-area:1/2;align-self:stretch;flex:0 1 auto;min-height:0;}
     .pod.C{grid-area:1/3;flex:none;}
     .pod.R{grid-area:1/4;}
-    .acts{width:auto;height:auto;display:flex;flex-direction:column;align-items:center;gap:14px;}
+    /* عموداً: DROP فوق ROTATE والفجوة بينهما ٢٦ بكسل، وهي نفسها مسافة الحافتين هنا */
+    .acts{width:auto;height:auto;display:flex;flex-direction:column;align-items:center;gap:26px;}
     .acts .big,.acts .small{position:static;}
     /* الزجاج الأضيق (١٣٨ بكسل في إطار المشغّل): صفوف الإعداد أضيق حشوةً وخطاً كي لا يلتفّ نصّها */
     .go{padding:0 8px;font-size:11px;gap:6px;} .go i{font-size:9px;}
@@ -409,7 +439,7 @@ catch (e) { document.documentElement.className += ' framed'; }
         <canvas id="board"></canvas>
         <div class="overlay" id="overlay" hidden>
           <div id="ovMsg"></div>
-          <div id="ovSetup" class="tray">
+          <div id="ovSetup">
             <button class="go" id="btnSound" type="button"><span>الصوت</span><i>ON</i></button>
             <button class="go" id="btnMusic" type="button"><span>الموسيقى</span><i>ON</i></button>
             <button class="go" id="btnRestart" type="button" hidden><span>إعادة من البداية</span><i>RESET</i></button>
@@ -884,34 +914,39 @@ function updateStats(){
   elScore.textContent = score;
   elLevel.textContent = level;
   elLines.textContent = lines;
-  elBest.textContent = best;   // show what is actually stored, not a record that is not saved yet
-  // six-digit scores drop to the smaller size so the 66-px side panel never overflows
+  elBest.textContent = best;   /* يُعرض ما هو محفوظ فعلاً، لا رقم لم يُسجَّل بعد */
+  /* النتيجة بستّة أرقام تنزل إلى المقاس الأصغر فلا تفيض اللوحة الجانبية (٦٦ بكسل) */
   elScore.classList.toggle('long', score >= 100000);
   elBest.classList.toggle('long', best >= 100000);
-  // level meter under NEXT: one segment per level, ten segments
+  /* سلّم المستوى تحت NEXT: درجة لكل مستوى، وعشر درجات */
   const m = $('meter').children;
   for (let i = 0; i < m.length; i++) m[i].classList.toggle('on', i < Math.min(level, 10));
 }
 
 /* ============================ الشاشات والحالات ============================ */
 function showOverlay(html){
-  // only the message node is rewritten; #ovSetup (sound / music / reset rows) keeps its ids
+  /* لا يُعاد كتابة سوى عقدة الرسالة؛ #ovSetup (الصوت والموسيقى والإعادة) تحتفظ بمعرّفاتها */
   $('ovMsg').innerHTML = html;
   overlay.hidden = false;
 }
-/* the RESET row reads "play again" once the game is over; it is hidden in the menu */
+/* صفّ الإعادة يظهر في حالة الإيقاف المؤقت وحدها: هناك START معناه «متابعة»
+   فالإعادة فعل آخر. أمّا بعد انتهاء اللعبة فـSTART نفسه يبدأ لعبة جديدة،
+   وإظهار الصفّ معه يجعل زرّين لفعل واحد. */
 function showRestartRow(){
   const b = $('btnRestart');
-  b.querySelector('span').textContent = state === 'over' ? 'مرة أخرى' : 'إعادة من البداية';
+  b.querySelector('span').textContent = 'إعادة من البداية';
   b.hidden = false;
 }
 function hideOverlay(){ overlay.hidden = true; }
 
 function menuScreen(){
-  document.querySelector('.next').style.visibility = 'hidden';
+  /* تُخفى لوحة NEXT وحدها، أمّا عنوانها المحفور فيبقى كبقيّة عناوين اللوحة */
+  nextCv.style.visibility = 'hidden';
   showOverlay(
     '<h1>تتريس</h1>' +
     '<p>كوّن صفاً كاملاً ليختفي.</p>' +
+    /* مسافة غير فاصلة داخل كل زوج (مفتاح + فعله) فلا ينكسر السطر بينهما */
+    '<p class="hint">◀ ▶ حركة · ▼ نزول · ROTATE تدوير · DROP إسقاط</p>' +
     '<p>اضغط START للبدء</p>'
   );
   $('btnRestart').hidden = true;
@@ -932,16 +967,17 @@ function overScreen(){
   showOverlay(
     '<h2>انتهت اللعبة</h2>' +
     '<div class="big">' + score + '</div>' +
-    '<p>' + (isBest ? 'نتيجة جديدة هي الأفضل! 🎉' : 'أفضل نتيجة: ' + best) +
+    '<p>' + (isBest ? '★ نتيجة جديدة هي الأفضل!' : 'أفضل نتيجة: ' + best) +
     '<br>الصفوف: ' + lines + ' — المستوى: ' + level + '</p>' +
     '<p>اضغط START للعب مرة أخرى</p>'
   );
-  showRestartRow();
+  /* START وحده يعيد اللعب هنا، فصفّ الإعادة يُخفى كي لا يكون للفعل زرّان */
+  $('btnRestart').hidden = true;
 }
 
 function startGame(){
   unlockAudio();
-  document.querySelector('.next').style.visibility = 'visible';
+  nextCv.style.visibility = 'visible';
   grid = emptyGrid();
   bag = []; nextType = null; piece = null; clearing = null;
   score = 0; lines = 0; level = 1;
@@ -1185,8 +1221,8 @@ function holdKey(el, action, repeatable){
       }, DAS);
     }
   }
-  // one pointer path for touch and mouse; capture keeps the release on this key even
-  // when the thumb slides off it, and stop() is idempotent so a double fire is harmless
+  /* مسار مؤشّر واحد للمس والفأرة؛ الالتقاط يُبقي الإفلات على هذا المفتاح حتى لو
+     انزلق الإبهام عنه، وstop() لا يضرّ تكراره فلا خطر من إطلاقه مرّتين */
   el.addEventListener('pointerdown', function(ev){
     ev.preventDefault();
     try { if (el.setPointerCapture) el.setPointerCapture(ev.pointerId); } catch(e){}
@@ -1200,25 +1236,24 @@ function holdKey(el, action, repeatable){
 holdKey($('kLeft'),   function(){ move(-1); }, true);
 holdKey($('kRight'),  function(){ move(1);  }, true);
 holdKey($('kDown'),   function(){ softDrop(); }, true);
-/* exactly one key per action: ROTATE and DROP live only on the right-thumb pair */
+/* مفتاح واحد لكل فعل: التدوير والإسقاط لا يسكنان إلا زوج الإبهام الأيمن */
 holdKey($('kRotate2'), function(){ rotate(1); }, false);
 holdKey($('kDrop2'),   function(){ hardDrop(); }, false);
 
-/* START / PAUSE / RESUME on pointerdown like every play key (no click delay, no focus) */
+/* START / PAUSE / RESUME على pointerdown كبقيّة مفاتيح اللعب: بلا تأخير النقر ولا تركيز */
 const btnPause = $('btnPause');
 btnPause.addEventListener('pointerdown', function(ev){
   ev.preventDefault();
   btnPause.classList.add('down');
-  if (state === 'menu' || state === 'over') { startGame(); return; }   // START
-  togglePause();                                                       // PAUSE / RESUME
+  if (state === 'menu' || state === 'over') { startGame(); return; }   /* بدء */
+  togglePause();                                                       /* إيقاف أو متابعة */
 });
 ['pointerup','pointercancel','pointerleave'].forEach(function(e){
   btnPause.addEventListener(e, function(){ btnPause.classList.remove('down'); });
 });
 $('btnSound').addEventListener('click', toggleSfx);
 $('btnMusic').addEventListener('click', toggleMusic);
-/* the row is only reachable from the pause and game-over screens, so the pause itself
-   is the confirmation: no dialog */
+/* لا يُوصل إلى هذا الصفّ إلا من شاشة الإيقاف المؤقت، والإيقاف نفسه هو التأكيد: بلا حوار */
 $('btnRestart').addEventListener('click', startGame);
 function toggleSfx(){
   sfxOn = !sfxOn;
