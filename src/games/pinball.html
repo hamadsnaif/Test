@@ -156,9 +156,41 @@ function arc(cx, cy, r, a0, a1, step) {
 }
 function mir(pts) { var o = [], i; for (i = 0; i < pts.length; i++) o.push([2 * CX - pts[i][0], pts[i][1]]); return o; }
 
+/* ---- تنعيم الأركان ----
+   الخطّ المكسور يُقرأ رسماً يدوياً، والطاولة الحقيقية قضبان مثنيّة لا مضلّعات.
+   fillet يستبدل كل ركن بقوس بيزييه تربيعي بين نقطتين على ضلعيه — وهو آمن
+   هندسياً: منحنى بيزييه التربيعي لا يخرج أبداً عن مثلّث نقاطه الثلاث، فالجدار
+   لا يزحف داخل مسار اللعب ولا خارج الطاولة مهما بلغ نصف قطر التنعيم. ولأن
+   الجدران هي نفسها ما يُرسم، فالتنعيم يصلح الشكل والفيزياء معاً. */
+function fillet(pts, r, step) {
+  if (pts.length < 3) return pts;
+  var out = [pts[0]], i, t;
+  for (i = 1; i < pts.length - 1; i++) {
+    var a = pts[i - 1], b = pts[i], cN = pts[i + 1];
+    var v1x = a[0] - b[0], v1y = a[1] - b[1], L1 = Math.sqrt(v1x * v1x + v1y * v1y);
+    var v2x = cN[0] - b[0], v2y = cN[1] - b[1], L2 = Math.sqrt(v2x * v2x + v2y * v2y);
+    if (L1 < 1e-6 || L2 < 1e-6) { out.push(b); continue; }
+    v1x /= L1; v1y /= L1; v2x /= L2; v2y /= L2;
+    var dot = Math.max(-1, Math.min(1, v1x * v2x + v1y * v2y));
+    var ang = Math.acos(dot);
+    if (ang > 3.02 || ang < 0.06) { out.push(b); continue; }      // ركن مستقيم أو مطويّ: اتركه
+    var d = Math.min(r / Math.tan(ang / 2), L1 * 0.45, L2 * 0.45);
+    var p1 = [b[0] + v1x * d, b[1] + v1y * d], p2 = [b[0] + v2x * d, b[1] + v2y * d];
+    var m = Math.max(3, Math.ceil(d * 2 / (step || 7)));
+    for (t = 0; t <= m; t++) {
+      var u = t / m, iu = 1 - u;
+      out.push([iu * iu * p1[0] + 2 * iu * u * b[0] + u * u * p2[0],
+                iu * iu * p1[1] + 2 * iu * u * b[1] + u * u * p2[1]]);
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
 var WALLS = [];
 function wall(pts, o) {
   o = o || {};
+  if (o.round) pts = fillet(pts, o.round);
   for (var i = 0; i < pts.length - 1; i++)
     WALLS.push({ a: pts[i], b: pts[i + 1], e: o.e === undefined ? EL : o.e,
                  s: o.s === undefined ? SM : o.s, k: o.k || 'w', r: o.r || 0 });
@@ -174,30 +206,32 @@ wall([[LANE_OUT, CY], [LANE_OUT, LANE_FLOOR]]);
 wall([[LANE_IN, LANE_FLOOR], [LANE_OUT, LANE_FLOOR]]);
 
 // ---- الحافّة اليسرى: من القبّة نزولاً، ثم تضيق إلى محور التماثل ----
-wall([[2 * CX - LANE_OUT, CY], [22, 680], [EDGE_L, 780], [EDGE_L, PIV_Y], [110, 1070], [136, TH]]);
-wall([[EDGE_R, PIV_Y], [478, 1070], [452, TH]]);
+wall([[2 * CX - LANE_OUT, CY], [22, 680], [EDGE_L, 780], [EDGE_L, PIV_Y], [110, 1070], [136, TH]], { round: 46 });
+wall([[EDGE_R, PIV_Y], [478, 1070], [452, TH]], { round: 46 });
 
 // ---- القضبان السفلية: ممر خروج ثم فاصل ثم ممر عودة ثم ظهر المصدّ ----
 var DIVIDER_L = [[DIV_L, 760], [DIV_L, 940], [PIV_L, PIV_Y]];
-wall(DIVIDER_L); wall(mir(DIVIDER_L));
+wall(DIVIDER_L, { round: 40 }); wall(mir(DIVIDER_L), { round: 40 });
 
 /* ---- المصدّان: الوجه المائل يركل، والضلعان الآخران جدار. ---- */
 var SLING_L = { a: [SB_L, 838], b: [246, 912], back: [[SB_L, 838], [SB_L, 948], [246, 912]] };
 var SLING_R = { a: [SB_R, 838], b: [2 * CX - 246, 912], back: mir(SLING_L.back) };
 var SLINGS = [{ a: SLING_L.a, b: SLING_L.b, lit: 0 }, { a: SLING_R.a, b: SLING_R.b, lit: 0 }];
-wall(SLING_L.back, { k: 'sl' }); wall(SLING_R.back, { k: 'sl' });
+wall(SLING_L.back, { k: 'sl', round: 14 }); wall(SLING_R.back, { k: 'sl', round: 14 });
 
 // ---- ممرّات الإطلاق الثلاثة تحت مخرج المِزلق ----
-wall([[100, 320], [100, 396]]); wall([[166, 320], [166, 396]]);
+wall([[94, 314], [100, 356], [114, 394]], { round: 90 });
+wall([[160, 314], [166, 356], [180, 394]], { round: 90 });
 // ---- موجّهات ممرّات العودة أعلى الطاولة ----
-wall([[262, 100], [262, 180]]); wall([[326, 100], [326, 180]]);
+wall([[256, 96], [262, 140], [274, 182]], { round: 110 });
+wall([[332, 96], [326, 140], [314, 182]], { round: 110 });
 
 /* ---- الأعمدة المطّاطية: تكسر انزلاق الكرة على الجدار وترميها داخل الملعب ---- */
 var POSTS = [
   { x: DIV_L, y: 754, r: 9 }, { x: DIV_R, y: 754, r: 9 },
   { x: SB_L, y: 834, r: 9 }, { x: SB_R, y: 834, r: 9 },
   { x: 206, y: 300, r: 9 }, { x: 382, y: 300, r: 9 },
-  { x: 100, y: 396, r: 8 }, { x: 166, y: 396, r: 8 }
+  { x: 114, y: 394, r: 8 }, { x: 180, y: 394, r: 8 }
 ];
 
 // ---- المنافخ: أربعة هجوم في القلب، وثلاثة إطلاق تحت ممرّات الإطلاق ----
@@ -1108,6 +1142,73 @@ probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;pointer-even
 document.body.appendChild(probe);
 function rnd(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 
+/* ---- سديم مُولَّد ----
+   حزم الخلفيات الفضائية الجاهزة (CC0) صورها ‏٢٣٠KB للواحدة وهي نفسها مولّدة
+   إجرائياً. فبدل أن نحمل ‏٥٥KB من base64 لصورة واحدة، تُولَّد هنا بثلاثة
+   كيلوبايت: ضوضاء قيميّة بأربع طبقات (fBm) تُعطي كثافة السحب، وحقل ثانٍ
+   يلويها فلا تبدو منتظمة، وثالث يشعل قلوبها. تُرسم على لوحة صغيرة ثمّ تُكبَّر
+   بتنعيم — والسحب ناعمة أصلاً فلا يُرى التكبير، والكلفة عشرات الأجزاء من
+   الثانية مرّة واحدة. */
+function vnoise(seed, G) {
+  var g = new Float32Array(G * G), r = rnd(seed), i;
+  for (i = 0; i < G * G; i++) g[i] = r();
+  return function (x, y) {
+    var fx = x * G, fy = y * G, ix = Math.floor(fx), iy = Math.floor(fy);
+    var tx = fx - ix, ty = fy - iy;
+    tx = tx * tx * (3 - 2 * tx); ty = ty * ty * (3 - 2 * ty);
+    var i0 = ((ix % G) + G) % G, i1 = (i0 + 1) % G;
+    var j0 = ((iy % G) + G) % G, j1 = (j0 + 1) % G;
+    var a = g[j0 * G + i0], b = g[j0 * G + i1], cc = g[j1 * G + i0], d = g[j1 * G + i1];
+    var ab = a + (b - a) * tx, cd = cc + (d - cc) * tx;
+    return ab + (cd - ab) * ty;
+  };
+}
+function fbm(n, x, y, oct) {
+  var v = 0, amp = 0.5, f = 1, i;
+  for (i = 0; i < oct; i++) { v += n(x * f, y * f) * amp; f *= 2.07; amp *= 0.5; }
+  return v;
+}
+var _neb = null;
+function nebula() {
+  if (_neb) return _neb;
+  var W = 200, H = 386;
+  var cn = document.createElement('canvas'); cn.width = W; cn.height = H;
+  var cc = cn.getContext('2d'), img = cc.createImageData(W, H), D = img.data;
+  var n1 = vnoise(9137, 16), n2 = vnoise(4421, 12), n3 = vnoise(7717, 28);
+  var x, y, i = 0;
+  for (y = 0; y < H; y++) {
+    var v = y / H * 1.9;
+    for (x = 0; x < W; x++) {
+      var u = x / W;
+      var warp = fbm(n2, u * 1.3, v * 1.3, 3);
+      var t = fbm(n1, u * 1.9 + warp * 0.55, v * 1.9 + warp * 0.35, 4);
+      var dens = Math.max(0, t - 0.33) * 2.3; dens = Math.min(1, dens * dens);
+      var hot = Math.max(0, fbm(n3, u * 3.1 + 0.2, v * 3.1, 3) - 0.46) * 3.2;
+      hot = Math.min(1, hot) * dens;
+      var cold = Math.max(0, 0.52 - t) * 1.8 * dens;
+      D[i++] = 14 + dens * 96 + hot * 150;
+      D[i++] = 7 + dens * 26 + hot * 92 + cold * 40;
+      D[i++] = 30 + dens * 128 + hot * 86 + cold * 120;
+      D[i++] = 255;
+    }
+  }
+  cc.putImageData(img, 0, 0);
+  _neb = cn; return cn;
+}
+// نجمة: هالة ناعمة وقلب حادّ، والكبيرة لها شعاعان متقاطعان
+function star(c, x, y, r, a, flare) {
+  var g = c.createRadialGradient(x, y, 0, x, y, r * 4);
+  g.addColorStop(0, 'rgba(255,250,255,' + a + ')'); g.addColorStop(1, 'rgba(255,250,255,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(x, y, r * 4, 0, 6.2832); c.fill();
+  c.fillStyle = 'rgba(255,255,255,' + Math.min(1, a * 1.4) + ')';
+  c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+  if (flare) {
+    c.strokeStyle = 'rgba(255,250,255,' + (a * 0.5) + ')'; c.lineWidth = 0.9;
+    c.beginPath(); c.moveTo(x - flare, y); c.lineTo(x + flare, y);
+    c.moveTo(x, y - flare); c.lineTo(x, y + flare); c.stroke();
+  }
+}
+
 function layout() {
   DPR = Math.min(3, window.devicePixelRatio || 1);
   VW = Math.max(1, window.innerWidth); VH = Math.max(1, window.innerHeight);
@@ -1165,28 +1266,35 @@ function buildStatic() {
   c.setTransform(DPR, 0, 0, DPR, 0, 0);
   c.clearRect(0, 0, VW, VH);
   // ---- الفضاء خلف الخزانة ----
-  var g = c.createLinearGradient(0, 0, VW * 0.4, VH);
-  g.addColorStop(0, '#190a33'); g.addColorStop(0.5, '#110723'); g.addColorStop(1, '#060310');
-  c.fillStyle = g; c.fillRect(0, 0, VW, VH);
-  var neb = c.createRadialGradient(VW * 0.18, VH * 0.08, 0, VW * 0.18, VH * 0.08, VW);
-  neb.addColorStop(0, 'rgba(150,70,225,.26)'); neb.addColorStop(1, 'rgba(150,70,225,0)');
-  c.fillStyle = neb; c.fillRect(0, 0, VW, VH);
+  c.fillStyle = '#06030f'; c.fillRect(0, 0, VW, VH);
+  var NB = nebula();
+  c.save(); c.globalAlpha = 0.78;
+  c.drawImage(NB, -VW * 0.15, -VH * 0.08, VW * 1.35, VH * 1.2);
+  c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.2;
+  c.drawImage(NB, VW * 0.4, VH * 0.5, VW * 1.3, VH * 0.9);
+  c.restore();
+  var dk = c.createRadialGradient(VW * 0.5, VH * 0.45, VW * 0.2, VW * 0.5, VH * 0.5, VW * 1.1);
+  dk.addColorStop(0, 'rgba(6,3,15,0)'); dk.addColorStop(1, 'rgba(6,3,15,.75)');
+  c.fillStyle = dk; c.fillRect(0, 0, VW, VH);
   var R1 = rnd(20240917);
-  for (i = 0; i < 300; i++) {
-    var sx = R1() * VW, sy = R1() * VH, sr = R1() * 1.3 + 0.2;
-    c.fillStyle = 'rgba(255,245,255,' + (R1() * 0.7 + 0.15).toFixed(2) + ')';
-    c.beginPath(); c.arc(sx, sy, sr, 0, 6.2832); c.fill();
+  for (i = 0; i < 340; i++) {
+    var sr = R1(); sr = 0.25 + sr * sr * 1.5;
+    star(c, R1() * VW, R1() * VH, sr, R1() * 0.6 + 0.2, sr > 1.3 ? sr * 5 : 0);
   }
 
   c.save(); c.translate(OX, OY); c.scale(S, S);
 
   // ---- الخزانة: حافّة معدنية حول الطاولة ----
   function tablePath(inset) {
-    var k = inset || 0;
+    var k = inset || 0, rad = 26;
     c.beginPath();
     c.moveTo(22 + k, CY);
     c.arc(CX, CY, R_OUT - k, Math.PI, 0, false);
-    c.lineTo(LANE_OUT - k, TH - k); c.lineTo(22 + k, TH - k); c.closePath();
+    c.lineTo(LANE_OUT - k, TH - k - rad);
+    c.quadraticCurveTo(LANE_OUT - k, TH - k, LANE_OUT - k - rad, TH - k);
+    c.lineTo(22 + k + rad, TH - k);
+    c.quadraticCurveTo(22 + k, TH - k, 22 + k, TH - k - rad);
+    c.closePath();
   }
   c.save();
   tablePath(-10);
@@ -1197,22 +1305,47 @@ function buildStatic() {
   tablePath(0);
   c.save(); c.clip();
   // ---- دهان الملعب: أزرق بنفسجي عميق بتدرّج وحبيبات ----
-  var pf = c.createLinearGradient(0, 0, 90, TH);
-  pf.addColorStop(0, '#3a1d63'); pf.addColorStop(0.35, '#241246'); pf.addColorStop(1, '#170c30');
+  var pf = c.createLinearGradient(0, 0, 120, TH);
+  pf.addColorStop(0, '#2e1552'); pf.addColorStop(0.4, '#1d0f3b'); pf.addColorStop(1, '#130a29');
   c.fillStyle = pf; c.fillRect(0, 0, TW, TH);
-  // كوكب كبير أعلى اليسار، مقصوص بحافّة الطاولة كما يُقصّ الدهان
-  var pl = c.createRadialGradient(150, 175, 10, 190, 215, 250);
-  pl.addColorStop(0, 'rgba(255,190,120,.55)'); pl.addColorStop(0.45, 'rgba(210,90,150,.30)');
-  pl.addColorStop(1, 'rgba(120,40,150,0)');
-  c.fillStyle = pl; c.beginPath(); c.arc(170, 200, 230, 0, 6.2832); c.fill();
-  c.strokeStyle = 'rgba(255,220,180,.16)'; c.lineWidth = 3;
-  for (i = 0; i < 3; i++) { c.beginPath(); c.ellipse(170, 200, 250 + i * 26, 74 + i * 9, -0.42, 0, 6.2832); c.stroke(); }
-  // نجوم على الدهان نفسه
+  c.save(); c.globalAlpha = 0.34; c.globalCompositeOperation = 'lighter';
+  c.drawImage(nebula(), -40, -30, TW + 80, TH + 60);
+  c.restore();
+  c.fillStyle = 'rgba(11,5,24,.34)'; c.fillRect(0, 0, TW, TH);
   var R2 = rnd(551);
-  for (i = 0; i < 150; i++) {
-    c.fillStyle = 'rgba(255,255,255,' + (R2() * 0.35 + 0.06).toFixed(2) + ')';
-    c.beginPath(); c.arc(R2() * TW, R2() * TH, R2() * 1.6 + 0.4, 0, 6.2832); c.fill();
+  for (i = 0; i < 190; i++) {
+    var sr2 = R2(); sr2 = 0.3 + sr2 * sr2 * 1.4;
+    star(c, R2() * TW, R2() * TH, sr2, R2() * 0.4 + 0.1, 0);
   }
+  /* كوكب: قرص بإضاءة جانبية وخطّ فاصل بين الليل والنهار، وحدّ مضيء عند الحافّة
+     المقابلة، وأشرطة سطحية من الضوضاء نفسها — لا تدرّج دائري واحد. */
+  (function planet(px, py, pr) {
+    c.save();
+    var glow = c.createRadialGradient(px, py, pr * 0.9, px, py, pr * 1.45);
+    glow.addColorStop(0, 'rgba(150,90,220,.38)'); glow.addColorStop(1, 'rgba(150,90,220,0)');
+    c.fillStyle = glow; c.beginPath(); c.arc(px, py, pr * 1.45, 0, 6.2832); c.fill();
+    c.beginPath(); c.arc(px, py, pr, 0, 6.2832); c.clip();
+    var lit = c.createRadialGradient(px - pr * 0.45, py - pr * 0.5, pr * 0.05, px - pr * 0.1, py - pr * 0.1, pr * 1.5);
+    lit.addColorStop(0, '#ffd9a8'); lit.addColorStop(0.3, '#e0794f');
+    lit.addColorStop(0.62, '#8d2f6b'); lit.addColorStop(1, '#210b33');
+    c.fillStyle = lit; c.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+    var nb = vnoise(3313, 10);                    // أشرطة سطحية
+    c.globalAlpha = 0.16;
+    for (var q = 0; q < 26; q++) {
+      var yy = py - pr + (q / 26) * pr * 2;
+      var wob = fbm(nb, q * 0.22, 0.4, 3);
+      c.fillStyle = wob > 0.5 ? '#ffe3bd' : '#3a1050';
+      c.fillRect(px - pr, yy, pr * 2, pr * 2 / 26 * (0.5 + wob));
+    }
+    c.globalAlpha = 1;
+    var rim = c.createRadialGradient(px + pr * 0.42, py + pr * 0.5, pr * 0.3, px + pr * 0.3, py + pr * 0.4, pr);
+    rim.addColorStop(0, 'rgba(120,200,255,0)'); rim.addColorStop(0.8, 'rgba(120,200,255,.12)');
+    rim.addColorStop(1, 'rgba(160,220,255,.5)');
+    c.fillStyle = rim; c.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+    c.restore();
+    c.strokeStyle = 'rgba(255,210,170,.18)'; c.lineWidth = 3.5;         // حلقات
+    for (var z = 0; z < 3; z++) { c.beginPath(); c.ellipse(px, py, pr * (1.5 + z * 0.16), pr * (0.42 + z * 0.05), -0.4, 0, 6.2832); c.stroke(); }
+  })(146, 214, 104);
   // مسار مدهون يقود العين من المضربين إلى المنحدر، كما تفعل الطاولات
   c.save();
   c.strokeStyle = 'rgba(93,225,255,.09)'; c.lineWidth = 40; c.lineCap = 'round';
@@ -1221,8 +1354,8 @@ function buildStatic() {
   c.beginPath(); c.moveTo(218, 950); c.quadraticCurveTo(150, 780, 120, 640); c.stroke();
   c.restore();
   // ظلّ داخلي حول الحوافّ يعطي عمق الحوض
-  var vig = c.createRadialGradient(CX, 620, 180, CX, 620, 640);
-  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.55)');
+  var vig = c.createRadialGradient(CX, 640, 150, CX, 640, 620);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.66)');
   c.fillStyle = vig; c.fillRect(0, 0, TW, TH);
   c.restore();
 
@@ -1237,8 +1370,8 @@ function buildStatic() {
 
   // ---- نصوص مطبوعة تسمّي معالم الطاولة ----
   label(c, 'DEPLOYMENT CHUTE', CX, 62, 16, '#cfe8ff', 0, 0.8);
-  label(c, 'RE-ENTRY', CX, 230, 12, '#9fd0ff', 0, 0.55);
-  label(c, 'BOOST', 198, 306, 11, '#ff9ecb');
+  label(c, 'RE-ENTRY', CX, 268, 12, '#9fd0ff', 0, 0.55);
+  label(c, 'BOOST', 242, 300, 11, '#ff9ecb');
   label(c, 'BONUS 2X', 436, 312, 11, '#7ef0ff');
   label(c, 'LAUNCH LANES', 128, 418, 12, '#ffd98a');
   label(c, 'WORM HOLE', 104, 566, 12, '#ffd34d', -Math.PI / 2);
@@ -1268,7 +1401,7 @@ function buildStatic() {
   }
 
   // ---- المنحدر السلكي: قضيبان متوازيان وعوارض، مرفوع عن الدهان بظلّه ----
-  var RP = HOLES[4].path, k;
+  var RP = fillet(HOLES[4].path, 60, 9), k;
   function offsetPath(p, d) {
     var o = [], n = p.length;
     for (k = 0; k < n; k++) {
@@ -1285,10 +1418,18 @@ function buildStatic() {
   c.beginPath(); c.moveTo(RP[0][0], RP[0][1]);
   for (k = 1; k < RP.length; k++) c.lineTo(RP[k][0], RP[k][1]);
   c.stroke(); c.restore();
-  c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 3;
-  for (k = 0; k < RP.length; k++) { c.beginPath(); c.moveTo(r1[k][0], r1[k][1]); c.lineTo(r2[k][0], r2[k][1]); c.stroke(); }
-  c.strokeStyle = '#8f96ab'; c.lineWidth = 2;
-  for (k = 0; k < RP.length; k++) { c.beginPath(); c.moveTo(r1[k][0], r1[k][1]); c.lineTo(r2[k][0], r2[k][1]); c.stroke(); }
+  var acc = 0, TIE = 26;
+  for (k = 1; k < RP.length; k++) {
+    acc += Math.sqrt((RP[k][0] - RP[k - 1][0]) * (RP[k][0] - RP[k - 1][0]) + (RP[k][1] - RP[k - 1][1]) * (RP[k][1] - RP[k - 1][1]));
+    if (acc < TIE) continue;
+    acc = 0;
+    c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 4;
+    c.beginPath(); c.moveTo(r1[k][0], r1[k][1] + 2); c.lineTo(r2[k][0], r2[k][1] + 2); c.stroke();
+    c.strokeStyle = '#8f96ab'; c.lineWidth = 2.6;
+    c.beginPath(); c.moveTo(r1[k][0], r1[k][1]); c.lineTo(r2[k][0], r2[k][1]); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(r1[k][0], r1[k][1] - 1); c.lineTo(r2[k][0], r2[k][1] - 1); c.stroke();
+  }
   rail(c, r1, 5); rail(c, r2, 5);
 
   // ---- القضبان: كل جدار في الطاولة يُرسم فولاذاً، والأقواس قطعة واحدة ----
