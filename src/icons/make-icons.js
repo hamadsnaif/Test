@@ -65,60 +65,104 @@ const DRAW = function (ctx, S, scale) {
   ctx.lineWidth = Math.max(1, S * 0.003);
   r(x, y, w, h, rad); ctx.stroke();
 
-  // ---- the screen plate ----
-  const pad = w * 0.085;
-  const sw = w - pad * 2, sh = sw;                 // square picture, like the game
-  const sx = x + pad, sy = y + h * 0.075;
+  // ---- the screen, and the three games inside it ----
+  // The screen takes most of the face: one game on the icon said "a game",
+  // three bands say "a collection", and colour blocks survive the shrink to a
+  // home screen where fine detail does not.
+  const pad = w * 0.075;
+  const sw = w - pad * 2, sh = h * 0.72;
+  const sx = x + pad, sy = y + h * 0.055;
+  const bez = w * 0.026;
   ctx.fillStyle = '#1a1e24';
-  r(sx - w * 0.028, sy - w * 0.028, sw + w * 0.056, sh + w * 0.056, w * 0.07); ctx.fill();
-  ctx.strokeStyle = 'rgba(232,35,31,.75)';          // the anodized ring, in the game's red
-  ctx.lineWidth = Math.max(1, S * 0.006);
-  r(sx - w * 0.028, sy - w * 0.028, sw + w * 0.056, sh + w * 0.056, w * 0.07); ctx.stroke();
+  r(sx - bez, sy - bez, sw + bez * 2, sh + bez * 2, w * 0.06); ctx.fill();
+  ctx.strokeStyle = 'rgba(232,35,31,.7)';            // the anodized ring, in the family's red
+  ctx.lineWidth = Math.max(1, S * 0.005);
+  r(sx - bez, sy - bez, sw + bez * 2, sh + bez * 2, w * 0.06); ctx.stroke();
 
-  // sky, bricks, ball: the one picture everybody recognises
   ctx.save();
-  r(sx, sy, sw, sh, w * 0.03); ctx.clip();
-  const sky = ctx.createLinearGradient(0, sy, 0, sy + sh);
-  sky.addColorStop(0, '#bfe8f6');
-  sky.addColorStop(1, '#a3d8ec');
-  ctx.fillStyle = sky; ctx.fillRect(sx, sy, sw, sh);
-  const bh = sh * 0.22, by = sy + sh - bh;
-  ctx.fillStyle = '#c8722a'; ctx.fillRect(sx, by, sw, bh);
-  ctx.fillStyle = '#e59a4d';
-  const cols = 4, cw = sw / cols;
-  for (let i = 0; i < cols; i++) {
-    ctx.fillRect(sx + i * cw + cw * 0.06, by + bh * 0.14, cw * 0.88, bh * 0.28);
-    ctx.fillRect(sx + i * cw + cw * 0.06, by + bh * 0.58, cw * 0.88, bh * 0.28);
+  r(sx, sy, sw, sh, w * 0.025); ctx.clip();
+  ctx.fillStyle = '#0d1116'; ctx.fillRect(sx, sy, sw, sh);   // what shows through the channels
+
+  /* The screen is cut by two 45 degree lines into three slices with a dark
+     channel between them, so the games read as three separate things rather
+     than one busy picture. The slice through the middle is the widest, so the
+     red ball lives there; the two corners take the other two. Backgrounds are
+     painted inside a rotated clip, the marks upright inside it, because a
+     tetromino turned on its corner stops looking like a tetromino. */
+  const cxs = sx + sw / 2, cys = sy + sh / 2, L = Math.max(sw, sh);
+  const gap = L * 0.030;                  // the channel between two games
+  const mid = L * 0.175;                  // half height of the middle slice
+  const D = 0.7071;                       // cos 45, the step along the diagonal
+
+  function slice(from, to, paint) {
+    ctx.save();
+    ctx.translate(cxs, cys); ctx.rotate(-Math.PI / 4);
+    ctx.beginPath(); ctx.rect(-L, from, L * 2, to - from); ctx.clip();
+    ctx.rotate(Math.PI / 4); ctx.translate(-cxs, -cys);
+    paint();
+    ctx.restore();
   }
-  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(sx, by, sw, Math.max(1, S * 0.004));
-  const br = sw * 0.27, bx = sx + sw / 2, byy = by - br * 0.92;
-  ctx.fillStyle = '#8f0d0a'; ctx.beginPath(); ctx.arc(bx, byy, br, 0, Math.PI * 2); ctx.fill();
-  const ball = ctx.createRadialGradient(bx - br * 0.35, byy - br * 0.4, br * 0.1, bx, byy, br);
-  ball.addColorStop(0, '#ff5a52');
-  ball.addColorStop(0.55, '#e8231f');
-  ball.addColorStop(1, '#b8130f');
-  ctx.fillStyle = ball; ctx.beginPath(); ctx.arc(bx, byy, br * 0.86, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.beginPath(); ctx.ellipse(bx - br * 0.34, byy - br * 0.38, br * 0.2, br * 0.14, -0.5, 0, Math.PI * 2); ctx.fill();
-  // glass
-  const glass = ctx.createLinearGradient(sx, sy, sx + sw * 0.7, sy + sh);
-  glass.addColorStop(0, 'rgba(255,255,255,.22)');
-  glass.addColorStop(0.35, 'rgba(255,255,255,0)');
+  // the centre of a slice, in screen coordinates
+  const at = off => [cxs + off * D, cys + off * D];
+
+  // 1. Snake — the upper left corner, crawling up the diagonal
+  slice(-L, -mid - gap / 2, () => {
+    ctx.fillStyle = '#9bbc0f'; ctx.fillRect(sx, sy, sw, sh);
+    const [mx, my] = at(-L * 0.36), seg = L * 0.088, step = seg * 1.14;
+    // the four segments are centred on the slice, not hung off one end of it
+    const x0 = mx - (3 * step + seg) / 2, y0 = my + (3 * step - seg) / 2;
+    for (let i = 0; i < 4; i++) {
+      const bx0 = x0 + i * step, by0 = y0 - i * step;
+      ctx.fillStyle = '#0f380f'; ctx.fillRect(bx0, by0, seg, seg);
+      if (i < 3) { ctx.fillStyle = '#306230'; ctx.fillRect(bx0 + seg * 0.1, by0 + seg * 0.1, seg * 0.62, seg * 0.62); }
+    }
+    ctx.fillStyle = '#0f380f';
+    ctx.fillRect(x0 + 4.05 * step, y0 - 4.05 * step + seg * 0.2, seg * 0.55, seg * 0.55);   // the pellet ahead
+  });
+
+  // 2. Bounce — the middle slice, the widest, the hero
+  slice(-mid + gap / 2, mid - gap / 2, () => {
+    const sky = ctx.createLinearGradient(0, sy, 0, sy + sh);
+    sky.addColorStop(0, '#c4ebf7'); sky.addColorStop(1, '#9fd5ea');
+    ctx.fillStyle = sky; ctx.fillRect(sx, sy, sw, sh);
+    const br = L * 0.148;
+    ctx.fillStyle = '#8f0d0a'; ctx.beginPath(); ctx.arc(cxs, cys, br, 0, Math.PI * 2); ctx.fill();
+    const ball = ctx.createRadialGradient(cxs - br * 0.35, cys - br * 0.4, br * 0.1, cxs, cys, br);
+    ball.addColorStop(0, '#ff5a52'); ball.addColorStop(0.55, '#e8231f'); ball.addColorStop(1, '#b8130f');
+    ctx.fillStyle = ball; ctx.beginPath(); ctx.arc(cxs, cys, br * 0.86, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    ctx.beginPath(); ctx.ellipse(cxs - br * 0.33, cys - br * 0.36, br * 0.2, br * 0.14, -0.5, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // 3. Tetris — the lower right corner, one piece on lit glass
+  slice(mid + gap / 2, L, () => {
+    ctx.fillStyle = '#16211a'; ctx.fillRect(sx, sy, sw, sh);
+    const [mx, my] = at(L * 0.36), blk = L * 0.095;
+    const piece = [[0, 0, '#5ab7c4'], [1, 0, '#5ab7c4'], [1, 1, '#e3c65f'], [2, 1, '#e3c65f']];
+    for (const [ci, cj, col] of piece) {
+      const bx0 = mx - blk * 1.59 + ci * blk * 1.06, by0 = my - blk * 1.03 + cj * blk * 1.06;
+      ctx.fillStyle = col; ctx.fillRect(bx0, by0, blk, blk);
+      ctx.fillStyle = 'rgba(255,250,240,.8)'; ctx.fillRect(bx0, by0, blk, Math.max(1, blk * 0.18));
+      ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.fillRect(bx0, by0 + blk - Math.max(1, blk * 0.18), blk, Math.max(1, blk * 0.18));
+    }
+  });
+
+  // the channels themselves: the dark screen showing between the slices
+  const glass = ctx.createLinearGradient(sx, sy, sx + sw * 0.8, sy + sh);
+  glass.addColorStop(0, 'rgba(255,255,255,.20)');
+  glass.addColorStop(0.32, 'rgba(255,255,255,0)');
   ctx.fillStyle = glass; ctx.fillRect(sx, sy, sw, sh);
   ctx.restore();
 
-  // ---- the dish, where the thumb goes ----
-  const dy = sy + sh + h * 0.10, dh = h * 0.155, dw = w * 0.74;
+  // ---- the control strip: enough device to be a device ----
+  const dy = sy + sh + h * 0.045, dh = h * 0.105, dw = w * 0.66;
   const dx = x + (w - dw) / 2;
   ctx.fillStyle = '#23272e';
   r(dx, dy, dw, dh, dh / 2); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = Math.max(1, S * 0.003);
-  r(dx, dy, dw, dh, dh / 2); ctx.stroke();
   const knob = ctx.createRadialGradient(dx + dw / 2 - dh * 0.12, dy + dh * 0.32, dh * 0.05, dx + dw / 2, dy + dh / 2, dh * 0.5);
-  knob.addColorStop(0, '#666e7a');
-  knob.addColorStop(1, '#2c3039');
+  knob.addColorStop(0, '#6a727e'); knob.addColorStop(1, '#2c3039');
   ctx.fillStyle = knob;
-  ctx.beginPath(); ctx.arc(dx + dw / 2, dy + dh / 2, dh * 0.42, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(dx + dw / 2, dy + dh / 2, dh * 0.40, 0, Math.PI * 2); ctx.fill();
 };
 
 (async () => {
