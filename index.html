@@ -69,12 +69,40 @@
     margin: 0;
     direction: ltr;
   }
+  /* لافتة الصالة: الاسم يتلوّن حرفاً حرفاً كأضواء مطاردة على واجهة آلة
+     السبعينات — لونٌ واحد يسري على الكلمة لا وميض عشوائي. كل حرف يشغّل
+     الحركة نفسها بتأخير سالب متدرّج، فتُقرأ الموجة وهي تعبر الاسم. */
+  @keyframes marquee {
+    0%,  100% { color: #e59a4d; }   /* كهرماني */
+    20%       { color: #e8504a; }   /* أحمر */
+    40%       { color: #dd6fc8; }   /* أرجواني */
+    60%       { color: #56c6e2; }   /* سماوي */
+    80%       { color: #6fd47a; }   /* أخضر */
+  }
+  #wordmark .ch {
+    display: inline-block;
+    white-space: pre;               /* المسافة بين الكلمتين حرفٌ مثل غيره */
+    color: var(--accent);
+    text-shadow: 0 0 14px currentColor;
+    animation: marquee 6s linear infinite;
+    animation-delay: calc(var(--i) * -0.16s);
+  }
   #rule {
     width: 64px; height: 3px;
-    background: var(--accent);
+    /* الخطّ يحمل الألوان نفسها ويزحف تحتها */
+    background: linear-gradient(90deg, #e59a4d, #e8504a, #dd6fc8, #56c6e2, #6fd47a, #e59a4d);
+    background-size: 300% 100%;
+    animation: rule-slide 6s linear infinite;
     margin: 12px auto 10px;
     border-radius: 2px;
   }
+  @keyframes rule-slide {
+    from { background-position: 100% 0; }
+    to   { background-position: -200% 0; }
+  }
+  /* لا شيء يتحرّك خلف لعبة مفتوحة: المشغّل يغطّي الرفّ، فالحركة تحته إنفاق
+     بطارية بلا مشاهد */
+  body.playing #wordmark .ch, body.playing #rule { animation-play-state: paused; }
   #tagline { margin: 0; color: var(--dim); font-size: 14px; line-height: 1.6; }
 
   #list {
@@ -200,6 +228,8 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .tile:active { transform: none; }
+    #wordmark .ch { animation: none; color: var(--ink); text-shadow: none; }
+    #rule { animation: none; background: var(--accent); }
   }
 
   /* ---------- install helper ----------
@@ -797,6 +827,29 @@
     window.addEventListener('online', resumed);
   }
 
+
+  // ------------------------------------------------------------------
+  // The marquee: one span per character so the colour can travel along the
+  // name instead of flashing the whole of it at once. The heading keeps its
+  // text in an aria-label because a screen reader would otherwise spell the
+  // letters out one at a time.
+  // ------------------------------------------------------------------
+  (function marquee() {
+    const mark = document.getElementById('wordmark');
+    if (!mark) return;
+    const text = mark.textContent;
+    mark.setAttribute('aria-label', text);
+    const frag = document.createDocumentFragment();
+    Array.prototype.forEach.call(text, (chr, i) => {
+      const span = document.createElement('span');
+      span.className = 'ch';
+      span.setAttribute('aria-hidden', 'true');
+      span.style.setProperty('--i', String(i));
+      span.textContent = chr;
+      frag.appendChild(span);
+    });
+    mark.replaceChildren(frag);
+  })();
 
   // ------------------------------------------------------------------
   // Adding it to the home screen
