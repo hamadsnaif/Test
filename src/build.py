@@ -198,7 +198,9 @@ emit(os.path.join(REPO, 'manifest.webmanifest'), json.dumps({
         {"src": "./icon-180.png", "sizes": "180x180", "type": "image/png"},
         {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png"},
         {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png"},
-        {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+        # Android crops a maskable icon to its own shape, so that one is drawn
+        # with the device shrunk inside the safe circle rather than edge to edge
+        {"src": "./icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
     ]
 }, ensure_ascii=False, indent=2) + '\n')
 
@@ -214,7 +216,8 @@ emit(os.path.join(REPO, 'manifest.webmanifest'), json.dumps({
 
 CACHED = ['./', './index.html', './games.json', './manifest.webmanifest',
           './apple-touch-icon.png', './icon-120.png', './icon-152.png',
-          './icon-167.png', './icon-180.png', './icon-192.png', './icon-512.png']
+          './icon-167.png', './icon-180.png', './icon-192.png', './icon-512.png',
+          './icon-maskable-512.png']
 CACHED += ['./' + e['file'] for e in ENTRIES if have(os.path.join(REPO, e['file']))]
 CACHED = sorted(set(CACHED))
 
