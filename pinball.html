@@ -134,6 +134,21 @@ body {
    يتحوّل بلا فاصل إلى مِزلق يطوف سقف الطاولة (deployment chute)، ويُسقط
    الكرة أعلى اليسار في ممرّات الإطلاق الثلاثة فوق المنافخ. القضبان السفلية
    متماثلة تماماً حول المحور ٢٩٤: ‏٢٩٤−٧٨ = ٥١٠−٢٩٤ = ٢١٦.
+
+   ---- مواضع القطع منقولة من الصورة المرجعية بالقياس ----
+   قِسْتُ الصورة على شبكة مرقّمة كل ٢٠ بكسل، فخرج منها معامل تحويل واحد:
+       x(طاولة) = ٢٩٤ + (x(صورة) − ٢٨٨) × ١٫٩٤٦
+       y(طاولة) = ٢٨  + (y(صورة) − ١٦)  × ٣٫٦٠٥
+   والمعامل الأفقي ليس اختياراً بل نتيجة: حافّتا ملعب الصورة ‏(١٧٧ و٣٩٩)‏
+   تقعان به على ‏٧٨ و٥١٠‏ بالضبط — أي حافّتَي ملعبنا — وممرّ القاذف عندها
+   ‏٠٫١١٣‏ من عرض الملعب وعندنا ‏٠٫١٣‏. فالعرض مطابق ١:١.
+   أمّا الرأسي فمشدود: الصورة منظور ثلاثي الأبعاد لطاولة مائلة، نسبتها
+   المرئية ‏١:١٫٤‏ بينما الطاولة المسطّحة على شاشة هاتف ‏١:٢٫٧‏. فلو نُقلت
+   بنسبتها كما هي لصارت طاولة قصيرة يبقى نصف الشاشة تحتها فارغاً. فالمعامل
+   ٣٫٦٠٥ يفكّ ضغط المنظور: الترتيب والتناسب الرأسي محفوظان، والاختلاف
+   الباقي هو استطالة الشاشة نفسها لا اختلاف تصميم.
+   وكل موضع بعد التحويل قيس خلوصه عددياً قبل أن يُرسم: لا فجوة بين عائقين
+   بين صفر وقطر الكرة (٢٨) — إمّا أوسع منها فتمرّ، أو مغلقة فلا تدخل.
    ========================================================================== */
 var TW = 600, TH = 1160;
 var BR = 14;                       // نصف قطر الكرة (القطر ٢٨)
@@ -266,12 +281,16 @@ var POSTS = [
   { x: 114, y: 394, r: 8 }, { x: 180, y: 394, r: 8 }
 ];
 
-// ---- المنافخ: أربعة هجوم في القلب، وثلاثة إطلاق تحت ممرّات الإطلاق ----
+/* ---- المنافخ ----
+   مواضعها منقولة من الصورة المرجعية بالمحوِّل أعلاه: منفاخ منفرد أعلى اليسار
+   ثم عنقود ثلاثي يمين وسط القبّة، وثلاثة «زهرات» في أسفل اليسار تحت الدوّامة.
+   الأوّل سُحب داخل القوس الداخلي حتى يبقى بينه وبين جداره ٥ وحدات — الصورة
+   تضعه في مكان يمرّ فيه مِزلقنا العلوي، والمِزلق يبقى كما هو بطلب صاحبه. */
 var BUMPERS = [
-  { x: 294, y: 206, r: 27, g: 0, i: 0 }, { x: 232, y: 258, r: 27, g: 0, i: 1 },
-  { x: 356, y: 258, r: 27, g: 0, i: 2 }, { x: 294, y: 310, r: 27, g: 0, i: 3 },
-  { x: 170, y: 470, r: 25, g: 1, i: 0 }, { x: 234, y: 444, r: 25, g: 1, i: 1 },
-  { x: 234, y: 500, r: 25, g: 1, i: 2 }
+  { x: 206, y: 176, r: 26, g: 0, i: 0 }, { x: 272, y: 238, r: 26, g: 0, i: 1 },
+  { x: 338, y: 232, r: 26, g: 0, i: 2 }, { x: 306, y: 312, r: 26, g: 0, i: 3 },
+  { x: 130, y: 590, r: 25, g: 1, i: 0 }, { x: 180, y: 618, r: 25, g: 1, i: 1 },
+  { x: 148, y: 664, r: 25, g: 1, i: 2 }
 ];
 
 /* ---- الأهداف: ساقطة (drop) تختفي حين تُصاب وترجع مع بنكها، ونقطية (spot)
@@ -283,12 +302,12 @@ function bank(kind, group, list, ang, label) {
                    down: false, flash: 0, hw: kind === 'drop' ? 20 : 12, lab: label });
 }
 bank('drop', 'mult',  [[436, 204], [436, 244], [436, 284]], 90, '2X');
-bank('drop', 'boost', [[152, 204], [152, 244], [152, 284]], 90, 'BOOST');
+bank('drop', 'boost', [[102, 522], [144, 522], [186, 522]], 0, 'BOOST');
 bank('drop', 'medal', [[206, 560], [250, 560], [294, 560]], 0, 'MEDAL');
-bank('spot', 'mission', [[150, 660], [294, 648], [404, 672]], 0, 'MISSION');
-bank('spot', 'fuel',    [[170, 790], [294, 798], [418, 790]], 0, 'FUEL');
-bank('spot', 'hazL',    [[110, 722], [160, 722], [210, 722]], 0, 'HAZARD');
-bank('spot', 'hazR',    [[378, 722], [428, 722], [478, 722]], 0, 'HAZARD');
+bank('spot', 'mission', [[222, 668], [294, 648], [366, 668]], 0, 'MISSION');
+bank('spot', 'fuel',    [[170, 782], [294, 826], [418, 782]], 0, 'FUEL');
+bank('spot', 'hazL',    [[110, 722], [154, 722], [198, 722]], 0, 'HAZARD');
+bank('spot', 'hazR',    [[390, 722], [434, 722], [478, 722]], 0, 'HAZARD');
 bank('spot', 'wdest',   [[368, 470]], 0, 'WARP');
 
 // ---- المجسّات ----
@@ -300,7 +319,7 @@ roll('launch', 0, 60, 376);   roll('launch', 1, 133, 376);  roll('launch', 2, 20
 roll('outL', 0, EDGE_L + W_OUT / 2, 890); roll('outR', 0, EDGE_R - W_OUT / 2, 890);
 roll('inL', 0, DIV_L + W_IN / 2, 890);    roll('inR', 0, DIV_R - W_IN / 2, 890);
 roll('bonus', 0, DIV_L + W_IN / 2, 806);
-roll('warp', 0, 294, 880, 26);                       // قلب الشعار في وسط الطاولة
+roll('warp', 0, 294, 737, 26);                       // قلب الحلقة المضيئة
 
 /* ---- الثقوب والمنحدرات: تبتلع الكرة ثم تقذفها. ما له path تُرى الكرة
    تسير عليه (منحدر سلكي)، وما لا path له تختفي فيه (ثقب). ---- */
@@ -328,8 +347,9 @@ var FLAGS = [{ x: 110, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }, { x: 478, y: 47
 var BLOCKER = { a: [PIV_L, PIV_Y + 62], b: [PIV_R, PIV_Y + 62], on: false };
 // ---- الرافعتان الجانبيتان: إنقاذ واحد لكل جانب في كل كرة ----
 var KICKS = [{ x: EDGE_L + W_OUT / 2, y: 948, on: false }, { x: EDGE_R - W_OUT / 2, y: 948, on: false }];
-// ---- شعار الرتبة في وسط الطاولة ----
-var EMB = { x: 294, y: 880, r1: 52, r2: 76 };
+/* ---- الحلقة المضيئة: أبرز معلم في الصورة. مركزها وقطراها منقولان عنها:
+   ‎(294,737)‎، قرص متوهّج نصف قطره ٥٢ وحوله طوق من ٢٠ ضوءاً عند ٦٨. ---- */
+var EMB = { x: 294, y: 737, r1: 52, r2: 68 };
 /* ==========================================================================
    ٢ — الفيزياء
    --------------------------------------------------------------------------
@@ -1423,13 +1443,75 @@ function buildStatic() {
     c.restore();
     c.strokeStyle = 'rgba(255,210,170,.18)'; c.lineWidth = 3.5;         // حلقات
     for (var z = 0; z < 3; z++) { c.beginPath(); c.ellipse(px, py, pr * (1.5 + z * 0.16), pr * (0.42 + z * 0.05), -0.4, 0, 6.2832); c.stroke(); }
-  })(146, 214, 104);
+  })(462, 470, 46);
   // مسار مدهون يقود العين من المضربين إلى المنحدر، كما تفعل الطاولات
   c.save();
   c.strokeStyle = 'rgba(93,225,255,.09)'; c.lineWidth = 40; c.lineCap = 'round';
   c.beginPath(); c.moveTo(370, 950); c.quadraticCurveTo(438, 760, 452, 566); c.stroke();
   c.strokeStyle = 'rgba(255,190,60,.07)';
   c.beginPath(); c.moveTo(218, 950); c.quadraticCurveTo(150, 780, 120, 640); c.stroke();
+  c.restore();
+
+  /* ---- الدوّامة اليسرى ----
+     أكبر معلم في النصف الأيسر من الصورة: صدفة بنفسجية بذراعين لولبيّين حول
+     قلب مظلم، ولسان قرمزي مدبَّب يخرج منها نحو أسفل اليمين. مرسومة في الدهان
+     لا في الجدران — ما تصطدم به الكرة هناك هو ثقوب الدودة وحدها. */
+  (function vortex(vx, vy) {
+    c.save(); c.translate(vx, vy); c.rotate(-0.2);
+    var sh = c.createRadialGradient(-12, -22, 10, 0, 0, 122);   // بدن الصدفة
+    sh.addColorStop(0, 'rgba(241,231,255,.98)'); sh.addColorStop(0.34, 'rgba(206,182,250,.94)');
+    sh.addColorStop(0.68, 'rgba(158,122,224,.80)'); sh.addColorStop(0.9, 'rgba(96,62,166,.46)');
+    sh.addColorStop(1, 'rgba(60,32,112,0)');
+    c.fillStyle = sh; c.beginPath(); c.ellipse(0, 0, 100, 122, 0, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(250,240,255,.34)'; c.lineWidth = 3.4;
+    c.beginPath(); c.ellipse(0, 0, 96, 118, 0, 0, 6.2832); c.stroke();
+    var t, a, r, X, Y, arm;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    for (arm = 0; arm < 4; arm++) {                   // أربعة أذرع لولبيّة
+      c.strokeStyle = arm % 2 ? 'rgba(122,74,196,.62)' : 'rgba(255,250,255,.62)';
+      c.lineWidth = arm % 2 ? 13 : 6;
+      c.beginPath();
+      for (t = 0; t <= 1.001; t += 0.02) {
+        a = arm * 1.5708 + 0.3 + t * 3.9; r = 12 + 96 * t * t;
+        X = Math.cos(a) * r * 0.84; Y = Math.sin(a) * r;
+        if (t === 0) c.moveTo(X, Y); else c.lineTo(X, Y);
+      }
+      c.stroke();
+    }
+    c.rotate(0.2);
+    var core = c.createRadialGradient(0, 0, 1, 0, 0, 40);   // القلب المظلم الدوّار
+    core.addColorStop(0, '#ffffff'); core.addColorStop(0.12, '#ef9bff');
+    core.addColorStop(0.3, '#7b2ec8'); core.addColorStop(0.62, '#1b0632');
+    core.addColorStop(0.88, 'rgba(18,6,40,.85)'); core.addColorStop(1, 'rgba(18,6,40,0)');
+    c.fillStyle = core; c.beginPath(); c.arc(0, 0, 40, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(255,190,255,.5)'; c.lineWidth = 2;
+    c.beginPath(); c.arc(0, 0, 26, 0, 6.2832); c.stroke();
+    c.restore();
+    c.save();                                          // اللسان القرمزي المدبَّب
+    c.fillStyle = 'rgba(236,104,200,.88)';
+    c.beginPath(); c.moveTo(vx + 28, vy + 74); c.quadraticCurveTo(vx + 76, vy + 88, vx + 78, vy + 112);
+    c.quadraticCurveTo(vx + 52, vy + 104, vx + 8, vy + 96); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(126,240,255,.9)';
+    c.beginPath(); c.moveTo(vx + 62, vy + 90); c.lineTo(vx + 78, vy + 112); c.lineTo(vx + 52, vy + 104); c.closePath(); c.fill();
+    c.restore();
+  })(150, 480);
+
+  // ---- السهام الحمراء المرصوفة يمين الوسط، وضوء أخضر أعلى اليسار ----
+  c.save();
+  for (var ch = 0; ch < 3; ch++) {
+    var cxp = 347 + ch * 18, cyp = 422 + ch * 39;
+    c.fillStyle = 'rgba(228,38,54,' + (0.92 - ch * 0.14) + ')';
+    c.strokeStyle = 'rgba(255,170,180,.5)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(cxp - 28, cyp - 20); c.lineTo(cxp + 18, cyp);
+    c.lineTo(cxp - 28, cyp + 20); c.lineTo(cxp - 15, cyp); c.closePath(); c.fill(); c.stroke();
+  }
+  c.fillStyle = 'rgba(232,40,58,.85)'; c.lineCap = 'round';   // علامة X الحمراء
+  c.strokeStyle = 'rgba(232,40,58,.85)'; c.lineWidth = 9;
+  c.beginPath(); c.moveTo(178, 740); c.lineTo(202, 764); c.moveTo(202, 740); c.lineTo(178, 764); c.stroke();
+  var gl = c.createRadialGradient(189, 211, 2, 189, 211, 18);  // الضوء الأخضر
+  gl.addColorStop(0, '#dcffe6'); gl.addColorStop(0.35, '#3fd98a');
+  gl.addColorStop(0.7, 'rgba(40,150,90,.5)'); gl.addColorStop(1, 'rgba(40,150,90,0)');
+  c.fillStyle = gl; c.beginPath(); c.arc(189, 211, 18, 0, 6.2832); c.fill();
   c.restore();
   // ظلّ داخلي حول الحوافّ يعطي عمق الحوض
   var vig = c.createRadialGradient(CX, 640, 150, CX, 640, 620);
@@ -1442,25 +1524,39 @@ function buildStatic() {
   eg.addColorStop(0, 'rgba(255,225,150,.30)'); eg.addColorStop(0.6, 'rgba(120,60,200,.22)');
   eg.addColorStop(1, 'rgba(120,60,200,0)');
   c.fillStyle = eg; c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r2 + 10, 0, 6.2832); c.fill();
-  c.strokeStyle = 'rgba(255,255,255,.22)'; c.lineWidth = 2;
+  var core2 = c.createRadialGradient(EMB.x, EMB.y, 2, EMB.x, EMB.y, EMB.r1);
+  core2.addColorStop(0, '#dffaff'); core2.addColorStop(0.3, '#39c9e8');
+  core2.addColorStop(0.72, 'rgba(24,96,158,.6)'); core2.addColorStop(1, 'rgba(16,52,110,0)');
+  c.fillStyle = core2; c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r1, 0, 6.2832); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 2;
   c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r1, 0, 6.2832); c.stroke();
-  c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r2, 0, 6.2832); c.stroke();
+  /* طوق من عشرين ضوءاً حول القرص، أزرق وأصفر بالتناوب — هو ما يجعل هذه
+     الحلقة معلم الصورة الذي تُعرف منه الطاولة. */
+  for (i = 0; i < 20; i++) {
+    var la = -Math.PI / 2 + i * Math.PI / 10;
+    var lx = EMB.x + Math.cos(la) * EMB.r2, ly = EMB.y + Math.sin(la) * EMB.r2;
+    var lc = i % 3 === 0 ? ['#ffe14a', '#8a6a00'] : ['#9fd8ff', '#1d4f86'];
+    var lgr = c.createRadialGradient(lx, ly - 1.5, 0.5, lx, ly, 9);
+    lgr.addColorStop(0, '#fff'); lgr.addColorStop(0.42, lc[0]);
+    lgr.addColorStop(0.8, lc[1]); lgr.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = lgr; c.beginPath(); c.arc(lx, ly, 9, 0, 6.2832); c.fill();
+  }
 
   // ---- نصوص مطبوعة تسمّي معالم الطاولة ----
   label(c, 'DEPLOYMENT CHUTE', CX, 62, 16, '#cfe8ff', 0, 0.8);
   label(c, 'RE-ENTRY', CX, 268, 12, '#9fd0ff', 0, 0.55);
-  label(c, 'BOOST', 242, 300, 11, '#ff9ecb');
+  label(c, 'BOOST', 144, 556, 11, '#ff9ecb');
   label(c, 'BONUS 2X', 436, 312, 11, '#7ef0ff');
   label(c, 'LAUNCH LANES', 128, 418, 12, '#ffd98a');
-  label(c, 'WORM HOLE', 104, 566, 12, '#ffd34d', -Math.PI / 2);
-  label(c, 'HYPERSPACE', 418, 430, 12, '#7ef0ff');
+  label(c, 'WORM HOLE', 66, 440, 10, '#ffd34d');
+  label(c, 'HYPERSPACE', 402, 424, 12, '#7ef0ff');
   label(c, 'LAUNCH RAMP', 497, 604, 12, '#7ef0ff', -Math.PI / 2);
-  label(c, 'MEDAL', 250, 528, 11, '#ffd34d');
-  label(c, 'MISSION', CX, 604, 13, '#e0b6ff');
-  label(c, 'HAZARD BANK', 160, 700, 11, '#9fd0ff');
-  label(c, 'HAZARD BANK', 420, 700, 11, '#9fd0ff');
-  label(c, 'FUEL', CX, 742, 12, '#8cf0a8');
-  label(c, 'RANK', EMB.x, EMB.y + EMB.r2 + 18, 12, '#b9a6d8', 0, 0.65);
+  label(c, 'MEDAL', 250, 536, 11, '#ffd34d');
+  label(c, 'MISSION', CX, 616, 13, '#e0b6ff');
+  label(c, 'HAZARD BANK', 154, 696, 11, '#9fd0ff');
+  label(c, 'HAZARD BANK', 434, 696, 11, '#9fd0ff');
+  label(c, 'FUEL', CX, 858, 12, '#8cf0a8');
+  label(c, 'RANK', EMB.x, EMB.y + 36, 12, '#b9a6d8', 0, 0.65);
 
   // ---- أفواه الثقوب: حفرة داكنة في الدهان، طوق معدني، وسهم موجّه ----
   for (i = 0; i < HOLES.length; i++) {
