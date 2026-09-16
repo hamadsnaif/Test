@@ -138,29 +138,35 @@ body {
    وكل موضع بعد التحويل قيس خلوصه عددياً قبل أن يُرسم: لا فجوة بين عائقين
    بين صفر وقطر الكرة (٢٨) — إمّا أوسع منها فتمرّ، أو مغلقة فلا تدخل.
    ========================================================================== */
-var TW = 600, TH = 1160;
+var TW = 600, TH = 700;
 var BR = 14;                       // نصف قطر الكرة (القطر ٢٨)
 var BHALF = BR * 0.5;              // خطوة التقسيم الفرعي (pb::BallHalfRadius)
-var BMAX = BR * 200;               // السقف الأصلي للسرعة (pb::BallMaxSpeed)
-var GRAV = 1020;
+var BMAX = BR * 110;
+var GRAV = 560;
 var EL = 0.62, SM = 0.96;          // الافتراضيان في loader.cpp
-var ARCW = { e: 0.9, s: 0.985 };   // قطع الأقواس: مرونة أعلى، وإلا بدّدت ملامساتها المتكرّرة طاقة المدار
+var ARCW = { e: 0.9, s: 0.985 };   // قطع الأنبوب: مرونة أعلى كي لا تُبدَّد طاقة المدار
 
-var CX = 294, CY = 300, R_OUT = 272, R_IN = 216;   // ‏٢٧٢−٢١٦ = ٥٦ عرض المِزلق
-var LANE_IN = 510, LANE_OUT = 566;                 // ممر القاذف ٥٦
+/* ---- محوِّل الصورة: معامل واحد للبُعدين ----
+   x = ٣٠٠ + (x(صورة) − ٢٨٨) × ١٫٩٤٦ ، y = ٧٢ + (y(صورة) − ١٦) × ١٫٩٤٦ */
+var IMG = 1.946, CX = 300, CY = 300, PFT = 72, PF_BOT = 683;
+function IX(x) { return Math.round(CX + (x - 288) * IMG); }
+function IY(y) { return Math.round(PFT + (y - 16) * IMG); }
+
+var LANE_IN = 516, LANE_OUT = 560;                 // ممرّ القاذف = ساق الأنبوب اليمنى
 var W_OUT = 46, W_IN = 50;                         // ممرّا الخروج والعودة
-var EDGE_L = 78, EDGE_R = LANE_IN;                 // حافّتا الملعب أسفل الطاولة
-var DIV_L = EDGE_L + W_OUT, DIV_R = EDGE_R - W_OUT;            // ‏١٢٤ و٤٦٤
-var SB_L = DIV_L + W_IN, SB_R = DIV_R - W_IN;                  // ظهرا المصدّين ‏١٧٤ و٤١٤
-var PIV_L = 190, PIV_R = 398, PIV_Y = 1010;
-/* طول المضرب ليس ذوقاً: الفجوة بين طرفَي المضربين تُنقَص منها نصف قطر كلٍّ
-   منهما، فالممرّ الفعلي إلى المصرف = الفجوة − ٢×FLIP_R. بطول ٩٦ كان ٢٣.٨
-   وقطر الكرة ٢٨، فكانت تنحشر بين الطرفين ولا تنزل أبداً. بطول ٨٦ يصير ٤١،
-   أي نحو مرّة ونصف قطر الكرة — وهي نسبة الطاولات الحقيقية. */
-var FLIP_LEN = 86, FLIP_R = 9;
-var REST_A = 0.5236, UP_A = -0.5585;               // ‏٣٠ درجة سكوناً، ‏‎-٣٢ رفعاً
-var FLIP_W = 14.5;                                 // سرعة زاوية (راديان/ث)
-var PLUNGE_REST = 1080, LANE_FLOOR = 1122;
+var EDGE_L = 84, EDGE_R = LANE_IN;                 // حافّتا الملعب: ‏٥١٦−٨٤ = ٤٣٢
+var DIV_L = EDGE_L + W_OUT, DIV_R = EDGE_R - W_OUT;            // ‏١٣٠ و٤٧٠
+var SB_L = DIV_L + W_IN, SB_R = DIV_R - W_IN;                  // ظهرا المصدّين ‏١٨٠ و٤٢٠
+var PIV_L = 206, PIV_R = 394, PIV_Y = 627;         // محورا المضربين كما قيسا من الصورة
+/* المضرب: الصورة تعطيه طولاً ‎٧٦‎ وزاوية سكون ‎٢٧°‎، وبهما تصير فجوة المصرف
+   ‏١٨٨ − ٢×٧٦×cos٢٧ − ٢×٩ = ‏٣٤. وهي تمرّ — أوسع من القطر ٢٨ فلا انحشار —
+   لكن هامش ٦ وحدات على شاشة هاتف لعبٌ بالصدفة لا بالمهارة. فقُصِّر المضرب
+   ‏٨٪ إلى ‎٧٠‎ فصارت الفجوة ‏٤٦، والمحوران يبقيان على قياس الصورة تماماً.
+   هذا هو التنازل الوحيد عن ١:١ في الطاولة، وهو مقصود ومعلن. */
+var FLIP_LEN = 70, FLIP_R = 9;
+var REST_A = 0.476, UP_A = -0.5;
+var FLIP_W = 9.4;                                  // سرعة زاوية (راديان/ث)
+var PLUNGE_REST = 650, LANE_FLOOR = 688;
 
 var D2R = Math.PI / 180;
 function pol(a, r, cx, cy) { return [(cx === undefined ? CX : cx) + r * Math.cos(a * D2R), (cy === undefined ? CY : cy) + r * Math.sin(a * D2R)]; }
@@ -231,56 +237,64 @@ function wall(pts, o) {
                  s: o.s === undefined ? SM : o.s, k: o.k || 'w', r: o.r || 0 });
 }
 
-/* ---- المِزلق العلوي: قوسان متراكزان، والداخلي ينتهي عند ‎(510,300)‎ بالضبط
-   فيصير امتداداً لجدار ممر القاذف بلا فاصل ولا فتحة ولا حافّة يستقرّ عليها
-   شيء. الكرة المقذوفة تُحمل داخله حول السقف وتخرج أعلى اليسار. ---- */
-wall(arc(CX, CY, R_OUT, 180, 360), { e: ARCW.e, s: ARCW.s, k: 'arc' });
-wall(arc(CX, CY, R_IN, 185, 360), { e: ARCW.e, s: ARCW.s, k: 'arc' });
-wall([[LANE_IN, CY], [LANE_IN, LANE_FLOOR]]);       // جدار الممر الداخلي = حافّة الملعب اليمنى
-wall([[LANE_OUT, CY], [LANE_OUT, LANE_FLOOR]]);
+/* ---- الأنبوب: المِزلق العلوي وممرّ القاذف قطعة واحدة ----
+   يُرسم خطّ وسطه مرّة، ثم يُزاح ٢٢ إلى كل جهة، فيكون عرضه ٤٤ في كل نقطة مهما
+   انحنى — لا قوسان يُرسمان بالعين فيتقاربان في الانحناء. وهو يطوّق الملعب من
+   خارجه لا من داخله، فيبقى الملعب ٤٣٢ عرضاً — عرض الصورة ١:١ — ولا يقتطع منه
+   الأنبوب شيئاً. ساقه اليمنى هي ممرّ القاذف نفسه بلا فاصل، وطرفه الأيسر مفتوح
+   فوق ممرّات الإطلاق فتسقط منه الكرة إلى الملعب. */
+function offsetPts(pts, d) {
+  var o = [], n = pts.length, k;
+  for (k = 0; k < n; k++) {
+    var a = pts[Math.max(0, k - 1)], b = pts[Math.min(n - 1, k + 1)];
+    var dx = b[0] - a[0], dy = b[1] - a[1], L = Math.sqrt(dx * dx + dy * dy) || 1;
+    o.push([pts[k][0] - dy / L * d, pts[k][1] + dx / L * d]);
+  }
+  return o;
+}
+var CHUTE_C = fillet([[538, LANE_FLOOR], [538, 250], [500, 150], [420, 72], [300, 50],
+                      [180, 72], [100, 150], [64, 244], [78, 300], [126, 352]], 54, 9);
+var CH_IN = offsetPts(CHUTE_C, -22), CH_OUT = offsetPts(CHUTE_C, 22);
+wall(CH_IN, { e: ARCW.e, s: ARCW.s, k: 'arc' });
+wall(CH_OUT, { e: ARCW.e, s: ARCW.s, k: 'arc' });
 wall([[LANE_IN, LANE_FLOOR], [LANE_OUT, LANE_FLOOR]]);
-
-// ---- الحافّة اليسرى: من القبّة نزولاً، ثم تضيق إلى محور التماثل ----
-wall([[2 * CX - LANE_OUT, CY], [22, 680], [EDGE_L, 780], [EDGE_L, PIV_Y], [110, 1070], [136, TH]], { round: 46 });
-wall([[EDGE_R, PIV_Y], [478, 1070], [452, TH]], { round: 46 });
+// حافّة الملعب اليسرى تبدأ من فم الأنبوب وتنزل مستقيمة إلى القمع
+wall([[78, 353], [EDGE_L, 392], [EDGE_L, 570]], { round: 30 });
+// ---- القمع تحت المضربين ----
+wall([[EDGE_L, 570], [120, 640], [150, TH]], { round: 40 });
+wall([[EDGE_R, 570], [480, 640], [450, TH]], { round: 40 });
 
 // ---- القضبان السفلية: ممر خروج ثم فاصل ثم ممر عودة ثم ظهر المصدّ ----
-var DIVIDER_L = [[DIV_L, 760], [DIV_L, 940], [PIV_L, PIV_Y]];
+var DIVIDER_L = [[DIV_L, 490], [DIV_L, 566], [PIV_L, PIV_Y]];
 wall(DIVIDER_L, { round: 40 }); wall(mir(DIVIDER_L), { round: 40 });
 
 /* ---- المصدّان: الوجه المائل يركل، والضلعان الآخران جدار. ---- */
-var SLING_L = { a: [SB_L, 838], b: [246, 912], back: [[SB_L, 838], [SB_L, 948], [246, 912]] };
-var SLING_R = { a: [SB_R, 838], b: [2 * CX - 246, 912], back: mir(SLING_L.back) };
+var SLING_L = { a: [SB_L, 480], b: [218, 556], back: [[SB_L, 480], [SB_L, 570], [218, 556]] };
+var SLING_R = { a: [SB_R, 480], b: [2 * CX - 218, 556], back: mir(SLING_L.back) };
 var SLINGS = [{ a: SLING_L.a, b: SLING_L.b, lit: 0 }, { a: SLING_R.a, b: SLING_R.b, lit: 0 }];
 wall(SLING_L.back, { k: 'sl', round: 14 }); wall(SLING_R.back, { k: 'sl', round: 14 });
 
-/* ---- ممرّات الإطلاق الثلاثة تحت مخرج المِزلق ----
-   موجّهاها هما المرتدّان ‎v_rebo3‎ و‎v_rebo4‎ في الأصل: يرتدّان بدفعة ويُسجّلان
-   ٥٠٠ كالمصدّين، لا جداراً صامتاً. */
-wall([[94, 314], [100, 356], [114, 394]], { round: 90, k: 'rb' });
-wall([[160, 314], [166, 356], [180, 394]], { round: 90, k: 'rb' });
-// ---- موجّهات ممرّات العودة أعلى الطاولة ----
-wall([[256, 96], [262, 140], [274, 182]], { round: 110 });
-wall([[332, 96], [326, 140], [314, 182]], { round: 110 });
+// ---- فاصلا ممرّات العودة الثلاثة أعلى الطاولة ----
+wall([[264, 76], [264, 104]]);
+wall([[336, 76], [336, 104]]);
+/* ---- المرتدّان ‎v_rebo3‎ و‎v_rebo4‎: قضيبان مائلان يكتنفان عنقود المنافخ،
+   يرتدّان بدفعة ويُسجّلان ٥٠٠ كالمصدّين. ---- */
+wall([[224, 146], [234, 196]], { k: 'rb' });
+wall([[376, 146], [366, 196]], { k: 'rb' });
 
-/* ---- الأعمدة المطّاطية: تكسر انزلاق الكرة على الجدار وترميها داخل الملعب ---- */
+/* ---- الأعمدة المطّاطية ---- */
 var POSTS = [
-  { x: DIV_L, y: 754, r: 9 }, { x: DIV_R, y: 754, r: 9 },
-  { x: SB_L, y: 834, r: 9 }, { x: SB_R, y: 834, r: 9 },
-  { x: 206, y: 300, r: 9 }, { x: 382, y: 300, r: 9 },
-  { x: 114, y: 394, r: 8 }, { x: 180, y: 394, r: 8 }
+  { x: DIV_L, y: 486, r: 9 }, { x: DIV_R, y: 486, r: 9 },
+  { x: SB_L, y: 476, r: 9 }, { x: SB_R, y: 476, r: 9 }
 ];
 
-/* ---- المنافخ ----
-   مواضعها منقولة من الصورة المرجعية بالمحوِّل أعلاه: منفاخ منفرد أعلى اليسار
-   ثم عنقود ثلاثي يمين وسط القبّة، وثلاثة «زهرات» في أسفل اليسار تحت الدوّامة.
-   الأوّل سُحب داخل القوس الداخلي حتى يبقى بينه وبين جداره ٥ وحدات — الصورة
-   تضعه في مكان يمرّ فيه مِزلقنا العلوي، والمِزلق يبقى كما هو بطلب صاحبه. */
+/* ---- المنافخ: مواضعها من الصورة — منفرد أعلى اليسار، وعنقود ثلاثي،
+   وثلاث «زهرات» أسفل اليسار تحت الدوّامة. ---- */
 var BUMPERS = [
-  { x: 206, y: 176, r: 26, g: 0, i: 0 }, { x: 272, y: 238, r: 26, g: 0, i: 1 },
-  { x: 338, y: 232, r: 26, g: 0, i: 2 }, { x: 306, y: 312, r: 26, g: 0, i: 3 },
-  { x: 130, y: 590, r: 25, g: 1, i: 0 }, { x: 180, y: 618, r: 25, g: 1, i: 1 },
-  { x: 148, y: 664, r: 25, g: 1, i: 2 }
+  { x: 188, y: 128, r: 22, g: 0, i: 0 }, { x: 282, y: 185, r: 22, g: 0, i: 1 },
+  { x: 343, y: 185, r: 22, g: 0, i: 2 }, { x: 308, y: 222, r: 22, g: 0, i: 3 },
+  { x: 108, y: 416, r: 21, g: 1, i: 0 }, { x: 154, y: 420, r: 21, g: 1, i: 1 },
+  { x: 118, y: 458, r: 21, g: 1, i: 2 }
 ];
 
 /* ---- الأهداف: ساقطة (drop) تختفي حين تُصاب وترجع مع بنكها، ونقطية (spot)
@@ -291,70 +305,83 @@ function bank(kind, group, list, ang, label) {
     TARGETS.push({ k: kind, g: group, i: i, x: list[i][0], y: list[i][1], a: ang,
                    down: false, flash: 0, hw: kind === 'drop' ? 20 : 12, lab: label });
 }
-bank('drop', 'mult',  [[436, 204], [436, 244], [436, 284]], 90, '2X');
-bank('drop', 'boost', [[102, 522], [144, 522], [186, 522]], 0, 'BOOST');
-bank('drop', 'medal', [[206, 560], [250, 560], [294, 560]], 0, 'MEDAL');
-bank('spot', 'mission', [[222, 668], [294, 648], [366, 668]], 0, 'MISSION');
-bank('spot', 'fuel',    [[170, 782], [294, 826], [418, 782]], 0, 'FUEL');
-bank('spot', 'hazL',    [[110, 722], [154, 722], [198, 722]], 0, 'HAZARD');
-bank('spot', 'hazR',    [[390, 722], [434, 722], [478, 722]], 0, 'HAZARD');
-bank('spot', 'wdest',   [[368, 470]], 0, 'WARP');
+bank('drop', 'medal', [[218, 130], [244, 130], [270, 130]], 90, 'MEDAL');
+bank('drop', 'mult',  [[330, 130], [356, 130], [382, 130]], 90, '2X');
+bank('drop', 'boost', [[112, 348], [154, 348], [196, 348]], 0, 'BOOST');
+bank('spot', 'mission', [[252, 344], [300, 332], [348, 344]], 0, 'MISSION');
+bank('spot', 'fuel',    [[236, 290], [300, 556], [364, 290]], 0, 'FUEL');
+bank('spot', 'hazL',    [[220, 380], [220, 420], [220, 460]], 90, 'HAZARD');
+bank('spot', 'hazR',    [[380, 380], [380, 420], [380, 460]], 90, 'HAZARD');
+bank('spot', 'wdest',   [[300, 258]], 0, 'WARP');
 
 // ---- المجسّات ----
 var ROLLS = [];
 function roll(g, i, x, y, r) { ROLLS.push({ g: g, i: i, x: x, y: y, r: r || 22, on: false, t: 0 }); }
-/* بوّابات ضربة المهارة الستّ داخل المِزلق العلوي: ‎s_onewy1‎ ثم ‎s_trip1..5‎.
-   كم بوّابة تقطعها الكرة المقذوفة يحدّد جائزة المهارة، وذروتها عند الثالثة. */
-for (var _i = 0; _i < 6; _i++) { var _p = pol(200 + _i * 28, 244); roll('skill', _i, _p[0], _p[1], 24); }
-/* مجسّات الوقود الستّة ‎a_roll179..184‎: كلٌّ يرفع مقياس الوقود إلى درجته
-   (‏١ و٣ و٥ و٧ و٩ و١١ من اثنتي عشرة) ويُسجّل ٥٠٠. */
-var FUELR = [[105, 249], [133, 188], [182, 139], [406, 139], [464, 202], [487, 266]];
-for (_i = 0; _i < 6; _i++) roll('fuel6', _i, FUELR[_i][0], FUELR[_i][1], 20);
-roll('reentry', 0, 232, 128); roll('reentry', 1, 294, 110); roll('reentry', 2, 356, 128);
-roll('launch', 0, 60, 376);   roll('launch', 1, 133, 376);  roll('launch', 2, 206, 376);
-roll('outL', 0, EDGE_L + W_OUT / 2, 890); roll('outR', 0, EDGE_R - W_OUT / 2, 890);
-roll('inL', 0, DIV_L + W_IN / 2, 890);    roll('inR', 0, DIV_R - W_IN / 2, 890);
-roll('bonus', 0, DIV_L + W_IN / 2, 806);
-roll('warp', 0, 294, 690, 24);                       // مجسّ الانزياح فوق البئر
+/* بوّابات ضربة المهارة الستّ داخل الأنبوب: ‎s_onewy1‎ ثم ‎s_trip1..5‎ */
+for (var _i = 0; _i < 6; _i++) {
+  var _k = Math.round((0.20 + _i * 0.11) * (CHUTE_C.length - 1));
+  roll('skill', _i, CHUTE_C[_k][0], CHUTE_C[_k][1], 20);
+}
+/* مجسّات الوقود الستّة ‎a_roll179..184‎: كلٌّ يرفع المقياس إلى درجته */
+var FUELR = [[112, 300], [146, 214], [206, 168], [394, 168], [454, 214], [488, 300]];
+for (_i = 0; _i < 6; _i++) roll('fuel6', _i, FUELR[_i][0], FUELR[_i][1], 18);
+roll('reentry', 0, 238, 88); roll('reentry', 1, 300, 88); roll('reentry', 2, 362, 88);
+roll('launch', 0, 104, 398); roll('launch', 1, 156, 398); roll('launch', 2, 212, 398);
+roll('outL', 0, EDGE_L + W_OUT / 2, 520); roll('outR', 0, EDGE_R - W_OUT / 2, 520);
+roll('inL', 0, DIV_L + W_IN / 2, 520);    roll('inR', 0, DIV_R - W_IN / 2, 520);
+roll('bonus', 0, DIV_L + W_IN / 2, 470);
+roll('warp', 0, 300, 400, 22);                       // مجسّ الانزياح فوق الحلقة
 
-/* ---- الثقوب والمنحدرات: تبتلع الكرة ثم تقذفها. ما له path تُرى الكرة
-   تسير عليه (منحدر سلكي)، وما لا path له تختفي فيه (ثقب). ---- */
+/* ---- الثقوب والمنحدرات ---- */
 var HOLES = [
-  { id: 'hyper', x: 430, y: 380, r: 24, wait: 1.1, out: [294, 470], dir: [0, 1], spd: 560, lab: 'HYPERSPACE' },
-  { id: 'worm0', x: 64, y: 486, r: 22, wait: 1.3, out: [368, 470], dir: [0.15, 1], spd: 430, c: '#ffd34d' },
-  { id: 'worm1', x: 64, y: 566, r: 22, wait: 1.3, out: [368, 470], dir: [0, 1], spd: 430, c: '#ff5a6e' },
-  { id: 'worm2', x: 64, y: 646, r: 22, wait: 1.3, out: [368, 470], dir: [-0.15, 1], spd: 430, c: '#5cf08a' },
-  /* منحدر الإطلاق: مسار قصير مرفوع يصعد يمين الملعب من فمٍ مبوَّق يواجه
-     المضربين إلى ثقبٍ في قمّته، ومنه تُنقل الكرة إلى المِزلق العلوي فتخرج
-     أعلى اليسار — وهو ما يفعله ramp + ramp_hole في الأصل.
-     حسبت خلوصه قبل رسمه: نصف عرضه ١٧، فأقصى ما تبلغه حافّته ٤٩١ وجدار ممر
-     القاذف عند ٥١٠. النسخة السابقة كانت تبلغ ٥٤٥ — أي أنها كانت مرسومة فوق
-     الجدار وداخل الممر، وتنتهي معلّقة في الهواء. */
-  { id: 'ramp',  x: 450, y: 676, r: 24, wait: 1.6, pathT: 0.56,
-    out: [528, 240], dir: [-0.24, -0.97], spd: 980, lab: 'LAUNCH RAMP',
-    path: [[450, 676], [462, 624], [470, 572], [474, 530]] },
-  /* الثقب الأسود ‎a_kout3‎: يبتلع ويقذف، ‏٢٠٬٠٠٠ في كل مرّة. قلب الدوّامة هو
-     فمه — وهو ما ترسمه الصورة المرجعية هناك بالضبط. */
-  { id: 'black', x: 168, y: 440, r: 26, wait: 1.5, out: [104, 548], dir: [-0.1, 1], spd: 380,
+  { id: 'hyper', x: 432, y: 244, r: 24, wait: 1.1, out: [300, 330], dir: [0, 1], spd: 330, lab: 'HYPERSPACE' },
+  { id: 'worm0', x: 158, y: 186, r: 20, wait: 1.3, out: [396, 300], dir: [0.15, 1], spd: 250, c: '#ffd34d' },
+  { id: 'worm1', x: 124, y: 240, r: 20, wait: 1.3, out: [396, 300], dir: [0, 1], spd: 250, c: '#ff5a6e' },
+  { id: 'worm2', x: 116, y: 296, r: 20, wait: 1.3, out: [396, 300], dir: [-0.15, 1], spd: 250, c: '#5cf08a' },
+  /* منحدر الإطلاق: فمٌ مبوَّق يواجه المضربين، وثقبٌ في قمّته ينقل الكرة إلى
+     ساق الأنبوب اليمنى فتطوف السقف — وهو ما يفعله ramp + ramp_hole في الأصل.
+     خلوصه محسوب: نصف عرضه ١٧ فأقصى ما تبلغه حافّته ٤٩١ وحافّة الملعب ٥١٦. */
+  { id: 'ramp',  x: 474, y: 392, r: 22, wait: 1.5, pathT: 0.56,
+    out: [538, 300], dir: [0, -1], spd: 560, lab: 'LAUNCH RAMP',
+    path: [[452, 528], [462, 480], [470, 436], [474, 392]] },
+  { id: 'black', x: 168, y: 288, r: 25, wait: 1.5, out: [236, 344], dir: [0.2, 1], spd: 220,
     lab: 'BLACK HOLE', c: '#b06bff' },
-  /* بئر الجاذبية ‎a_kout1‎: مغلقة طوال الوقت، لا تُفتح إلا حين يُكمل الفضاء
-     الفائق دورته الخامسة، فتومض الحلقة وتبتلع الكرة بخمسين ألفاً ثم تُغلق. */
-  { id: 'gwell', x: 294, y: 737, r: 26, wait: 1.6, out: [294, 610], dir: [0, -1], spd: 880,
+  { id: 'gwell', x: 300, y: 453, r: 25, wait: 1.6, out: [300, 372], dir: [0, -1], spd: 480,
     lab: 'GRAVITY WELL', c: '#7ef0ff', off: true },
-  { id: 'chute', x: 378, y: 600, r: 22, wait: 1.2, out: [232, 340], dir: [-0.2, 1], spd: 460, lab: 'CHUTE',
-    path: [[378, 600], [352, 524], [318, 448], [278, 386], [244, 352], [232, 340]] }
+  { id: 'chute', x: 424, y: 330, r: 21, wait: 1.2, out: [236, 200], dir: [-0.2, 1], spd: 260, lab: 'CHUTE',
+    path: [[424, 330], [400, 286], [368, 246], [320, 214], [268, 200], [236, 200]] }
 ];
-
-// ---- الأعلام الدوّارة ----
 var GWELL = null; for (var _g = 0; _g < HOLES.length; _g++) if (HOLES[_g].id === 'gwell') GWELL = HOLES[_g];
-var FLAGS = [{ x: 110, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }, { x: 478, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }];
+// ---- الأعلام الدوّارة ----
+var FLAGS = [{ x: 236, y: 232, r: 21, spin: 0, v: 0, rolls: 0 }, { x: 364, y: 232, r: 21, spin: 0, v: 0, rolls: 0 }];
 // ---- حارس المصرف وقت تعدّد الكرات ----
-var BLOCKER = { a: [PIV_L, PIV_Y + 62], b: [PIV_R, PIV_Y + 62], on: false };
-// ---- الرافعتان الجانبيتان: إنقاذ واحد لكل جانب في كل كرة ----
-var KICKS = [{ x: EDGE_L + W_OUT / 2, y: 948, on: false }, { x: EDGE_R - W_OUT / 2, y: 948, on: false }];
-/* ---- الحلقة المضيئة: أبرز معلم في الصورة. مركزها وقطراها منقولان عنها:
-   ‎(294,737)‎، قرص متوهّج نصف قطره ٥٢ وحوله طوق من ٢٠ ضوءاً عند ٦٨. ---- */
-var EMB = { x: 294, y: 737, r1: 52, r2: 68 };
+var BLOCKER = { a: [PIV_L, PIV_Y + 40], b: [PIV_R, PIV_Y + 40], on: false };
+// ---- الرافعتان الجانبيتان ----
+var KICKS = [{ x: EDGE_L + W_OUT / 2, y: 575, on: false }, { x: EDGE_R - W_OUT / 2, y: 575, on: false }];
+/* ---- الحلقة المضيئة: مركزها وقطراها من الصورة — قرص ٥٢ وطوق أضواء ٦٨ ---- */
+var EMB = { x: 300, y: 453, r1: 52, r2: 68 };
+/* ==========================================================================
+   ١ب — الطيّ إلى نسبة الصورة: خريطة ١:١ لا تقريباً
+   --------------------------------------------------------------------------
+   الطاولة تُكتب أعلاه في فضاء طويل (‏٦٠٠×١١٦٠‏) مريح للكتابة، ثم تُطوى هنا
+   مرّة واحدة إلى نسبة الصورة المرجعية نفسها: العرض كما هو والارتفاع × SQ.
+   وبهذا يصير المعاملان الأفقي والرأسي معاملاً واحداً — ‏١٫٩٤٦ من بكسل الصورة
+   — فالخريطة ١:١ في البُعدين لا في العرض وحده.
+
+   قاعدة الطيّ: يُنقل ما هو موضع، ويُطوى ما هو مضلّع، ولا يُمسّ ما هو دائرة.
+   المنافخ والحلقة والثقوب والكرة دوائر في الصورة فتبقى دوائر ويُنقل مركزها
+   فقط؛ والجدران والأقواس والمصدّان مضلّعات فتُطوى شكلاً، فتصير القبّة قوساً
+   مفلطحاً كما هي في الصورة بالضبط لا نصف دائرة.
+
+   والزمن يُطوى مع المكان: الجاذبية وكل سرعة تُضرب في SQ، وإلا لصارت الكرة
+   تقطع طاولةً نصف طولها في نصف الزمن فتبدو مذعورة. والمضرب يُعاد حسابه من
+   طرفيه المطويّين، فيحفظ فجوة المصرف الأفقية كما هي: ‏٤١.
+   ========================================================================== */
+/* معامل الزمن: الطاولة صارت ٥٤٪ من طولها السابق، فلو بقيت الجاذبية والدفعات
+   كما كانت لقطعت الكرة طاولةً أقصر في الزمن نفسه فبدت مذعورة. كل سرعة تُضرب
+   في SQ، وبه يبقى زمن سقوط الكرة من القمّة إلى المضربين كما كان. */
+var SQ = 0.54;
+
 /* ==========================================================================
    ٢ — الفيزياء
    --------------------------------------------------------------------------
@@ -883,8 +910,8 @@ function startMultiball() {
   info('كرات متعدّدة!', 4); sfx('multi');
   var i, b;
   for (i = 0; i < 2; i++) {
-    b = new Ball(CX + (i ? 44 : -44), 470); b.wait = false;
-    b.dx = i ? 0.3 : -0.3; b.dy = 1; b.spd = 300;
+    b = new Ball(CX + (i ? 44 : -44), 380); b.wait = false;
+    b.dx = i ? 0.3 : -0.3; b.dy = 1; b.spd = 300 * SQ;
     balls.push(b);
   }
 }
@@ -970,14 +997,14 @@ function kick(b, nx, ny, add) {
 }
 function shake(a) { shakeX += (Math.random() - 0.5) * a; shakeY += (Math.random() - 0.5) * a; }
 function hit(b, kind, obj, nx, ny, sp) {
-  if (kind === 'bump') { kick(b, nx, ny, 540 + 60 * (obj.g ? G.lauLv : G.atkLv)); onBumper(obj); shake(3.5); }
-  else if (kind === 'sl0') { kick(b, nx, ny, 560); onSling(0); shake(2.5); }
-  else if (kind === 'sl1') { kick(b, nx, ny, 560); onSling(1); shake(2.5); }
-  else if (kind === 'rb') { kick(b, nx, ny, 420); onSling(-1); shake(2); }
-  else if (kind === 'post') { if (sp > 300) sfx('post', Math.min(1, sp / 1400)); }
+  if (kind === 'bump') { kick(b, nx, ny, (540 + 60 * (obj.g ? G.lauLv : G.atkLv)) * SQ); onBumper(obj); shake(3.5); }
+  else if (kind === 'sl0') { kick(b, nx, ny, 560 * SQ); onSling(0); shake(2.5); }
+  else if (kind === 'sl1') { kick(b, nx, ny, 560 * SQ); onSling(1); shake(2.5); }
+  else if (kind === 'rb') { kick(b, nx, ny, 420 * SQ); onSling(-1); shake(2); }
+  else if (kind === 'post') { if (sp > 300 * SQ) sfx('post', Math.min(1, sp / (1400 * SQ))); }
   else if (kind === 'drop') { onTarget(obj); }
-  else if (kind === 'flip') { if (sp > 260) sfx('flip'); }
-  else if (sp > 420) sfx('wall', Math.min(1, sp / 1600));
+  else if (kind === 'flip') { if (sp > 260 * SQ) sfx('flip'); }
+  else if (sp > 420 * SQ) sfx('wall', Math.min(1, sp / (1600 * SQ)));
 }
 
 /* ---- الحسّاسات: مجسّات وأهداف نقطية وثقوب وأعلام ومصرف.
@@ -1025,8 +1052,7 @@ function sensors(b, dt) {
      ‎control_oneway4_score1‎ مفهرساً بعدد البوّابات المقطوعة — فذروته عند
      الثالثة، ومن قذف بكل قوّته قطع الستّ ونال أقلّها. */
   if (G.skillOn && G.skillN > 0) {
-    var rr = Math.sqrt((b.x - CX) * (b.x - CX) + (b.y - CY) * (b.y - CY));
-    if (rr > R_OUT + 6 || rr < R_IN - 6 || b.y > CY + 40) {
+    if (b.x < LANE_IN && b.y > 380) {            // غادرت الأنبوب إلى الملعب
       G.skillOn = false;
       addScore(SC.chute[Math.min(5, G.skillN - 1)]);
       say('ضربة مهارة ×' + G.skillN, 3); sfx('up');
@@ -1041,7 +1067,7 @@ function sensors(b, dt) {
   }
   if (b.y > TH + 20) { drainBall(b); return; }
   // كرة هدأت في ممر القاذف: أعدها إلى وضع الانتظار كي تُقذف من جديد
-  if (b.x > LANE_IN && b.y > 980 && b.spd < 120) { park(b); return; }
+  if (b.x > LANE_IN && b.y > 600 && b.spd < 120 * SQ) { park(b); return; }
   // الرافعة الجانبية: تُعيد الكرة من ممر الخروج حين تكون مُضاءة
   /* الرافعة الجانبية ‎a_kick1/a_kick2‎ ببوّابتها ‎v_gate1/v_gate2‎: تُستهلك
      فتُغلق البوّابة، ويعيد مؤقّتها فتحها بعد اثنتي عشرة ثانية — لا مرّة
@@ -1050,18 +1076,18 @@ function sensors(b, dt) {
     o = KICKS[i];
     if (o.on && b.y > o.y - 30 && Math.abs(b.x - o.x) < 34) {
       o.on = false; o.flash = 0.3; G.kickT[i] = 12;
-      b.dx = 0; b.dy = -1; b.spd = 1250; sfx('kickback');
+      b.dx = 0; b.dy = -1; b.spd = 1250 * SQ; sfx('kickback');
     }
   }
   // كرة عالقة: هزّة خفيفة كما تفعل ‎control::UnstuckBall‎
   var moved = (b.x - b.px) * (b.x - b.px) + (b.y - b.py) * (b.y - b.py);
   b.px = b.x; b.py = b.y;
-  if (b.spd < 24 && moved < 1) {
+  if (b.spd < 24 * SQ && moved < 1) {
     b.stuck += dt;
     if (b.stuck > 1.6) {
       b.stuck = 0; b.kicks = (b.kicks || 0) + 1;
       b.dx = (Math.random() - 0.5); b.dy = -1;
-      var mm = Math.sqrt(b.dx * b.dx + 1); b.dx /= mm; b.dy /= mm; b.spd = 300 + 90 * b.kicks;
+      var mm = Math.sqrt(b.dx * b.dx + 1); b.dx /= mm; b.dy /= mm; b.spd = (300 + 90 * b.kicks) * SQ;
       /* شبكة أمان أخيرة: هندسة فيها جيب لم أره قد تبتلع كرة إلى الأبد وتُجمّد
          الجولة. بعد خمس محاولات تُعدّ الكرة ضائعة وتمضي اللعبة — خسارة كرة
          أرحم من طاولة واقفة لا تفعل شيئاً. */
@@ -1260,7 +1286,7 @@ function musicTick() {
    ========================================================================== */
 var cv = document.getElementById('table'), ctx = cv.getContext('2d');
 var stat = document.createElement('canvas'), sctx = stat.getContext('2d');
-var VW = 0, VH = 0, S = 1, OX = 0, OY = 0, HUD = 56, DPR = 1;
+var VW = 0, VH = 0, S = 1, OX = 0, OY = 0, HUD = 56, DPR = 1, PNY = 0, PNH = 0;
 var FONT = '"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif';
 var shakeX = 0, shakeY = 0;                     // ارتجاج الطاولة عند الضربات والنخّ
 var probe = document.createElement('div');
@@ -1365,11 +1391,15 @@ function layout() {
   var cs = getComputedStyle(probe);
   var st = parseFloat(cs.paddingTop) || 0, sb = parseFloat(cs.paddingBottom) || 0;
   var sl = parseFloat(cs.paddingLeft) || 0, sr = parseFloat(cs.paddingRight) || 0;
-  HUD = Math.max(44, Math.min(72, VH * 0.08));
-  var aw = Math.max(40, VW - sl - sr), ah = Math.max(40, VH - st - sb - HUD);
+  /* الطاولة بنسبة الصورة (‏٦٠٠×٧٠٠‏) أعرض من الشاشة نسبةً، فتُقاس بالعرض
+     وتلتصق بالأعلى، وما بقي أسفلها لوحة المعلومات — وهو تخطيط اللعبة الأصلية
+     نفسه: طاولة فوق ولوحة نتيجة تحتها، فلا يبقى في الشاشة فراغ. */
+  var aw = Math.max(40, VW - sl - sr), ah = Math.max(40, VH - st - sb);
   S = Math.min(aw / TW, ah / TH);
   OX = sl + (aw - TW * S) / 2;
-  OY = st + HUD + (ah - TH * S) / 2;
+  OY = st + Math.max(0, Math.min(ah - TH * S, VH * 0.02));
+  PNY = OY + TH * S; PNH = Math.max(0, VH - sb - PNY);
+  HUD = 0;
   stat.width = cv.width; stat.height = cv.height;
   bakeSprites(S * DPR);          // القطع تُخبز على كثافة بكسل الجهاز فلا تُكبَّر أبداً
   buildStatic();
@@ -1402,13 +1432,6 @@ function rail(c, pts, w) {
 /* قضيب على قوس حقيقي لا على مضلّع. كان المِزلق يُرسم مرّتين — قوساً ناعماً
    ثم مضلّعَ الاصطدام بخطوة مختلفة — فيتراكب خطّان مزاحان ويُقرأ الأنبوب
    متعرّجاً. الآن يُرسم مرّة واحدة بمسار قوس، فلا تقطيع أصلاً. */
-function railArc(c, cx, cy, r, a0, a1, w) {
-  c.lineCap = 'butt';
-  c.beginPath(); c.arc(cx, cy, r, a0 * D2R, a1 * D2R);
-  c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = w + 3; c.stroke();
-  c.strokeStyle = '#6d7488'; c.lineWidth = w; c.stroke();
-  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = Math.max(1, w * 0.3); c.stroke();
-}
 function wallPts(pred) {
   var runs = [], cur = null, i;
   for (i = 0; i < WALLS.length; i++) {
@@ -1447,24 +1470,22 @@ function buildStatic() {
   c.save(); c.translate(OX, OY); c.scale(S, S);
 
   // ---- الخزانة: حافّة معدنية حول الطاولة ----
-  function tablePath(inset) {
-    var k = inset || 0, rad = 26;
+  // حدّ الخزانة: القضيب الخارجي للأنبوب، ثم حافّة الملعب اليسرى، ثم القاع
+  function tablePath() {
+    var q;
     c.beginPath();
-    c.moveTo(22 + k, CY);
-    c.arc(CX, CY, R_OUT - k, Math.PI, 0, false);
-    c.lineTo(LANE_OUT - k, TH - k - rad);
-    c.quadraticCurveTo(LANE_OUT - k, TH - k, LANE_OUT - k - rad, TH - k);
-    c.lineTo(22 + k + rad, TH - k);
-    c.quadraticCurveTo(22 + k, TH - k, 22 + k, TH - k - rad);
+    c.moveTo(CH_OUT[0][0], TH);
+    for (q = 0; q < CH_OUT.length; q++) c.lineTo(CH_OUT[q][0], CH_OUT[q][1]);
+    c.lineTo(EDGE_L - 8, 396); c.lineTo(EDGE_L - 8, TH);
     c.closePath();
   }
   c.save();
-  tablePath(-10);
+  tablePath();
   c.fillStyle = '#14101f'; c.fill();
-  c.strokeStyle = '#3a3550'; c.lineWidth = 6; c.stroke();
+  c.strokeStyle = '#3a3550'; c.lineWidth = 16; c.lineJoin = 'round'; c.stroke();
   c.restore();
 
-  tablePath(0);
+  tablePath();
   c.save(); c.clip();
   // ---- دهان الملعب: أزرق بنفسجي عميق بتدرّج وحبيبات ----
   var pf = c.createLinearGradient(0, 0, 120, TH);
@@ -1508,13 +1529,13 @@ function buildStatic() {
     c.restore();
     c.strokeStyle = 'rgba(255,210,170,.18)'; c.lineWidth = 3.5;         // حلقات
     for (var z = 0; z < 3; z++) { c.beginPath(); c.ellipse(px, py, pr * (1.5 + z * 0.16), pr * (0.42 + z * 0.05), -0.4, 0, 6.2832); c.stroke(); }
-  })(462, 470, 46);
+  })(473, 311, 52);
   // مسار مدهون يقود العين من المضربين إلى المنحدر، كما تفعل الطاولات
   c.save();
   c.strokeStyle = 'rgba(93,225,255,.09)'; c.lineWidth = 40; c.lineCap = 'round';
-  c.beginPath(); c.moveTo(370, 950); c.quadraticCurveTo(438, 760, 452, 566); c.stroke();
+  c.beginPath(); c.moveTo(376, 600); c.quadraticCurveTo(446, 470, 458, 366); c.stroke();
   c.strokeStyle = 'rgba(255,190,60,.07)';
-  c.beginPath(); c.moveTo(218, 950); c.quadraticCurveTo(150, 780, 120, 640); c.stroke();
+  c.beginPath(); c.moveTo(224, 600); c.quadraticCurveTo(156, 480, 130, 390); c.stroke();
   c.restore();
 
   /* ---- الدوّامة اليسرى ----
@@ -1523,13 +1544,13 @@ function buildStatic() {
      لا في الجدران — ما تصطدم به الكرة هناك هو ثقوب الدودة وحدها. */
   (function vortex(vx, vy) {
     c.save(); c.translate(vx, vy); c.rotate(-0.2);
-    var sh = c.createRadialGradient(-12, -22, 10, 0, 0, 122);   // بدن الصدفة
+    var sh = c.createRadialGradient(-12, -18, 10, 0, 0, 100);   // بدن الصدفة
     sh.addColorStop(0, 'rgba(241,231,255,.98)'); sh.addColorStop(0.34, 'rgba(206,182,250,.94)');
     sh.addColorStop(0.68, 'rgba(158,122,224,.80)'); sh.addColorStop(0.9, 'rgba(96,62,166,.46)');
     sh.addColorStop(1, 'rgba(60,32,112,0)');
-    c.fillStyle = sh; c.beginPath(); c.ellipse(0, 0, 100, 122, 0, 0, 6.2832); c.fill();
+    c.fillStyle = sh; c.beginPath(); c.ellipse(0, 0, 100, 92, 0, 0, 6.2832); c.fill();
     c.strokeStyle = 'rgba(250,240,255,.34)'; c.lineWidth = 3.4;
-    c.beginPath(); c.ellipse(0, 0, 96, 118, 0, 0, 6.2832); c.stroke();
+    c.beginPath(); c.ellipse(0, 0, 96, 88, 0, 0, 6.2832); c.stroke();
     var t, a, r, X, Y, arm;
     c.lineCap = 'round'; c.lineJoin = 'round';
     for (arm = 0; arm < 4; arm++) {                   // أربعة أذرع لولبيّة
@@ -1538,7 +1559,7 @@ function buildStatic() {
       c.beginPath();
       for (t = 0; t <= 1.001; t += 0.02) {
         a = arm * 1.5708 + 0.3 + t * 3.9; r = 12 + 96 * t * t;
-        X = Math.cos(a) * r * 0.84; Y = Math.sin(a) * r;
+        X = Math.cos(a) * r; Y = Math.sin(a) * r * 0.9;
         if (t === 0) c.moveTo(X, Y); else c.lineTo(X, Y);
       }
       c.stroke();
@@ -1554,17 +1575,17 @@ function buildStatic() {
     c.restore();
     c.save();                                          // اللسان القرمزي المدبَّب
     c.fillStyle = 'rgba(236,104,200,.88)';
-    c.beginPath(); c.moveTo(vx + 28, vy + 74); c.quadraticCurveTo(vx + 76, vy + 88, vx + 78, vy + 112);
-    c.quadraticCurveTo(vx + 52, vy + 104, vx + 8, vy + 96); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(vx + 30, vy + 56); c.quadraticCurveTo(vx + 78, vy + 66, vx + 82, vy + 86);
+    c.quadraticCurveTo(vx + 54, vy + 80, vx + 10, vy + 74); c.closePath(); c.fill();
     c.fillStyle = 'rgba(126,240,255,.9)';
-    c.beginPath(); c.moveTo(vx + 62, vy + 90); c.lineTo(vx + 78, vy + 112); c.lineTo(vx + 52, vy + 104); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(vx + 64, vy + 68); c.lineTo(vx + 82, vy + 86); c.lineTo(vx + 56, vy + 80); c.closePath(); c.fill();
     c.restore();
-  })(168, 450);
+  })(168, 288);
 
   // ---- السهام الحمراء المرصوفة يمين الوسط، وضوء أخضر أعلى اليسار ----
   c.save();
   for (var ch = 0; ch < 3; ch++) {
-    var cxp = 347 + ch * 18, cyp = 422 + ch * 39;
+    var cxp = 353 + ch * 18, cyp = 284 + ch * 22;
     c.fillStyle = 'rgba(228,38,54,' + (0.92 - ch * 0.14) + ')';
     c.strokeStyle = 'rgba(255,170,180,.5)'; c.lineWidth = 2;
     c.beginPath(); c.moveTo(cxp - 28, cyp - 20); c.lineTo(cxp + 18, cyp);
@@ -1572,14 +1593,15 @@ function buildStatic() {
   }
   c.fillStyle = 'rgba(232,40,58,.85)'; c.lineCap = 'round';   // علامة X الحمراء
   c.strokeStyle = 'rgba(232,40,58,.85)'; c.lineWidth = 9;
-  c.beginPath(); c.moveTo(178, 740); c.lineTo(202, 764); c.moveTo(202, 740); c.lineTo(178, 764); c.stroke();
-  var gl = c.createRadialGradient(189, 211, 2, 189, 211, 18);  // الضوء الأخضر
+  var xc = 449;                                            // X مربّعة لا مسطّحة
+  c.beginPath(); c.moveTo(178, xc - 12); c.lineTo(202, xc + 12); c.moveTo(202, xc - 12); c.lineTo(178, xc + 12); c.stroke();
+  var gl = c.createRadialGradient(195, 171, 2, 195, 171, 18);  // الضوء الأخضر
   gl.addColorStop(0, '#dcffe6'); gl.addColorStop(0.35, '#3fd98a');
   gl.addColorStop(0.7, 'rgba(40,150,90,.5)'); gl.addColorStop(1, 'rgba(40,150,90,0)');
-  c.fillStyle = gl; c.beginPath(); c.arc(189, 211, 18, 0, 6.2832); c.fill();
+  c.fillStyle = gl; c.beginPath(); c.arc(195, 171, 18, 0, 6.2832); c.fill();
   c.restore();
   // ظلّ داخلي حول الحوافّ يعطي عمق الحوض
-  var vig = c.createRadialGradient(CX, 640, 150, CX, 640, 620);
+  var vig = c.createRadialGradient(CX, 400, 140, CX, 400, 400);
   vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.66)');
   c.fillStyle = vig; c.fillRect(0, 0, TW, TH);
   c.restore();
@@ -1608,23 +1630,23 @@ function buildStatic() {
   }
 
   // ---- نصوص مطبوعة تسمّي معالم الطاولة ----
-  label(c, 'DEPLOYMENT CHUTE', CX, 62, 16, '#cfe8ff', 0, 0.8);
-  label(c, 'RE-ENTRY', CX, 268, 12, '#9fd0ff', 0, 0.55);
-  label(c, 'BOOST', 144, 556, 11, '#ff9ecb');
-  label(c, 'BLACK HOLE', 248, 392, 11, '#3d1466');
+  label(c, 'DEPLOYMENT CHUTE', CX, 50, 16, '#cfe8ff', 0, 0.8);
+  label(c, 'RE-ENTRY', CX, 106, 12, '#9fd0ff', 0, 0.55);
+  label(c, 'BOOST', 177, 384, 11, '#ff9ecb');
+  label(c, 'BLACK HOLE', 232, 322, 11, '#3d1466');
   
   
-  label(c, 'BONUS 2X', 436, 312, 11, '#7ef0ff');
-  label(c, 'LAUNCH LANES', 88, 416, 11, '#43125f');
-  label(c, 'WORM HOLE', 66, 440, 10, '#ffd34d');
-  label(c, 'HYPERSPACE', 402, 424, 12, '#7ef0ff');
-  label(c, 'LAUNCH RAMP', 497, 604, 12, '#7ef0ff', -Math.PI / 2);
-  label(c, 'MEDAL', 250, 536, 11, '#ffd34d');
-  label(c, 'MISSION', CX, 616, 13, '#e0b6ff');
-  label(c, 'HAZARD BANK', 154, 696, 11, '#9fd0ff');
-  label(c, 'HAZARD BANK', 434, 696, 11, '#9fd0ff');
-  label(c, 'FUEL', CX, 858, 12, '#8cf0a8');
-  label(c, 'GRAVITY WELL', EMB.x, EMB.y + 40, 10, '#9fd0ff', 0, 0.8);
+  label(c, 'BONUS 2X', 386, 170, 11, '#7ef0ff');
+  
+  label(c, 'WORM HOLE', 196, 254, 10, '#ffd34d');
+  label(c, 'HYPERSPACE', 432, 288, 12, '#7ef0ff');
+  label(c, 'LAUNCH RAMP', 500, 452, 11, '#7ef0ff', -Math.PI / 2);
+  label(c, 'MEDAL', 240, 170, 11, '#ffd34d');
+  label(c, 'MISSION', CX, 310, 13, '#e0b6ff');
+  label(c, 'HAZARD', 222, 492, 10, '#9fd0ff');
+  label(c, 'HAZARD', 378, 492, 10, '#9fd0ff');
+  label(c, 'FUEL', CX, 580, 12, '#8cf0a8');
+  label(c, 'GRAVITY WELL', EMB.x, EMB.y + 34, 10, '#9fd0ff', 0, 0.8);
 
   // ---- أفواه الثقوب: حفرة داكنة في الدهان، طوق معدني، وسهم موجّه ----
   for (i = 0; i < HOLES.length; i++) {
@@ -1690,8 +1712,7 @@ function buildStatic() {
   c.beginPath(); c.arc(RT[0], RT[1], 21, 0, 6.2832); c.stroke();
 
   // ---- القضبان: كل جدار في الطاولة يُرسم فولاذاً، والأقواس قطعة واحدة ----
-  railArc(c, CX, CY, R_OUT, 180, 360, 7);
-  railArc(c, CX, CY, R_IN, 185, 360, 7);
+  rail(c, CH_OUT, 7); rail(c, CH_IN, 7);
   var runs = wallPts(function (o) { return o.k === 'w' || o.k === 'rb'; });
   for (i = 0; i < runs.length; i++) if (runs[i].length > 2 || Math.hypot(runs[i][1][0] - runs[i][0][0], runs[i][1][1] - runs[i][0][1]) > 40) rail(c, runs[i], 7);
   runs = wallPts(function (o) { return o.k === 'sl'; });
@@ -2031,41 +2052,56 @@ function draw() {
 }
 
 function drawHud() {
-  var c = ctx, top = OY - HUD, right = VW - 8;
+  var c = ctx, top = PNY, H = PNH, right = VW - 16, lx = 16, i;
+  if (H < 30) return;
   c.save();
   c.textBaseline = 'middle';
-  c.fillStyle = 'rgba(8,4,18,.55)'; c.fillRect(0, Math.max(0, top - 2), VW, HUD + 4);
-  c.textAlign = 'right';
-  c.fillStyle = '#ffd34d';
-  c.font = '800 ' + Math.round(HUD * 0.42) + 'px ' + FONT;
-  c.fillText(G.score.toLocaleString('en-US'), right, top + HUD * 0.30);
-  c.font = '700 ' + Math.round(HUD * 0.2) + 'px ' + FONT;
+  c.fillStyle = 'rgba(9,5,20,.9)'; c.fillRect(0, top, VW, H);
+  c.fillStyle = 'rgba(160,120,230,.3)'; c.fillRect(0, top, VW, 2);
+  var F = Math.max(11, Math.min(H * 0.115, VW * 0.052));
+  c.textAlign = 'right'; c.fillStyle = '#ffd34d';
+  c.font = '800 ' + Math.round(F * 2.4) + 'px ' + FONT;
+  c.fillText(G.score.toLocaleString('en-US'), right, top + H * 0.17);
+  c.font = '700 ' + Math.round(F) + 'px ' + FONT;
   c.fillStyle = '#b9a6d8';
-  c.fillText(RANKS[G.rank] + '  ·  كرة ' + G.ball + '/' + G.ballsTotal +
-    (G.mult ? '  ·  ×' + MULTS[G.mult] : '') + (G.extra ? '  ·  +' + G.extra : ''), right, top + HUD * 0.62);
+  c.fillText(RANKS[G.rank] + '  \u00b7  \u0643\u0631\u0629 ' + G.ball + '/' + G.ballsTotal +
+    (G.mult ? '  \u00b7  \u00d7' + MULTS[G.mult] : '') + (G.extra ? '  \u00b7  +' + G.extra : ''), right, top + H * 0.34);
   c.textAlign = 'left';
-  var lx = Math.max(52, OX + 2);
   c.fillStyle = 'rgba(185,166,216,.75)';
-  c.fillText('TOP ' + G.best.toLocaleString('en-US'), lx, top + HUD * 0.62);
-  var bh = Math.round(HUD * 0.2), i;
-  for (i = 0; i < G.fuelMax; i++) {                       // مقياس الوقود: اثنتا عشرة درجة
-    c.fillStyle = i < G.fuel ? (G.fuel <= 4 ? '#ff5a6e' : '#5cf08a') : 'rgba(255,255,255,.14)';
-    c.fillRect(lx + i * 6, top + HUD * 0.18, 4, bh);
+  c.fillText('TOP ' + G.best.toLocaleString('en-US'), lx, top + H * 0.34);
+  var bw = Math.min(11, (VW * 0.36) / G.fuelMax), bh = Math.max(7, H * 0.09);
+  for (i = 0; i < G.fuelMax; i++) {
+    c.fillStyle = i < G.fuel ? (G.fuel <= 4 ? '#ff5a6e' : '#5cf08a') : 'rgba(255,255,255,.13)';
+    c.fillRect(lx + i * bw, top + H * 0.10, bw - 2, bh);
   }
-  if (G.skillOn || G.skillN) {                            // أضواء ضربة المهارة الستّ
-    var sx = lx + G.fuelMax * 6 + 8;
-    for (i = 0; i < 6; i++) {
-      c.fillStyle = G.skill[i] ? (i === 2 ? '#ffd34d' : '#7ef0ff') : 'rgba(255,255,255,.14)';
-      c.beginPath(); c.arc(sx + i * 8, top + HUD * 0.18 + bh / 2, 2.6, 0, 6.2832); c.fill();
-    }
+  c.font = '700 ' + Math.round(F * 0.82) + 'px ' + FONT;
+  c.fillStyle = 'rgba(140,240,168,.85)';
+  c.fillText('FUEL', lx + G.fuelMax * bw + 7, top + H * 0.10 + bh / 2);
+  c.fillStyle = 'rgba(185,166,216,.6)';
+  c.fillText('SKILL', lx, top + H * 0.53);
+  for (i = 0; i < 6; i++) {
+    c.fillStyle = G.skill[i] ? (i === 2 ? '#ffd34d' : '#7ef0ff') : 'rgba(255,255,255,.13)';
+    c.beginPath(); c.arc(lx + 62 + i * 15, top + H * 0.53, 4.6, 0, 6.2832); c.fill();
+  }
+  // ---- شريط التقدّم نحو الترقية: أربعة وعشرون ضوءاً كما على الطاولة ----
+  var pw = Math.min(9, (VW * 0.42) / OUTER_LIGHTS);
+  c.textAlign = 'right'; c.fillStyle = 'rgba(185,166,216,.6)';
+  c.fillText('RANK', right, top + H * 0.53);
+  for (i = 0; i < OUTER_LIGHTS; i++) {
+    c.fillStyle = i < G.prog ? '#ffbe3c' : 'rgba(255,255,255,.13)';
+    c.fillRect(right - 46 - (OUTER_LIGHTS - i) * pw, top + H * 0.53 - 5, pw - 2, 10);
   }
   var txt = (G.infoT > 0 && G.info) || (G.msgT > 0 && G.msg) || missionLine();
-  c.fillStyle = G.tiltLock ? '#ff5a6e' : (G.msgT > 0 && G.msg) ? '#ffd34d' : '#e9dcff';
   if (txt) {
     c.textAlign = 'center';
-    c.font = '700 ' + Math.round(Math.max(11, HUD * 0.23)) + 'px ' + FONT;
-    c.fillText(txt, VW / 2, top + HUD * 0.9);
+    c.fillStyle = G.tiltLock ? '#ff5a6e' : (G.msgT > 0 && G.msg) ? '#ffd34d' : '#e9dcff';
+    c.font = '700 ' + Math.round(F * 1.25) + 'px ' + FONT;
+    c.fillText(txt, VW / 2, top + H * 0.74);
   }
+  c.textAlign = 'center';
+  c.fillStyle = 'rgba(185,166,216,.38)';
+  c.font = '600 ' + Math.round(F * 0.86) + 'px ' + FONT;
+  c.fillText('نصف الشاشة = مضربها · اسحب لأسفل يميناً ثم أفلت للقذف', VW / 2, top + H * 0.92);
   c.restore();
 }
 /* ==========================================================================
@@ -2203,7 +2239,10 @@ function launch() {
   if (!b) { PLUNGE.pull = 0; return; }
   var pw = PLUNGE.pull;
   if (pw < 0.03) pw = 0.03;
-  b.wait = false; b.spd = 620 + 1150 * pw; b.dx = 0; b.dy = -1;
+  /* المِزلق يطوف سقف الطاولة كاملاً، فالكرة تصعد ارتفاع الطاولة كلّه ثم تعبر
+     عرضها في أعلى نقطة حيث طاقتها أقلّ ما تكون. فالقذفة التامّة يجب أن تكفي
+     لذلك وزيادة: ‏٢٥٠٠×٠٫٥٤ ≈ ‏١٣٥٠ مقابل ‏٨١٥ لازمة للصعود وحده. */
+  b.wait = false; b.spd = (780 + 1720 * pw) * SQ; b.dx = 0; b.dy = -1;
   G.skillOn = true; G.skillN = 0; G.skill = [0, 0, 0, 0, 0, 0];   // تسليح ضربة المهارة
   PLUNGE.pull = 0;
   sfx('plunge');
