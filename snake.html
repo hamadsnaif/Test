@@ -535,7 +535,25 @@ body[data-state="playing"] .cap-pause, body[data-state="paused"] .cap-resume { d
 
   // ---------- Helpers ----------
   const pad4 = n => String(n).padStart(4, '0');
+  /* أعلى نتيجة تُكتب وهي ترتفع لا عند الاصطدام وحده: من يُغلق التطبيق في منتصف
+     جولة جيدة كان يفقدها ويفقد رقمها معاً. الكتابة مخنوقة بثانية كي لا يُلمس
+     التخزين مع كل أكلة، ومضمونة عند المغادرة وعند النهاية. */
+  let bestSaved = best, bestAt = 0;
+  function writeBest() {
+    if (best <= bestSaved) return;
+    try { localStorage.setItem(BEST_KEY, String(best)); bestSaved = best; } catch (e) {}
+  }
+  function bumpBest() {
+    if (score <= best) return;
+    best = score;
+    const now = Date.now();
+    if (now - bestAt >= 1000) { bestAt = now; writeBest(); }
+  }
+  document.addEventListener('visibilitychange', function () { if (document.hidden) writeBest(); });
+  window.addEventListener('pagehide', writeBest);
+
   function updateHud() {
+    bumpBest();
     scoreEl.textContent = pad4(score);
     bestEl.textContent = 'TOP ' + pad4(best);
     if (bonus) {
@@ -716,12 +734,9 @@ body[data-state="playing"] .cap-pause, body[data-state="paused"] .cap-resume { d
     state = 'over';
     syncState();
     stopLoop();
-    let record = false;
-    if (score > best) {
-      best = score;
-      record = true;
-      try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) {}
-    }
+    const record = score >= best && score > 0;
+    if (score > best) best = score;
+    writeBest();
     updateHud();
     if (record) SFX.record(); else SFX.over();
     // death flash animation, then overlay

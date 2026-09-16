@@ -973,6 +973,7 @@ function drawNext(){
 }
 
 function updateStats(){
+  bumpBest();
   elScore.textContent = score;
   elLevel.textContent = level;
   elLines.textContent = lines;
@@ -1004,15 +1005,19 @@ function hideOverlay(){ overlay.hidden = true; }
 function menuScreen(){
   /* تُخفى لوحة NEXT وحدها، أمّا عنوانها المحفور فيبقى كبقيّة عناوين اللوحة */
   nextCv.style.visibility = 'hidden';
+  const sv = savedRound();
   showOverlay(
     '<h1>تتريس</h1>' +
-    '<p>كوّن صفاً كاملاً ليختفي.</p>' +
+    (sv ? '<p>جولة محفوظة: ' + (sv.score | 0) + ' نقطة · المستوى ' + Math.max(1, sv.level | 0) + '</p>'
+        : '<p>كوّن صفاً كاملاً ليختفي.</p>') +
     /* مسافة غير فاصلة داخل كل زوج (مفتاح + فعله) فلا ينكسر السطر بينهما */
     '<p class="hint">◀ ▶ حركة · ▼ نزول · ROTATE تدوير · DROP إسقاط</p>' +
     '<p class="hint">أو اسحب إبهامك على اللوحة: يميناً ويساراً للحركة، لأسفل للنزول، ونقرة للتدوير</p>' +
-    '<p>اضغط START للبدء</p>'
+    (sv ? '<p>اضغط START للمتابعة</p>' : '<p>اضغط START للبدء</p>')
   );
-  $('btnRestart').hidden = true;
+  /* صفّ الإعادة يصير «لعبة جديدة» هنا: الطريق الوحيد لطرح الجولة المحفوظة */
+  $('btnRestart').hidden = !sv;
+  if (sv) $('btnRestart').querySelector('span').textContent = 'لعبة جديدة';
 }
 
 function pauseScreen(){
@@ -1038,7 +1043,75 @@ function overScreen(){
   $('btnRestart').hidden = true;
 }
 
+/* ============================ حفظ الجولة ============================
+   الرقعة والقطعة الحالية والتالية وحقيبة القطع والنتيجة والمستوى والصفوف:
+   كل ما يلزم لإعادة بناء اللحظة نفسها. يُكتب حين تغيب الصفحة عن العين — تبديل
+   تطبيق أو قفل شاشة أو إغلاق — لا عند الضغط على زرّ، فالخروج نادراً ما يكون
+   بضغطة زرّ. */
+const SAVE_KEY = 'tetris_save';
+
+function savedRound(){
+  let sv = null;
+  try { sv = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch(e){ sv = null; }
+  if (!sv || sv.v !== 1 || !sv.piece || typeof sv.grid !== 'string') return null;
+  return sv;
+}
+function saveRound(){
+  if (state !== 'playing' && state !== 'paused') return;
+  if (!piece || !grid) return;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: 1,
+      grid: grid.map(function(row){ return row.map(function(c){ return c || ''; }).join(','); }).join(';'),
+      piece: { type: piece.type, m: piece.m, r: piece.r, x: piece.x, y: piece.y },
+      next: nextType, bag: bag,
+      score: score, lines: lines, level: level
+    }));
+  } catch(e){ /* التخزين مغلق */ }
+}
+function clearRound(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} }
+
+function resumeRound(){
+  const sv = savedRound();
+  if (!sv) { startGame(); return; }
+  /* لا يُوثق بما في التخزين: أي شكل غير متوقّع يُلقى وتبدأ جولة جديدة */
+  const rows = sv.grid.split(';');
+  if (rows.length !== ROWS) { clearRound(); startGame(); return; }
+  const g = [];
+  for (let y = 0; y < ROWS; y++){
+    const cells = rows[y].split(',');
+    if (cells.length !== COLS) { clearRound(); startGame(); return; }
+    g.push(cells.map(function(c){ return (c && SHAPES[c]) ? c : null; }));
+  }
+  const m = sv.piece.m;
+  if (!Array.isArray(m) || !m.length || m.some(function(r){ return !Array.isArray(r) || r.length !== m.length; })) {
+    clearRound(); startGame(); return;
+  }
+  unlockAudio();
+  nextCv.style.visibility = 'visible';
+  grid = g;
+  piece = { type: SHAPES[sv.piece.type] ? sv.piece.type : 'O', m: m, r: sv.piece.r | 0,
+            x: sv.piece.x | 0, y: sv.piece.y | 0 };
+  nextType = SHAPES[sv.next] ? sv.next : null;
+  bag = Array.isArray(sv.bag) ? sv.bag.filter(function(t){ return !!SHAPES[t]; }) : [];
+  score = Math.max(0, sv.score | 0);
+  lines = Math.max(0, sv.lines | 0);
+  level = Math.max(1, sv.level | 0);
+  clearing = null; dropTimer = 0; lockTimer = 0; lockResets = 0; grounded = false; flash = 0;
+  state = 'playing';
+  hideOverlay();
+  updateStats();
+  drawNext();
+  if (musicOn) startMusic();
+  setPauseLabel();
+}
+
+/* الجولة تُحفظ في اللحظة التي تغيب فيها الصفحة، فيشمل ذلك كل طرق الخروج */
+document.addEventListener('visibilitychange', function(){ if (document.hidden) { saveRound(); writeBest(); } });
+window.addEventListener('pagehide', function(){ saveRound(); writeBest(); });
+
 function startGame(){
+  clearRound();                      /* جولة جديدة تُلغي المحفوظة */
   unlockAudio();
   nextCv.style.visibility = 'visible';
   grid = emptyGrid();
@@ -1073,14 +1146,28 @@ function setPauseLabel(){
   b.setAttribute('aria-label', state === 'paused' ? 'متابعة' : 'إيقاف مؤقت');
 }
 
+/* أعلى نتيجة تُكتب وهي ترتفع، لا عند انتهاء الجولة وحده: من يُغلق التطبيق في
+   منتصف جولة ممتازة كان يفقدها ويفقد رقمها معاً. والكتابة مخنوقة بثانية كي لا
+   يلمس التخزين مع كل صفّ نزول، ومضمونة عند المغادرة وعند النهاية. */
+let bestSaved = best, bestAt = 0;
+function writeBest(){
+  if (best <= bestSaved) return;
+  try { localStorage.setItem('tetris_best', String(best)); bestSaved = best; } catch(e){}
+}
+function bumpBest(){
+  if (score <= best) return;
+  best = score;
+  const now = Date.now();
+  if (now - bestAt >= 1000) { bestAt = now; writeBest(); }
+}
+
 function gameOver(){
   state = 'over';
   stopMusic();
   sfx('over');
-  if (score > best){
-    best = score;
-    try { localStorage.setItem('tetris_best', String(best)); } catch(e){}
-  }
+  if (score > best) best = score;
+  writeBest();
+  clearRound();                      /* الجولة انتهت، فلا شيء يُستأنف */
   updateStats();
   overScreen();
   setPauseLabel();
@@ -1374,7 +1461,8 @@ const btnPause = $('btnPause');
 btnPause.addEventListener('pointerdown', function(ev){
   ev.preventDefault();
   btnPause.classList.add('down');
-  if (state === 'menu' || state === 'over') { startGame(); return; }   /* بدء */
+  if (state === 'menu') { if (savedRound()) resumeRound(); else startGame(); return; }
+  if (state === 'over') { startGame(); return; }                       /* بدء */
   togglePause();                                                       /* إيقاف أو متابعة */
 });
 ['pointerup','pointercancel','pointerleave'].forEach(function(e){
@@ -1420,7 +1508,8 @@ document.addEventListener('keydown', function(e){
       if (state === 'playing' || state === 'paused') togglePause();
       break;
     case 'Enter':
-      if (state === 'menu' || state === 'over') startGame();
+      if (state === 'menu') { if (savedRound()) resumeRound(); else startGame(); }
+      else if (state === 'over') startGame();
       break;
     default: return;
   }
