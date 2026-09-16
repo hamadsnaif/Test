@@ -216,8 +216,12 @@ emit(os.path.join(REPO, 'manifest.webmanifest'), json.dumps({
 
 CACHED = ['./', './index.html', './games.json', './manifest.webmanifest',
           './apple-touch-icon.png', './icon-120.png', './icon-152.png',
-          './icon-167.png', './icon-180.png', './icon-192.png', './icon-512.png',
-          './icon-maskable-512.png']
+          './icon-167.png', './icon-180.png', './icon-192.png']
+# The two 512s are deliberately not in that list. They are read once, by the
+# operating system, at the moment someone installs the app — which can only
+# happen online — and after that the icon lives on the home screen, not in a
+# cache. Keeping them would put 140KB on every visitor's first load for a file
+# they never fetch twice.
 CACHED += ['./' + e['file'] for e in ENTRIES if have(os.path.join(REPO, e['file']))]
 CACHED = sorted(set(CACHED))
 

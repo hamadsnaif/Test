@@ -5,9 +5,9 @@
 // deliberately does not change when a game or games.json changes, because those
 // are read from the network first and need no new worker to arrive. Editing a
 // game therefore costs nobody a re-download of the other 400KB.
-const BUILD = 'f6468f65c0f9';
+const BUILD = '3139b3428f25';
 const CACHE = 'hamads-games';
-const ASSETS = ["./", "./apple-touch-icon.png", "./bounce.html", "./games.json", "./icon-120.png", "./icon-152.png", "./icon-167.png", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./index.html", "./manifest.webmanifest", "./snake.html", "./tetris.html"];
+const ASSETS = ["./", "./apple-touch-icon.png", "./bounce.html", "./games.json", "./icon-120.png", "./icon-152.png", "./icon-167.png", "./icon-180.png", "./icon-192.png", "./index.html", "./manifest.webmanifest", "./snake.html", "./tetris.html"];
 const NET_TIMEOUT = 4000;
 const REGISTRY_TIMEOUT = 10000;   // games.json is a kilobyte; give it real room
 

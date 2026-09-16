@@ -203,6 +203,22 @@ const DRAW = function (ctx, S, scale) {
       c.width = c.height = j.size;
       const ctx = c.getContext('2d');
       draw(ctx, j.size, j.scale);
+      /* Smooth gradients are what an icon is made of and what a PNG is worst
+         at: every pixel of the shadow and the ball is its own colour, and the
+         512 came out at 217 KB — bigger than a whole game page, and every
+         phone downloads it. Snapping each channel to 32 levels gives the
+         compressor long runs to work with and takes that to a tenth, with no
+         banding the eye can find at icon size. */
+      const img = ctx.getImageData(0, 0, j.size, j.size);
+      const d = img.data;
+      // Round to the nearest of 33 levels. The masking must happen on a value
+      // that cannot carry past 255: (255 + 4) & 0xF8 is 0, not 255, and that
+      // turned the white glint on the ball into a cyan dot.
+      const q = v => { const t = ((v + 4) >> 3) << 3; return t > 255 ? 255 : t; };
+      for (let i = 0; i < d.length; i += 4) {
+        d[i] = q(d[i]); d[i + 1] = q(d[i + 1]); d[i + 2] = q(d[i + 2]);
+      }
+      ctx.putImageData(img, 0, 0);
       res[j.name] = c.toDataURL('image/png');
     }
     return res;
