@@ -105,33 +105,57 @@ const DRAW = function (ctx, S, scale) {
   // the centre of a slice, in screen coordinates
   const at = off => [cxs + off * D, cys + off * D];
 
-  // 1. Snake — the upper left corner, crawling up the diagonal
+  // 1. Snake — the upper corner. A snake turns square corners, so this one
+  // climbs and then turns right towards the pellet waiting ahead of its head.
   slice(-L, -mid - gap / 2, () => {
     ctx.fillStyle = '#9bbc0f'; ctx.fillRect(sx, sy, sw, sh);
-    const [mx, my] = at(-L * 0.36), seg = L * 0.088, step = seg * 1.14;
-    // the four segments are centred on the slice, not hung off one end of it
-    const x0 = mx - (3 * step + seg) / 2, y0 = my + (3 * step - seg) / 2;
-    for (let i = 0; i < 4; i++) {
-      const bx0 = x0 + i * step, by0 = y0 - i * step;
-      ctx.fillStyle = '#0f380f'; ctx.fillRect(bx0, by0, seg, seg);
-      if (i < 3) { ctx.fillStyle = '#306230'; ctx.fillRect(bx0 + seg * 0.1, by0 + seg * 0.1, seg * 0.62, seg * 0.62); }
-    }
-    ctx.fillStyle = '#0f380f';
-    ctx.fillRect(x0 + 4.05 * step, y0 - 4.05 * step + seg * 0.2, seg * 0.55, seg * 0.55);   // the pellet ahead
+    const [mx, my] = at(-L * 0.35), c = L * 0.072, st = c * 1.14;
+    // the body: three cells up, then two to the right; the head is the last
+    const cells = [[0, 2], [0, 1], [0, 0], [1, 0], [2, 0]];
+    const x0 = mx - st * 1.5, y0 = my - st * 0.6;
+    cells.forEach(([ci, cj], i) => {
+      const bx0 = x0 + ci * st, by0 = y0 + cj * st;
+      ctx.fillStyle = '#0f380f'; ctx.fillRect(bx0, by0, c, c);
+      if (i < cells.length - 1) { ctx.fillStyle = '#306230'; ctx.fillRect(bx0 + c * 0.1, by0 + c * 0.1, c * 0.62, c * 0.62); }
+      else { ctx.fillStyle = '#9bbc0f'; ctx.fillRect(bx0 + c * 0.52, by0 + c * 0.2, c * 0.2, c * 0.2); }   // the eye
+    });
+    ctx.fillStyle = '#0f380f';                              // the pellet, just ahead
+    ctx.fillRect(x0 + 3.15 * st + c * 0.1, y0 + c * 0.24, c * 0.52, c * 0.52);
   });
 
-  // 2. Bounce — the middle slice, the widest, the hero
+  // 2. Bounce — the middle slice, and a piece of the real screen rather than a
+  // colour: brick floor, a ring standing on it, walls above, the ball in the
+  // air. The diagonal cuts across it the way a crop does.
   slice(-mid + gap / 2, mid - gap / 2, () => {
     const sky = ctx.createLinearGradient(0, sy, 0, sy + sh);
     sky.addColorStop(0, '#c4ebf7'); sky.addColorStop(1, '#9fd5ea');
     ctx.fillStyle = sky; ctx.fillRect(sx, sy, sw, sh);
-    const br = L * 0.148;
-    ctx.fillStyle = '#8f0d0a'; ctx.beginPath(); ctx.arc(cxs, cys, br, 0, Math.PI * 2); ctx.fill();
-    const ball = ctx.createRadialGradient(cxs - br * 0.35, cys - br * 0.4, br * 0.1, cxs, cys, br);
+
+    const brick = (bx0, by0, bw, bhh) => {
+      ctx.fillStyle = '#c8722a'; ctx.fillRect(bx0, by0, bw, bhh);
+      ctx.fillStyle = '#e59a4d';
+      ctx.fillRect(bx0 + bw * 0.04, by0 + bhh * 0.14, bw * 0.92, bhh * 0.3);
+      ctx.fillRect(bx0 + bw * 0.04, by0 + bhh * 0.6, bw * 0.92, bhh * 0.3);
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(bx0, by0, bw, Math.max(1, S * 0.003));
+    };
+    // the floor, running the width of the screen; the slice shows the stretch
+    // of it the ball is over
+    const fy = cys + L * 0.175, fh = L * 0.085, bw = L * 0.16;
+    for (let x2 = sx - bw; x2 < sx + sw + bw; x2 += bw) brick(x2, fy, bw - L * 0.008, fh);
+    // a run of wall above and to the right, as in the levels
+    for (let i = 0; i < 3; i++) brick(cxs + L * 0.09 + i * bw, cys - L * 0.30 - i * L * 0.0, bw - L * 0.008, fh);
+    // the ring the ball collects
+    const ry = fy - L * 0.145, rx = cxs - L * 0.275;
+    ctx.fillStyle = '#e8b53a'; ctx.fillRect(rx, ry, L * 0.038, L * 0.145);
+    ctx.fillStyle = '#fff2b0'; ctx.fillRect(rx + L * 0.012, ry + L * 0.018, L * 0.014, L * 0.11);
+    // the ball, in the air over the floor
+    const br = L * 0.135, bcx = cxs + L * 0.02, bcy = cys - L * 0.015;
+    ctx.fillStyle = '#8f0d0a'; ctx.beginPath(); ctx.arc(bcx, bcy, br, 0, Math.PI * 2); ctx.fill();
+    const ball = ctx.createRadialGradient(bcx - br * 0.35, bcy - br * 0.4, br * 0.1, bcx, bcy, br);
     ball.addColorStop(0, '#ff5a52'); ball.addColorStop(0.55, '#e8231f'); ball.addColorStop(1, '#b8130f');
-    ctx.fillStyle = ball; ctx.beginPath(); ctx.arc(cxs, cys, br * 0.86, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = ball; ctx.beginPath(); ctx.arc(bcx, bcy, br * 0.86, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.85)';
-    ctx.beginPath(); ctx.ellipse(cxs - br * 0.33, cys - br * 0.36, br * 0.2, br * 0.14, -0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bcx - br * 0.33, bcy - br * 0.36, br * 0.2, br * 0.14, -0.5, 0, Math.PI * 2); ctx.fill();
   });
 
   // 3. Tetris — the lower right corner, one piece on lit glass
