@@ -201,6 +201,135 @@
   @media (prefers-reduced-motion: reduce) {
     .tile:active { transform: none; }
   }
+
+  /* ---------- install helper ----------
+     Most people who are sent a link never find "Add to Home Screen" on their
+     own, and on iOS the browser is not allowed to offer it. So the shelf asks
+     once, in one line, and hands over the steps for the phone in the hand.
+     It exists only for a visitor who has not installed it: the moment the page
+     runs as an app the row is never rendered. */
+  #install { width: 100%; max-width: 520px; display: flex; gap: 8px; }
+  #install[hidden] { display: none; }
+  #installBtn {
+    flex: 1 1 auto;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    min-height: 46px; padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(229,154,77,.45);
+    background: linear-gradient(180deg, rgba(229,154,77,.16), rgba(229,154,77,.08));
+    color: var(--ink); font: inherit; font-size: 14.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  #installBtn:active { background: rgba(229,154,77,.22); }
+  #installBtn:focus-visible, #installX:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #installBtn svg { flex: none; width: 18px; height: 18px; fill: var(--accent); }
+  #installX {
+    flex: none; width: 46px; min-height: 46px;
+    border-radius: 12px; border: 1px solid var(--edge);
+    background: var(--surface); color: var(--dim);
+    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+  }
+  #installX:active { background: var(--surface-hi); }
+  #howLink {
+    background: none; border: 0; padding: 0; margin: 0;
+    color: var(--dim); font: inherit; font-size: inherit;
+    text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  }
+  #howLink:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- the steps sheet ---------- */
+  #guide {
+    position: fixed; inset: 0; z-index: 60;
+    display: flex; align-items: flex-end; justify-content: center;
+    background: rgba(6,8,11,.62);
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  #guide[hidden] { display: none !important; }
+  #sheet {
+    width: 100%; max-width: 520px;
+    max-height: calc(100% - 24px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 16px;
+    padding: 16px 16px 18px;
+  }
+  @media (min-height: 620px) { #guide { align-items: center; } }
+  #guideHead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  #guideTitle { margin: 0; font-size: 17px; font-weight: 600; flex: 1 1 auto; }
+  #guideX {
+    flex: none; width: 34px; height: 34px;
+    border-radius: 9px; border: 1px solid var(--edge);
+    background: var(--case); color: var(--dim);
+    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+  }
+  #guideX:active { background: var(--surface-hi); }
+  #guideX:focus-visible, .tab:focus-visible, #shareBtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1 1 0; min-height: 40px;
+    border-radius: 10px; border: 1px solid var(--edge);
+    background: var(--case); color: var(--dim);
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    direction: ltr;
+  }
+  .tab[aria-selected="true"] { background: var(--surface-hi); color: var(--ink); border-color: rgba(229,154,77,.5); }
+  #inapp {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(229,154,77,.4);
+    background: rgba(229,154,77,.1);
+    font-size: 13px; line-height: 1.7; color: var(--ink);
+  }
+  #inapp[hidden] { display: none; }
+  #steps { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  #steps li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 9px 0;
+    font-size: 14px; line-height: 1.75;
+    border-bottom: 1px solid var(--edge);
+  }
+  /* نصّ الخطوة في خلية واحدة: لولاه لصار كل <b> و<span> خليّةً مستقلّة في
+     الشبكة فتتراصّ الكلمات سطراً تحت سطر */
+  #steps .t { grid-column: 2; min-width: 0; }
+  #steps li:last-child { border-bottom: 0; }
+  #steps li::before {
+    content: counter(step);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--case); border: 1px solid var(--edge);
+    color: var(--accent);
+    font-size: 12.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    direction: ltr;
+  }
+  /* الرموز داخل الخطوة تُرسم هنا لا تُكتب: أيقونة المشاركة في iOS وزرّ القائمة
+     في أندرويد، كي يبحث القارئ عن الشكل نفسه في شريط متصفّحه */
+  #steps .ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; vertical-align: -6px; margin: 0 2px;
+    border-radius: 5px; background: var(--case); border: 1px solid var(--edge);
+  }
+  #steps .ico svg { width: 13px; height: 13px; fill: var(--ink); }
+  #steps b { font-weight: 600; color: var(--ink); }
+  /* اسم الخيار بالإنجليزية كما يظهر في المتصفّح: يبقى قطعة واحدة لا ينكسر
+     نصفها إلى السطر التالي */
+  #steps .en { direction: ltr; unicode-bidi: isolate; white-space: nowrap; color: var(--dim); font-size: 12.5px; }
+  #guideNote { margin: 12px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--dim); }
+  #shareBtn {
+    width: 100%; min-height: 44px; margin-top: 12px;
+    border-radius: 11px; border: 1px solid var(--edge);
+    background: var(--case); color: var(--ink);
+    font: inherit; font-size: 14px; cursor: pointer;
+  }
+  #shareBtn:active { background: var(--surface-hi); }
 </style>
 </head>
 <body>
@@ -211,11 +340,37 @@
     <p id="tagline">ألعاب من زمن هواتف نوكيا، أُعيد بناؤها للمتصفح. اختر لعبة لتبدأ.</p>
   </header>
 
+  <div id="install" hidden>
+    <button id="installBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v8.59l2.3-2.3a1 1 0 1 1 1.4 1.42l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.42l2.3 2.3V4a1 1 0 0 1 1-1Zm-7 12a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z"/></svg>
+      <span id="installLabel">ثبّتها على شاشتك الرئيسية</span>
+    </button>
+    <button id="installX" type="button" aria-label="إخفاء هذا الاقتراح">✕</button>
+  </div>
+
   <div id="list"></div>
 
   <footer>
-    كل لعبة تعمل مستقلة بأصواتها وحفظ نتائجها. أضف الصفحة إلى الشاشة الرئيسية من Safari لتعمل بملء الشاشة وبدون إنترنت.
+    كل لعبة تعمل مستقلة بأصواتها وحفظ نتائجها، وبلا إنترنت بعد أول فتح.
+    <button id="howLink" type="button">كيف أضيفها إلى الشاشة الرئيسية؟</button>
   </footer>
+</div>
+
+<div id="guide" hidden role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+  <div id="sheet">
+    <div id="guideHead">
+      <h2 id="guideTitle">أضِفها إلى الشاشة الرئيسية</h2>
+      <button id="guideX" type="button" aria-label="إغلاق">✕</button>
+    </div>
+    <div id="tabs" role="tablist" aria-label="نوع الجهاز">
+      <button class="tab" type="button" role="tab" data-os="ios" aria-selected="false">iPhone</button>
+      <button class="tab" type="button" role="tab" data-os="android" aria-selected="false">Android</button>
+    </div>
+    <p id="inapp" hidden></p>
+    <ol id="steps"></ol>
+    <p id="guideNote">بعدها تفتح كتطبيق بملء الشاشة، وتعمل بلا إنترنت، وتصلها التحديثات وحدها.</p>
+    <button id="shareBtn" type="button" hidden></button>
+  </div>
 </div>
 
 <div id="player" hidden>
@@ -641,6 +796,173 @@
     window.addEventListener('pageshow', resumed);          // includes bfcache restores
     window.addEventListener('online', resumed);
   }
+
+
+  // ------------------------------------------------------------------
+  // Adding it to the home screen
+  //
+  // The people this link gets sent to are the ones who benefit most from the
+  // app being installed - fullscreen, offline, an icon among their own apps -
+  // and the ones least likely to find the option. Android can offer a real
+  // install prompt, which we forward; iOS forbids it entirely, so all we can
+  // do there is show the exact taps. Whoever already installed it never sees
+  // any of this: a page running as an app renders the row not at all.
+  // ------------------------------------------------------------------
+  const installRow = document.getElementById('install');
+  const installBtn = document.getElementById('installBtn');
+  const installLabel = document.getElementById('installLabel');
+  const installX = document.getElementById('installX');
+  const howLink = document.getElementById('howLink');
+  const guide = document.getElementById('guide');
+  const guideX = document.getElementById('guideX');
+  const stepsEl = document.getElementById('steps');
+  const inappEl = document.getElementById('inapp');
+  const shareBtn = document.getElementById('shareBtn');
+  const tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  const DISMISS = 'hamads-games-install-hidden';
+
+  const UA = navigator.userAgent || '';
+  // iPadOS reports itself as a Mac; the touch points give it away.
+  const isIOS = /iPad|iPhone|iPod/.test(UA) ||
+                (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/.test(UA);
+  // Facebook's and Instagram's in-app browsers have no "add to home screen" at
+  // all, so the first step there is to leave them. WebViews that are not one of
+  // these are left alone rather than guessed at.
+  const inApp = /FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|Snapchat/.test(UA);
+
+  function installed() {
+    try {
+      if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) return true;
+      if (window.matchMedia && matchMedia('(display-mode: fullscreen)').matches) return true;
+    } catch (e) { /* no matchMedia */ }
+    return navigator.standalone === true;
+  }
+
+  let promptEvent = null;               // Android's real install prompt, if offered
+
+  const icon = {
+    // iOS share: a box with an arrow leaving the top
+    share: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a1 1 0 0 1 .7.3l3 3a1 1 0 1 1-1.4 1.4L13 5.9V15a1 1 0 1 1-2 0V5.9L9.7 7.2a1 1 0 0 1-1.4-1.4l3-3a1 1 0 0 1 .7-.3ZM6 10a1 1 0 0 1 1 1v8h10v-8a1 1 0 1 1 2 0v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z"/></svg>',
+    // Android overflow: three dots
+    dots: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z"/></svg>'
+  };
+  function ico(name) { return '<span class="ico">' + icon[name] + '</span>'; }
+
+  const STEPS = {
+    ios: [
+      'افتح الرابط في <b>Safari</b>.',
+      'اضغط زرّ المشاركة ' + ico('share') + ' في شريط Safari (أسفل الشاشة عادةً).',
+      'مرّر لأسفل واختر <b>إضافة إلى الشاشة الرئيسية</b> <span class="en">Add to Home Screen</span>.',
+      'اضغط <b>إضافة</b> — تظهر الأيقونة مع بقية تطبيقاتك.'
+    ],
+    android: [
+      'افتح الرابط في <b>Chrome</b>.',
+      'اضغط زرّ القائمة ' + ico('dots') + ' أعلى الشاشة.',
+      'اختر <b>تثبيت التطبيق</b> <span class="en">Install app</span> أو <b>إضافة إلى الشاشة الرئيسية</b>.',
+      'أكّد بالضغط على <b>تثبيت</b>.'
+    ]
+  };
+
+  function showSteps(os) {
+    tabs.forEach(t => t.setAttribute('aria-selected', String(t.dataset.os === os)));
+    stepsEl.innerHTML = '';
+    STEPS[os].forEach(html => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="t">' + html + '</span>';
+      stepsEl.appendChild(li);
+    });
+    const warn = inApp && os === 'ios';
+    inappEl.hidden = !warn;
+    if (warn) {
+      inappEl.innerHTML = 'يبدو أنك تفتح الرابط داخل تطبيق آخر، ولا يمكن التثبيت من هنا: ' +
+        'اضغط زرّ الخيارات ' + ico('dots') + ' ثم <b>فتح في Safari</b>، وتابع الخطوات.';
+    }
+  }
+
+  let lastFocus = null;
+  function openGuide() {
+    showSteps(isAndroid && !isIOS ? 'android' : 'ios');
+    lastFocus = document.activeElement;
+    guide.hidden = false;
+    shelf.inert = true;
+    player.inert = true;
+    guideX.focus();
+  }
+  function closeGuide() {
+    guide.hidden = true;
+    // never hand the shelf back mid game: the player owns inert then
+    if (player.hidden) shelf.inert = false;
+    player.inert = false;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => showSteps(t.dataset.os)));
+  guideX.addEventListener('click', closeGuide);
+  guide.addEventListener('click', e => { if (e.target === guide) closeGuide(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !guide.hidden) { e.preventDefault(); closeGuide(); }
+  });
+  howLink.addEventListener('click', openGuide);
+
+  installBtn.addEventListener('click', () => {
+    if (!promptEvent) { openGuide(); return; }
+    // One tap on Android: the browser's own dialog, then the row is done for good.
+    const p = promptEvent;
+    promptEvent = null;
+    p.prompt();
+    p.userChoice.then(r => {
+      if (r && r.outcome === 'accepted') installRow.hidden = true;
+      else { promptEvent = p; }        // changed their mind; let them try again
+    }).catch(() => { promptEvent = p; });
+  });
+
+  installX.addEventListener('click', () => {
+    installRow.hidden = true;
+    try { localStorage.setItem(DISMISS, '1'); } catch (e) { /* storage off */ }
+  });
+
+  // Sharing the link is the other half of the same job: this is the page the
+  // owner sends, so it may as well hand him the link.
+  if (navigator.share || (navigator.clipboard && navigator.clipboard.writeText)) {
+    shareBtn.hidden = false;
+    shareBtn.textContent = navigator.share ? 'مشاركة الرابط' : 'نسخ الرابط';
+    shareBtn.addEventListener('click', () => {
+      const url = location.href.split('#')[0];
+      if (navigator.share) {
+        navigator.share({ title: "Hamad's Games", url: url }).catch(() => {});
+        return;
+      }
+      navigator.clipboard.writeText(url).then(() => {
+        shareBtn.textContent = 'نُسخ الرابط ✓';
+        setTimeout(() => { shareBtn.textContent = 'نسخ الرابط'; }, 1800);
+      }).catch(() => {});
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();                       // keep it for our own button
+    promptEvent = e;
+    installLabel.textContent = 'ثبّتها على شاشتك الرئيسية';
+    maybeOfferInstall();
+  });
+  window.addEventListener('appinstalled', () => {
+    promptEvent = null;
+    installRow.hidden = true;
+  });
+
+  function maybeOfferInstall() {
+    if (installed()) { installRow.hidden = true; return; }
+    let hidden = false;
+    try { hidden = localStorage.getItem(DISMISS) === '1'; } catch (e) { /* storage off */ }
+    if (hidden) return;
+    installLabel.textContent = promptEvent || isAndroid || isIOS
+      ? 'ثبّتها على شاشتك الرئيسية'
+      : 'كيف أضيفها إلى الشاشة الرئيسية؟';
+    installRow.hidden = false;
+  }
+  maybeOfferInstall();
 
   refreshRegistry();
 })();
