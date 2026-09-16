@@ -5,107 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>بينبول الفضاء — Space Cadet</title>
 <meta name="apple-mobile-web-app-title" content="Pinball">
-<meta name="theme-color" content="#140a24">
+<meta name="theme-color" content="#0b0616">
 <style>
 /* ==========================================================================
    بينبول الفضاء — استثناء مقصود من عقد المظهر في README.
-   الألعاب الثلاث الأخرى أجهزة نوكيا لها هيكل (.unit/.cap/.deck/.pads) يحيط
-   بشاشة صغيرة. طاولة البينبول عكس ذلك تماماً: نسبتها 6:10 وتحتاج كل بكسل
-   رأسي، والمضربان يُلعبان بنصفَي الشاشة لا بأزرار. فلا هيكل هنا، ولا لوحة
-   مفاتيح؛ الطاولة هي الجهاز. ما يبقى من العقد كما هو: بلا إنترنت، ولا هدف
+   الألعاب الثلاث الأخرى أجهزة نوكيا لها هيكل يحيط بشاشة صغيرة. طاولة البينبول
+   عكس ذلك: نسبتها تحتاج كل بكسل رأسي، ومضرباها يُلعبان بنصفَي الشاشة لا
+   بأزرار. فالطاولة هي الجهاز. وما يبقى من العقد كما هو: بلا إنترنت، ولا هدف
    لمس تحت ٤٤ بكسلاً، وخلفية ليست لوناً مسطّحاً، وحركة تحترم تفضيل النظام،
    وحفظ عند مغادرة الصفحة لا عند ضغط زرّ.
    ========================================================================== */
-:root {
-  --void:#0b0616; --void-2:#1b0d33; --neon:#c46bff; --neon-2:#5de1ff;
-  --amber:#ffb347; --ink:#f4ecff;
-  --font-ui:"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif;
-}
+:root { --ink:#f4ecff; --neon:#c46bff; --neon-2:#5de1ff; --amber:#ffc24d;
+  --font-ui:"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif; }
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; overflow:hidden; }
 body {
   font-family:var(--font-ui); color:var(--ink);
   -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
-  touch-action:none; overscroll-behavior:none;
-  -webkit-text-size-adjust:100%;
-  /* سديم أرجواني: طبقات تدرّج لا لون مسطّح، وهي ما يظهر خلف الطاولة */
+  touch-action:none; overscroll-behavior:none; -webkit-text-size-adjust:100%;
   background:
-    radial-gradient(120% 80% at 18% 4%, rgba(196,107,255,.30), rgba(196,107,255,0) 55%),
-    radial-gradient(90% 70% at 88% 22%, rgba(93,225,255,.16), rgba(93,225,255,0) 60%),
-    radial-gradient(140% 100% at 50% 108%, #2a1148 0%, var(--void-2) 42%, var(--void) 100%);
+    radial-gradient(120% 80% at 18% 4%, rgba(150,80,220,.26), rgba(150,80,220,0) 55%),
+    radial-gradient(90% 70% at 88% 24%, rgba(60,170,230,.14), rgba(60,170,230,0) 60%),
+    radial-gradient(140% 100% at 50% 108%, #23103f 0%, #140a26 42%, #080413 100%);
 }
-
-/* ---- لوحة الرسم: ملء المنفذ كاملاً، والمقياس devicePixelRatio في الكود ---- */
 #table { position:fixed; inset:0; width:100%; height:100%; display:block; z-index:1; }
 
-/* ---- شريط الأزرار: عمود صغير على الحافة اليسرى العليا، بعيداً عن مسار
-   الإبهامين (أسفل الشاشة) وعن مسار الكرة. الزرّ نفسه ٤٤×٤٤ رقعة لمس
-   شفافة، والشكل المرسوم بداخله ٣٠ فقط عبر ::before — فالهدف كبير واليد
-   ترى زرّاً صغيراً. ::after يوسّع الرقعة أربعة بكسلات أخرى نحو الفراغ. ---- */
-#rail {
-  position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
-  top:calc(env(safe-area-inset-top, 0px) + 2px);
-  left:calc(env(safe-area-inset-left, 0px) + 2px);
-}
-#rail button {
-  position:relative; width:44px; height:44px; flex:none; padding:0;
-  border:0; background:transparent; color:var(--ink);
-  display:flex; align-items:center; justify-content:center;
-  font:600 13px/1 var(--font-ui); cursor:pointer;
-}
-#rail button::before {
-  content:""; position:absolute; top:7px; left:7px; width:30px; height:30px;
+/* شريط الأزرار: عمود صغير أعلى اليسار، خارج مسار الإبهامين ومسار الكرة.
+   الزرّ ٤٤×٤٤ رقعة لمس شفافة والشكل المرسوم ٣٠ عبر ::before، و::after يوسّع
+   الرقعة نحو حافة الشاشة لا نحو الزرّ المجاور. */
+#rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
+  top:calc(env(safe-area-inset-top, 0px) + 2px); left:calc(env(safe-area-inset-left, 0px) + 2px); }
+#rail button { position:relative; width:44px; height:44px; flex:none; padding:0; border:0;
+  background:transparent; color:var(--ink); display:flex; align-items:center; justify-content:center;
+  font:600 13px/1 var(--font-ui); cursor:pointer; }
+#rail button::before { content:""; position:absolute; top:7px; left:7px; width:30px; height:30px;
   border-radius:50%; z-index:-1;
-  background:
-    radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
-    linear-gradient(165deg, rgba(90,50,140,.88), rgba(28,14,52,.9));
-  box-shadow:inset 0 0 0 1px rgba(196,107,255,.45), 0 2px 6px rgba(0,0,0,.5);
-}
-/* رقعة اللمس تمتدّ خارج الشكل نحو الحافة، لا نحو الزرّ المجاور */
+  background:radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
+             linear-gradient(165deg, rgba(90,50,140,.9), rgba(24,12,46,.92));
+  box-shadow:inset 0 0 0 1px rgba(196,107,255,.45), 0 2px 6px rgba(0,0,0,.55); }
 #rail button::after { content:""; position:absolute; top:0; bottom:0; left:-6px; right:-2px; }
 #rail button .g { position:relative; z-index:1; font-size:15px; line-height:1; }
 #rail button.off .g { opacity:.42; }
 #rail button:disabled { opacity:.35; pointer-events:none; }
 
-/* ---- الشاشات: بداية، إيقاف، نهاية ---- */
-.sheet {
-  position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:14px; text-align:center;
+.sheet { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:13px; text-align:center;
   padding:calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
-  background:
-    radial-gradient(90% 60% at 50% 22%, rgba(196,107,255,.22), rgba(196,107,255,0) 62%),
-    linear-gradient(180deg, rgba(8,4,18,.90), rgba(8,4,18,.965));
-  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
-}
+  background:radial-gradient(90% 60% at 50% 22%, rgba(196,107,255,.22), rgba(196,107,255,0) 62%),
+             linear-gradient(180deg, rgba(6,3,14,.90), rgba(6,3,14,.965));
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
 .sheet[hidden] { display:none; }
-.logo {
-  font:800 clamp(26px, 8vw, 46px)/1.05 var(--font-ui); letter-spacing:.5px;
+.logo { font:800 clamp(26px, 8vw, 46px)/1.05 var(--font-ui); letter-spacing:.5px;
   background:linear-gradient(180deg, #fff 0%, var(--neon) 58%, #6a2ea8 100%);
   -webkit-background-clip:text; background-clip:text; color:transparent;
-  text-shadow:0 0 22px rgba(196,107,255,.35);
-}
+  text-shadow:0 0 22px rgba(196,107,255,.35); }
 .sub { font:600 13px/1.7 var(--font-ui); color:#b9a6d8; max-width:30ch; }
 .big { font:800 clamp(22px,7vw,34px)/1.2 var(--font-ui); color:var(--amber); }
 .rank { font:700 14px/1.5 var(--font-ui); color:var(--neon-2); }
-.go {
-  appearance:none; -webkit-appearance:none; min-width:168px; min-height:48px; padding:0 22px;
+.go { appearance:none; -webkit-appearance:none; min-width:168px; min-height:48px; padding:0 22px;
   border-radius:26px; border:1.5px solid rgba(196,107,255,.6); cursor:pointer;
   background:linear-gradient(180deg, rgba(150,80,220,.5), rgba(60,24,110,.6));
   color:var(--ink); font:800 16px/1 var(--font-ui);
-  box-shadow:0 0 18px rgba(196,107,255,.22), inset 0 1px 0 rgba(255,255,255,.22);
-}
-.hint {
-  font:600 12px/1.8 var(--font-ui); color:#9d8cbb; max-width:34ch;
-  border-top:1px solid rgba(196,107,255,.2); padding-top:12px;
-}
+  box-shadow:0 0 18px rgba(196,107,255,.22), inset 0 1px 0 rgba(255,255,255,.22); }
+.hint { font:600 12px/1.8 var(--font-ui); color:#9d8cbb; max-width:34ch;
+  border-top:1px solid rgba(196,107,255,.2); padding-top:12px; }
 .hint b { color:var(--neon-2); font-weight:800; }
-
-/* ---- الحركة: ما يتحرّك زخرفياً يتوقّف متى طلب النظام تقليل الحركة ---- */
-@keyframes glow { 0%,100% { opacity:.55; } 50% { opacity:1; } }
-.pulse { animation:glow 1.9s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation:none !important; transition:none !important; }
-}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 </style>
 </head>
 <body data-layout="fullscreen">
@@ -146,165 +111,152 @@ body {
 <script>
 "use strict";
 /* ==========================================================================
-   ١ — ثوابت الطاولة وهندستها
+   ١ — الطاولة: هندسة محسوبة لا مقدَّرة
    --------------------------------------------------------------------------
-   فضاء الطاولة ٦٠٠×١٠٠٠ وحدة، y إلى الأسفل. النسب مأخوذة من طاولة حقيقية:
-   عرض ملعب ٢٠.٢٥ بوصة وكرة ١.٠٦٢٥ ومضرب ٣ بوصات، أي نصف قطر ١٤ ومضرب ٩٠
-   على هذا المقياس. والجاذبية ميل ٦.٥ درجة: ‏9.81·sin(6.5°) ≈ ١٠٥٠ وحدة/ث².
+   الدرس الذي دفعتُ ثمنه: ممرّ رُسم بالعين ضاق إلى أقلّ من قطر الكرة فانحشرت
+   فيه ووقفت اللعبة. فكل ممرّ هنا يُشتقّ من قضيب واحد بإزاحة ثابتة، لا يُرسم
+   نقطةً نقطة: ممر الخروج ٤٦ وممر العودة ٥٠، وقطر الكرة ٢٨ — فلا موضع في
+   الطاولة أضيق من الكرة، ولا يمكن أن يصير كذلك بتعديل لاحق.
+
+   والبنية بنية Space Cadet نفسها ومسار كرتها: ممر القاذف على اليمين يصعد،
+   يتحوّل بلا فاصل إلى مِزلق يطوف سقف الطاولة (deployment chute)، ويُسقط
+   الكرة أعلى اليسار في ممرّات الإطلاق الثلاثة فوق المنافخ. القضبان السفلية
+   متماثلة تماماً حول المحور ٢٩٤: ‏٢٩٤−٧٨ = ٥١٠−٢٩٤ = ٢١٦.
    ========================================================================== */
 var TW = 600, TH = 1160;
-var BR = 14;                       // نصف قطر الكرة
+var BR = 14;                       // نصف قطر الكرة (القطر ٢٨)
 var BHALF = BR * 0.5;              // خطوة التقسيم الفرعي (pb::BallHalfRadius)
 var BMAX = BR * 200;               // السقف الأصلي للسرعة (pb::BallMaxSpeed)
-var GRAV = 1050;
-var EL = 0.60, SM = 0.95;          // الافتراضيان في loader.cpp
+var GRAV = 1020;
+var EL = 0.62, SM = 0.96;          // الافتراضيان في loader.cpp
+var ARCW = { e: 0.9, s: 0.985 };   // قطع الأقواس: مرونة أعلى، وإلا بدّدت ملامساتها المتكرّرة طاقة المدار
 
-var CX = 300, CY = 300;            // مركز القبّة
-var R_OUT = 276, R_IN = 204;       // القوسان الخارجي والداخلي للمدار
-var LANE_L = 524, LANE_R = 576;    // ممر القاذف
-var FLIP_LEN = 90, FLIP_R = 9;     // طول المضرب ونصف قطر حافّته
-var FLIP_LY = 900, FLIP_LX = 196, FLIP_RX = 404;
-var REST_A = 0.5236, UP_A = -0.5585;   // ‏٣٠ درجة سكوناً، ‏‎-٣٢ رفعاً
-var FLIP_W = 13.5;                 // سرعة زاوية (راديان/ث)
-
-/* شاشة الجوال نسبتها نحو 0.46 والطاولة المرسومة على شبكة ٦٠٠×١٠٠٠ نسبتها 0.6،
-   فلو احترمنا الشبكة كما هي لبقي رُبع الشاشة فارغاً. لذلك تُمطّ الطاولة رأسياً
-   تحت القبّة وحدها: القبّة قوس دائري يجب أن يبقى دائرياً، وما دونها خطوط
-   ونقاط يُمطّ بلا تشوّه. النتيجة ٦٠٠×١١٦٠ أي 0.517 — تملأ الشاشة.
-   الهندسة تُكتب على الشبكة الأصلية ثم تُمرَّر كلها على MY مرّة واحدة، فلا رقم
-   يُنسى ولا يُطبَّق المطّ مرّتين. */
-var KY = 860 / 700;
-function MY(y) { return y <= 300 ? y : 300 + (y - 300) * KY; }
+var CX = 294, CY = 300, R_OUT = 272, R_IN = 216;   // ‏٢٧٢−٢١٦ = ٥٦ عرض المِزلق
+var LANE_IN = 510, LANE_OUT = 566;                 // ممر القاذف ٥٦
+var W_OUT = 46, W_IN = 50;                         // ممرّا الخروج والعودة
+var EDGE_L = 78, EDGE_R = LANE_IN;                 // حافّتا الملعب أسفل الطاولة
+var DIV_L = EDGE_L + W_OUT, DIV_R = EDGE_R - W_OUT;            // ‏١٢٤ و٤٦٤
+var SB_L = DIV_L + W_IN, SB_R = DIV_R - W_IN;                  // ظهرا المصدّين ‏١٧٤ و٤١٤
+var PIV_L = 190, PIV_R = 398, PIV_Y = 1010;
+/* طول المضرب ليس ذوقاً: الفجوة بين طرفَي المضربين تُنقَص منها نصف قطر كلٍّ
+   منهما، فالممرّ الفعلي إلى المصرف = الفجوة − ٢×FLIP_R. بطول ٩٦ كان ٢٣.٨
+   وقطر الكرة ٢٨، فكانت تنحشر بين الطرفين ولا تنزل أبداً. بطول ٨٦ يصير ٤١،
+   أي نحو مرّة ونصف قطر الكرة — وهي نسبة الطاولات الحقيقية. */
+var FLIP_LEN = 86, FLIP_R = 9;
+var REST_A = 0.5236, UP_A = -0.5585;               // ‏٣٠ درجة سكوناً، ‏‎-٣٢ رفعاً
+var FLIP_W = 14.5;                                 // سرعة زاوية (راديان/ث)
+var PLUNGE_REST = 1080, LANE_FLOOR = 1122;
 
 var D2R = Math.PI / 180;
 function pol(a, r, cx, cy) { return [(cx === undefined ? CX : cx) + r * Math.cos(a * D2R), (cy === undefined ? CY : cy) + r * Math.sin(a * D2R)]; }
-
-/* قوس يُقطّع إلى قطع مستقيمة: مسار تصادم واحد لكل شيء أرخص وأمتن من
-   حسابٍ خاصّ بالأقواس، ولا يُرى الفرق عند ٢.٥ درجة للقطعة. */
 function arc(cx, cy, r, a0, a1, step) {
   var pts = [], n = Math.max(2, Math.ceil(Math.abs(a1 - a0) / (step || 6))), i;
   for (i = 0; i <= n; i++) pts.push(pol(a0 + (a1 - a0) * i / n, r, cx, cy));
   return pts;
 }
+function mir(pts) { var o = [], i; for (i = 0; i < pts.length; i++) o.push([2 * CX - pts[i][0], pts[i][1]]); return o; }
 
-var ARCW = { e: 0.88, s: 0.985 };   // معاملات قطع الأقواس، انظر التعليق أعلاه
-var WALLS = [];          // {a,b,e,s,k}
-var DECOR = [];          // خطوط تُرسم ولا تصطدم
+var WALLS = [];
 function wall(pts, o) {
   o = o || {};
   for (var i = 0; i < pts.length - 1; i++)
-    WALLS.push({ a: pts[i], b: pts[i + 1], e: o.e === undefined ? EL : o.e, s: o.s === undefined ? SM : o.s, k: o.k || 'w' });
+    WALLS.push({ a: pts[i], b: pts[i + 1], e: o.e === undefined ? EL : o.e,
+                 s: o.s === undefined ? SM : o.s, k: o.k || 'w', r: o.r || 0 });
 }
 
-// ---- الحدود الخارجية ----
-wall(arc(CX, CY, R_OUT, 180, 360), ARCW);           // القبّة
-wall([[24, 300], [24, 660]]);                       // الجدار الأيسر
-wall([[LANE_R, 300], [LANE_R, 992]]);               // جدار ممر القاذف الخارجي
-wall([[LANE_L, 300], [LANE_L, 992]]);               // فاصل ممر القاذف
-wall([[LANE_L, 992], [LANE_R, 992]]);               // قاع الممر
-wall(arc(CX, CY, R_IN, 197, 335), ARCW);            // القوس الداخلي: يصنع المدار
+/* ---- المِزلق العلوي: قوسان متراكزان، والداخلي ينتهي عند ‎(510,300)‎ بالضبط
+   فيصير امتداداً لجدار ممر القاذف بلا فاصل ولا فتحة ولا حافّة يستقرّ عليها
+   شيء. الكرة المقذوفة تُحمل داخله حول السقف وتخرج أعلى اليسار. ---- */
+wall(arc(CX, CY, R_OUT, 180, 360), ARCW);
+wall(arc(CX, CY, R_IN, 185, 360), ARCW);
+wall([[LANE_IN, CY], [LANE_IN, LANE_FLOOR]]);       // جدار الممر الداخلي = حافّة الملعب اليمنى
+wall([[LANE_OUT, CY], [LANE_OUT, LANE_FLOOR]]);
+wall([[LANE_IN, LANE_FLOOR], [LANE_OUT, LANE_FLOOR]]);
 
-/* فم ممر القاذف مفتوح على سعته ولا بوّابة تسدّه. جرّبت بوّابة أحادية فكانت
-   هي نفسها الفخّ: سطح مائل ثابت تستقرّ عليه الكرة فلا تنزلق ولا ترتدّ، وتظلّ
-   الطاولة واقفة. والأصل لا يمنع رجوع الكرة إلى القاذف أصلاً — قذفة ضعيفة تعود
-   فتُركن وتُقذف من جديد، وهذا ما تفعله طاولة حقيقية. وبلا البوّابة لا جيب ولا
-   حافّة يستقرّ عليها شيء. */
+// ---- الحافّة اليسرى: من القبّة نزولاً، ثم تضيق إلى محور التماثل ----
+wall([[2 * CX - LANE_OUT, CY], [22, 680], [EDGE_L, 780], [EDGE_L, PIV_Y], [110, 1070], [136, TH]]);
+wall([[EDGE_R, PIV_Y], [478, 1070], [452, TH]]);
 
-// ---- أسفل اليسار: جدار خارجي، فاصل ممرّي الخروج والعودة ----
-wall([[24, 676], [50, 800], [110, 886], [160, 960], [186, 1000]]);
-wall([[58, 640], [96, 772], [146, 856], [FLIP_LX, FLIP_LY]]);
-// ---- أسفل اليمين ----
-wall([[LANE_L, 676], [510, 800], [478, 886], [438, 960], [414, 1000]]);
-wall([[488, 640], [482, 772], [446, 856], [FLIP_RX, FLIP_LY]]);
+// ---- القضبان السفلية: ممر خروج ثم فاصل ثم ممر عودة ثم ظهر المصدّ ----
+var DIVIDER_L = [[DIV_L, 760], [DIV_L, 940], [PIV_L, PIV_Y]];
+wall(DIVIDER_L); wall(mir(DIVIDER_L));
 
-/* ---- أعمدة مطّاطية: تكسر انزلاق الكرة على الجدار الأيسر بعد خروجها من
-   المدار وترميها داخل الملعب. بدونها تهبط الكرة ملتصقة بالحافة من القبّة إلى
-   المصرف بلا أن تمسّ شيئاً — وهو أسوأ ما يمكن أن يحدث في طاولة بينبول. ---- */
+/* ---- المصدّان: الوجه المائل يركل، والضلعان الآخران جدار. ---- */
+var SLING_L = { a: [SB_L, 838], b: [246, 912], back: [[SB_L, 838], [SB_L, 948], [246, 912]] };
+var SLING_R = { a: [SB_R, 838], b: [2 * CX - 246, 912], back: mir(SLING_L.back) };
+var SLINGS = [{ a: SLING_L.a, b: SLING_L.b, lit: 0 }, { a: SLING_R.a, b: SLING_R.b, lit: 0 }];
+wall(SLING_L.back, { k: 'sl' }); wall(SLING_R.back, { k: 'sl' });
+
+// ---- ممرّات الإطلاق الثلاثة تحت مخرج المِزلق ----
+wall([[100, 320], [100, 396]]); wall([[166, 320], [166, 396]]);
+// ---- موجّهات ممرّات العودة أعلى الطاولة ----
+wall([[262, 100], [262, 180]]); wall([[326, 100], [326, 180]]);
+
+/* ---- الأعمدة المطّاطية: تكسر انزلاق الكرة على الجدار وترميها داخل الملعب ---- */
 var POSTS = [
-  { x: 54, y: 612, r: 11 }, { x: 124, y: 700, r: 11 },
-  { x: 494, y: 612, r: 11 }, { x: 452, y: 700, r: 11 }
+  { x: DIV_L, y: 754, r: 9 }, { x: DIV_R, y: 754, r: 9 },
+  { x: SB_L, y: 834, r: 9 }, { x: SB_R, y: 834, r: 9 },
+  { x: 206, y: 300, r: 9 }, { x: 382, y: 300, r: 9 },
+  { x: 100, y: 396, r: 8 }, { x: 166, y: 396, r: 8 }
 ];
 
-/* ---- المصدّان (slingshots): الوجه المائل يركل، والضلعان الآخران جدار عادي.
-   مثلّث لكل جانب، وجهه يواجه مركز الطاولة. ---- */
-var SLINGS = [
-  { a: [178, 742], b: [244, 866], lit: 0 },
-  { a: [422, 742], b: [356, 866], lit: 0 }
-];
-wall([[178, 742], [178, 848], [244, 866]], { k: 'sl' });
-wall([[422, 742], [422, 848], [356, 866]], { k: 'sl' });
-
-// ---- منافخ: أربعة هجوم وثلاثة إطلاق ----
+// ---- المنافخ: أربعة هجوم في القلب، وثلاثة إطلاق تحت ممرّات الإطلاق ----
 var BUMPERS = [
-  { x: 356, y: 178, r: 26, g: 0, i: 0 }, { x: 310, y: 226, r: 26, g: 0, i: 1 },
-  { x: 402, y: 226, r: 26, g: 0, i: 2 }, { x: 356, y: 274, r: 26, g: 0, i: 3 },
-  { x: 116, y: 232, r: 23, g: 1, i: 0 }, { x: 180, y: 216, r: 23, g: 1, i: 1 },
-  { x: 142, y: 290, r: 23, g: 1, i: 2 }
+  { x: 294, y: 206, r: 27, g: 0, i: 0 }, { x: 232, y: 258, r: 27, g: 0, i: 1 },
+  { x: 356, y: 258, r: 27, g: 0, i: 2 }, { x: 294, y: 310, r: 27, g: 0, i: 3 },
+  { x: 170, y: 470, r: 25, g: 1, i: 0 }, { x: 234, y: 444, r: 25, g: 1, i: 1 },
+  { x: 234, y: 500, r: 25, g: 1, i: 2 }
 ];
 
-/* ---- الأهداف: ساقطة (drop) تختفي حين تُصاب وترجع مع البنك، ونقطية (spot)
-   لا تختفي. الساقطة جدار قصير يصطدم؛ النقطية حسّاس دائري. ---- */
+/* ---- الأهداف: ساقطة (drop) تختفي حين تُصاب وترجع مع بنكها، ونقطية (spot)
+   حسّاس لا يختفي. ---- */
 var TARGETS = [];
-function bank(kind, group, list, ang) {
+function bank(kind, group, list, ang, label) {
   for (var i = 0; i < list.length; i++)
-    TARGETS.push({ k: kind, g: group, i: i, x: list[i][0], y: list[i][1], a: ang, down: false, hw: kind === 'drop' ? 20 : 13 });
+    TARGETS.push({ k: kind, g: group, i: i, x: list[i][0], y: list[i][1], a: ang,
+                   down: false, flash: 0, hw: kind === 'drop' ? 20 : 12, lab: label });
 }
-bank('drop', 'mult',  [[330, 150], [372, 150], [414, 150]], 0);            // أهداف المضاعِف
-bank('drop', 'medal', [[146, 352], [188, 352], [230, 352]], 0);            // أهداف الأوسمة
-bank('drop', 'boost', [[470, 300], [470, 342], [470, 384]], 90);           // أهداف المُعزِّز
-bank('spot', 'mission', [[240, 430], [300, 412], [360, 430]], 0);          // أهداف المهمّة
-bank('spot', 'fuel',    [[176, 690], [300, 704], [424, 690]], 0);          // أهداف الوقود
-bank('spot', 'hazL',    [[64, 530], [64, 580], [64, 630]], 90);            // بنك الخطر الأيسر
-bank('spot', 'hazR',    [[484, 530], [484, 580], [484, 630]], 90);         // بنك الخطر الأيمن
-bank('spot', 'wdest',   [[460, 360]], 0);                                  // وجهة الثقب الدودي
+bank('drop', 'mult',  [[436, 204], [436, 244], [436, 284]], 90, '2X');
+bank('drop', 'boost', [[152, 204], [152, 244], [152, 284]], 90, 'BOOST');
+bank('drop', 'medal', [[206, 560], [250, 560], [294, 560]], 0, 'MEDAL');
+bank('spot', 'mission', [[150, 660], [294, 648], [438, 660]], 0, 'MISSION');
+bank('spot', 'fuel',    [[170, 790], [294, 798], [418, 790]], 0, 'FUEL');
+bank('spot', 'hazL',    [[110, 722], [160, 722], [210, 722]], 0, 'HAZARD');
+bank('spot', 'hazR',    [[378, 722], [428, 722], [478, 722]], 0, 'HAZARD');
+bank('spot', 'wdest',   [[368, 470]], 0, 'WARP');
 
-/* ---- المجسّات (rollovers): تُشعل وتُسجّل حين تمرّ الكرة فوقها، بلا تصادم ---- */
+// ---- المجسّات ----
 var ROLLS = [];
-function roll(g, i, x, y, r) { ROLLS.push({ g: g, i: i, x: x, y: y, r: r || 20, on: false, t: 0 }); }
-for (var _i = 0; _i < 6; _i++) { var _p = pol(210 + _i * 24, 240); roll('orbit', _i, _p[0], _p[1], 22); }   // وقود المدار
-roll('reentry', 0, 246, 150, 20); roll('reentry', 1, 288, 128, 20); roll('reentry', 2, 246, 196, 20);
-roll('launch', 0, 104, 344, 20); roll('launch', 1, 148, 358, 20); roll('launch', 2, 192, 344, 20);
-roll('outL', 0, 118, 856, 24); roll('outR', 0, 468, 856, 24);      // ممرّا الخروج
-roll('inL', 0, 148, 810, 22);  roll('inR', 0, 444, 810, 22);       // ممرّا العودة
-roll('bonus', 0, 128, 740, 22);                                     // ممر المكافأة
-roll('warp', 0, 300, 772, 24);                                      // مجسّ الانزياح
+function roll(g, i, x, y, r) { ROLLS.push({ g: g, i: i, x: x, y: y, r: r || 22, on: false, t: 0 }); }
+for (var _i = 0; _i < 6; _i++) { var _p = pol(200 + _i * 28, 244); roll('orbit', _i, _p[0], _p[1], 24); }
+roll('reentry', 0, 232, 128); roll('reentry', 1, 294, 110); roll('reentry', 2, 356, 128);
+roll('launch', 0, 60, 376);   roll('launch', 1, 133, 376);  roll('launch', 2, 206, 376);
+roll('outL', 0, EDGE_L + W_OUT / 2, 890); roll('outR', 0, EDGE_R - W_OUT / 2, 890);
+roll('inL', 0, DIV_L + W_IN / 2, 890);    roll('inR', 0, DIV_R - W_IN / 2, 890);
+roll('bonus', 0, DIV_L + W_IN / 2, 806);
+roll('warp', 0, 294, 880, 26);                       // قلب الشعار في وسط الطاولة
 
-/* ---- الثقوب: تبتلع الكرة ثم تقذفها. لكل ثقب مخرج وسرعة واتجاه وزمن سفر ---- */
+/* ---- الثقوب والمنحدرات: تبتلع الكرة ثم تقذفها. ما له path تُرى الكرة
+   تسير عليه (منحدر سلكي)، وما لا path له تختفي فيه (ثقب). ---- */
 var HOLES = [
-  { id: 'hyper', x: 300, y: 128, r: 22, wait: 1.1, out: [118, 300], dir: [-0.25, 1], spd: 620 },
-  { id: 'worm0', x: 78, y: 396, r: 19, wait: 1.4, out: [300, 470], dir: [0.1, 1], spd: 420, c: '#ffd34d' },
-  { id: 'worm1', x: 86, y: 462, r: 19, wait: 1.4, out: [300, 470], dir: [-0.1, 1], spd: 420, c: '#ff5a6e' },
-  { id: 'worm2', x: 116, y: 524, r: 19, wait: 1.4, out: [300, 470], dir: [0, 1], spd: 420, c: '#5cf08a' },
-  { id: 'ramp', x: 498, y: 556, r: 22, wait: 1.5, out: [112, 258], dir: [-0.2, 1], spd: 520 },
-  { id: 'chute', x: 166, y: 600, r: 18, wait: 1.2, out: [196, 330], dir: [-0.45, 1], spd: 540 }
+  { id: 'hyper', x: 430, y: 380, r: 24, wait: 1.1, out: [294, 470], dir: [0, 1], spd: 560, lab: 'HYPERSPACE' },
+  { id: 'worm0', x: 64, y: 486, r: 22, wait: 1.3, out: [368, 470], dir: [0.15, 1], spd: 430, c: '#ffd34d' },
+  { id: 'worm1', x: 64, y: 566, r: 22, wait: 1.3, out: [368, 470], dir: [0, 1], spd: 430, c: '#ff5a6e' },
+  { id: 'worm2', x: 64, y: 646, r: 22, wait: 1.3, out: [368, 470], dir: [-0.15, 1], spd: 430, c: '#5cf08a' },
+  { id: 'ramp',  x: 452, y: 540, r: 24, wait: 1.7, out: [133, 340], dir: [-0.15, 1], spd: 380, lab: 'LAUNCH RAMP',
+    path: [[452, 540], [484, 452], [492, 356], [486, 290], [438, 218], [360, 164], [284, 142], [212, 158], [164, 198], [142, 256], [138, 322], [133, 340]] },
+  { id: 'chute', x: 452, y: 648, r: 22, wait: 1.2, out: [232, 340], dir: [-0.2, 1], spd: 460, lab: 'CHUTE',
+    path: [[452, 648], [416, 570], [372, 480], [318, 402], [266, 360], [232, 340]] }
 ];
 
-/* ---- الأعلام (spinners): تدور حين تمرّ الكرة، ولا تصدّها ---- */
-var FLAGS = [{ x: 120, y: 726, r: 22, spin: 0, v: 0 }, { x: 480, y: 726, r: 22, spin: 0, v: 0 }];
-
-// ---- حارس المصرف: بوّابة تظهر عبر فم المصرف حين تُضاء ----
-var BLOCKER = { a: [FLIP_LX, FLIP_LY + 64], b: [FLIP_RX, FLIP_LY + 64], on: false };
-// ---- الرافعتان الجانبيتان (kickbacks): تعيدان الكرة من ممر الخروج ----
-var KICKS = [{ x: 140, y: 916, on: false }, { x: 446, y: 916, on: false }];
-
-(function stretch() {
-  var seen = [], i;
-  function P(p) { if (p && seen.indexOf(p) < 0) { seen.push(p); p[1] = MY(p[1]); } }
-  for (i = 0; i < WALLS.length; i++) { P(WALLS[i].a); P(WALLS[i].b); }
-  for (i = 0; i < SLINGS.length; i++) { P(SLINGS[i].a); P(SLINGS[i].b); }
-  for (i = 0; i < BUMPERS.length; i++) BUMPERS[i].y = MY(BUMPERS[i].y);
-  for (i = 0; i < POSTS.length; i++) POSTS[i].y = MY(POSTS[i].y);
-  for (i = 0; i < TARGETS.length; i++) TARGETS[i].y = MY(TARGETS[i].y);
-  for (i = 0; i < ROLLS.length; i++) ROLLS[i].y = MY(ROLLS[i].y);
-  for (i = 0; i < FLAGS.length; i++) FLAGS[i].y = MY(FLAGS[i].y);
-  for (i = 0; i < KICKS.length; i++) KICKS[i].y = MY(KICKS[i].y);
-  for (i = 0; i < HOLES.length; i++) { HOLES[i].y = MY(HOLES[i].y); P(HOLES[i].out); }
-  FLIP_LY = MY(FLIP_LY);
-  BLOCKER.a[1] = BLOCKER.b[1] = FLIP_LY + 64;
-})();
-var RANK_Y = MY(620), MULTI_Y = MY(470), LANE_FOOT = MY(890);
-var PL_ROD = MY(972), PL_FOOT = MY(992), PM_TOP = MY(700), PM_BOT = MY(900);
-
+// ---- الأعلام الدوّارة ----
+var FLAGS = [{ x: 110, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }, { x: 478, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }];
+// ---- حارس المصرف وقت تعدّد الكرات ----
+var BLOCKER = { a: [PIV_L, PIV_Y + 62], b: [PIV_R, PIV_Y + 62], on: false };
+// ---- الرافعتان الجانبيتان: إنقاذ واحد لكل جانب في كل كرة ----
+var KICKS = [{ x: EDGE_L + W_OUT / 2, y: 948, on: false }, { x: EDGE_R - W_OUT / 2, y: 948, on: false }];
+// ---- شعار الرتبة في وسط الطاولة ----
+var EMB = { x: 294, y: 880, r1: 52, r2: 76 };
 /* ==========================================================================
    ٢ — الفيزياء
    --------------------------------------------------------------------------
@@ -434,12 +386,12 @@ Flipper.prototype.step = function (dt) {
 };
 Flipper.prototype.tip = function () { return [this.px + FLIP_LEN * Math.cos(this.a), this.py + FLIP_LEN * Math.sin(this.a)]; };
 
-var flipL = new Flipper(FLIP_LX, FLIP_LY, 0), flipR = new Flipper(FLIP_RX, FLIP_LY, 1);
+var flipL = new Flipper(PIV_L, PIV_Y, 0), flipR = new Flipper(PIV_R, PIV_Y, 1);
 var FLIPS = [flipL, flipR];
 
 /* ---- وجها المصدّين يُضافان إلى الجدران بمفتاح خاص ليُعرفا عند الإصابة ---- */
-WALLS.push({ a: SLINGS[0].a, b: SLINGS[0].b, e: 0.4, s: 0.9, one: null, k: 'sl0' });
-WALLS.push({ a: SLINGS[1].a, b: SLINGS[1].b, e: 0.4, s: 0.9, one: null, k: 'sl1' });
+WALLS.push({ a: SLINGS[0].a, b: SLINGS[0].b, e: 0.4, s: 0.9, k: 'sl0' });
+WALLS.push({ a: SLINGS[1].a, b: SLINGS[1].b, e: 0.4, s: 0.9, k: 'sl1' });
 
 /* أقرب تصادم على امتداد حركة واحدة. يعيد نوع المصدوم ومعاملاته كي تتولّى
    طبقة القواعد ما بعد الارتداد (نقاط، أصوات، أضواء). */
@@ -460,7 +412,7 @@ function cast(b, mx, my) {
   for (i = 0; i < POSTS.length; i++) {
     o = POSTS[i];
     t = hitCirc(b.x, b.y, mx, my, BR, o.x, o.y, o.r);
-    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = out2.nx; CH.ny = out2.ny; CH.kind = 'post'; CH.obj = o; CH.e = 0.78; CH.s = 0.9; CH.boost = 0; CH.push = out2.push; }
+    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = out2.nx; CH.ny = out2.ny; CH.kind = 'post'; CH.obj = o; CH.e = 0.82; CH.s = 0.92; CH.boost = 0; CH.push = out2.push; }
   }
   for (i = 0; i < TARGETS.length; i++) {
     o = TARGETS[i];
@@ -744,7 +696,7 @@ function onHole(b, h) {
       G.wormLit = [false, false, false]; startMultiball();
     }
   } else if (h.id === 'ramp') {
-    addScore(SC.ramp[0]);
+    sfx('ramp'); addScore(SC.ramp[0]);
     if (G.sel && G.fuel > 0) missionAccept(); else missionEv('ramp');
   } else if (h.id === 'chute') {
     addScore(SC.chute[G.chuteLv]); G.chuteLv = (G.chuteLv + 1) % 6; missionEv('chute');
@@ -766,21 +718,22 @@ function onFlag(f) {
 function doTilt() {
   if (G.tiltLock) return;
   G.tiltLock = true; G.tiltT = 30;
-  say('إمالة — الطاولة مقفلة', 5); sfx('tilt');
+  say('إمالة — الطاولة مقفلة', 5); sfx('tilt'); shake(14);
   flipL.held = flipR.held = false;
 }
 
 /* ==========================================================================
    ٤ — دورة الكرة والمحاكاة
    ========================================================================== */
-var PLUNGE = { pull: 0, active: false, rest: MY(940) };
+var LANE_MID = (LANE_IN + LANE_OUT) / 2;
+var PLUNGE = { pull: 0 };
 
 function park(b) {
-  b.wait = true; b.spd = 0; b.x = 550; b.y = PLUNGE.rest; b.dx = 0; b.dy = -1; b.ro = {};
+  b.wait = true; b.spd = 0; b.x = LANE_MID; b.y = PLUNGE_REST; b.dx = 0; b.dy = -1; b.ro = {};
   PLUNGE.pull = 0;
 }
 function newBall() {
-  var b = new Ball(550, PLUNGE.rest);
+  var b = new Ball(LANE_MID, PLUNGE_REST);
   park(b);
   balls.push(b);
   PLUNGE.pull = 0;
@@ -791,7 +744,7 @@ function startMultiball() {
   info('كرات متعدّدة!', 4); sfx('multi');
   var i, b;
   for (i = 0; i < 2; i++) {
-    b = new Ball(300 + (i ? 40 : -40), MULTI_Y); b.wait = false;
+    b = new Ball(CX + (i ? 44 : -44), 470); b.wait = false;
     b.dx = i ? 0.3 : -0.3; b.dy = 1; b.spd = 300;
     balls.push(b);
   }
@@ -874,10 +827,12 @@ function kick(b, nx, ny, add) {
   var m = Math.sqrt(vx * vx + vy * vy);
   b.spd = Math.min(BMAX, m); if (m > 1e-6) { b.dx = vx / m; b.dy = vy / m; }
 }
+function shake(a) { shakeX += (Math.random() - 0.5) * a; shakeY += (Math.random() - 0.5) * a; }
 function hit(b, kind, obj, nx, ny, sp) {
-  if (kind === 'bump') { kick(b, nx, ny, 520 + 60 * (obj.g ? G.lauLv : G.atkLv)); onBumper(obj); }
-  else if (kind === 'sl0') { kick(b, nx, ny, 540); onSling(0); }
-  else if (kind === 'sl1') { kick(b, nx, ny, 540); onSling(1); }
+  if (kind === 'bump') { kick(b, nx, ny, 540 + 60 * (obj.g ? G.lauLv : G.atkLv)); onBumper(obj); shake(3.5); }
+  else if (kind === 'sl0') { kick(b, nx, ny, 560); onSling(0); shake(2.5); }
+  else if (kind === 'sl1') { kick(b, nx, ny, 560); onSling(1); shake(2.5); }
+  else if (kind === 'post') { if (sp > 300) sfx('post', Math.min(1, sp / 1400)); }
   else if (kind === 'drop') { onTarget(obj); }
   else if (kind === 'flip') { if (sp > 260) sfx('flip'); }
   else if (sp > 420) sfx('wall', Math.min(1, sp / 1600));
@@ -887,6 +842,12 @@ function hit(b, kind, obj, nx, ny, sp) {
    لكل كرة ذاكرة دخول/خروج كي لا يتكرّر الحدث ما دامت فوق الحسّاس. ---- */
 function sensors(b, dt) {
   if (b.hole) {
+    if (b.hole.path) {                            // منحدر سلكي: الكرة مرئية تصعده
+      var u = 1 - b.ht / b.hole.wait, P = b.hole.path;
+      var f = Math.max(0, Math.min(0.9999, u)) * (P.length - 1), k = f | 0, g = f - k;
+      b.x = P[k][0] + (P[k + 1][0] - P[k][0]) * g;
+      b.y = P[k][1] + (P[k + 1][1] - P[k][1]) * g;
+    }
     if (b.ht <= 0) {
       var h = b.hole; b.hole = null;
       b.x = h.out[0]; b.y = h.out[1];
@@ -923,7 +884,7 @@ function sensors(b, dt) {
   }
   if (b.y > TH + 20) { drainBall(b); return; }
   // كرة هدأت في ممر القاذف: أعدها إلى وضع الانتظار كي تُقذف من جديد
-  if (b.x > LANE_L && b.y > LANE_FOOT && b.spd < 120) { park(b); return; }
+  if (b.x > LANE_IN && b.y > 980 && b.spd < 120) { park(b); return; }
   // الرافعة الجانبية: تُعيد الكرة من ممر الخروج حين تكون مُضاءة
   for (i = 0; i < KICKS.length; i++) {
     o = KICKS[i];
@@ -963,117 +924,143 @@ function ballToBall() {
   }
 }
 
+
 /* ==========================================================================
    ٥ — الصوت: كل شيء مُولَّد بـWebAudio، ولا ملف صوتي واحد
    --------------------------------------------------------------------------
-   السياق لا يُنشأ إلا بعد أوّل لمسة (شرط iOS)، وحالة الكتم تُحفظ.
+   الرقعة السابقة كانت نغمات عارية فبدت كتنبيهات لا كطاولة. هذه تُبنى كما
+   تُبنى أصوات الطاولة الحقيقية: لكل اصطدام «طَرْق» ضوضائي قصير يعطي المادة
+   (معدن، بلاستيك، مطّاط) فوق «جسم» منغَّم يعطي الحجم، والكل يمرّ بصدى قصير
+   مُولَّد يجعل الصوت داخل خزانة لا في الفراغ. ويُضاف إلى ذلك صوت تدحرج مستمر
+   يتبع سرعة الكرة — وهو أكثر ما يُشعر باللعب.
    ========================================================================== */
 var SKEY = 'pinball-sound', soundOn = true;
 try { soundOn = localStorage.getItem(SKEY) !== 'off'; } catch (e) {}
-var actx = null, master = null, mus = null, warmed = false;
+var actx = null, master = null, wet = null, mus = null, nbuf = null, warmed = false;
+var roller = null, rollGain = null, rollFilt = null;
 
 function ac() {
   if (!actx) {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     actx = new AC();
-    master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination);
-    mus = actx.createGain(); mus.gain.value = 0.16; mus.connect(master);
+    var comp = actx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.2;
+    comp.connect(actx.destination);
+    master = actx.createGain(); master.gain.value = 0.85; master.connect(comp);
+    // صدى قصير: ضوضاء متلاشية تصنع حيّز الخزانة بلا ملفّ
+    var len = Math.floor(actx.sampleRate * 0.55), ir = actx.createBuffer(2, len, actx.sampleRate), ch, k;
+    for (ch = 0; ch < 2; ch++) {
+      var d = ir.getChannelData(ch);
+      for (k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3.2);
+    }
+    var conv = actx.createConvolver(); conv.buffer = ir;
+    wet = actx.createGain(); wet.gain.value = 0.22; wet.connect(conv); conv.connect(master);
+    mus = actx.createGain(); mus.gain.value = 0.15; mus.connect(master);
+    // ضوضاء بيضاء مشتركة
+    nbuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+    var nd = nbuf.getChannelData(0);
+    for (k = 0; k < nd.length; k++) nd[k] = Math.random() * 2 - 1;
+    // صوت التدحرج: مصدر واحد دائم يُفتح ويُغلق بسرعة الكرة
+    roller = actx.createBufferSource(); roller.buffer = nbuf; roller.loop = true;
+    rollFilt = actx.createBiquadFilter(); rollFilt.type = 'bandpass'; rollFilt.Q.value = 1.1;
+    rollFilt.frequency.value = 400;
+    rollGain = actx.createGain(); rollGain.gain.value = 0;
+    roller.connect(rollFilt).connect(rollGain).connect(master);
+    roller.start();
   }
   if (actx.state === 'suspended') actx.resume();
   return actx;
 }
 function warm() { if (!warmed && soundOn) { warmed = true; ac(); } }
 
-function tone(f, dur, type, vol, f2, dest) {
+// طَرْق: نبضة ضوضاء مُرشَّحة — هي التي تعطي إحساس المادّة
+function knock(dur, vol, cut, q, sweep) {
   var a = ac(); if (!a) return;
-  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
-  o.type = type || 'sine';
-  o.frequency.setValueAtTime(f, t);
-  if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t + 0.006);
-  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
-  o.connect(g).connect(dest || master);
-  o.start(t); o.stop(t + dur + 0.02);
-}
-// ضجيج قصير مُرشَّح: صوت المعدن على المعدن
-var nbuf = null;
-function noise(dur, vol, cut, q) {
-  var a = ac(); if (!a) return;
-  if (!nbuf) {
-    nbuf = a.createBuffer(1, a.sampleRate * 0.5, a.sampleRate);
-    var d = nbuf.getChannelData(0);
-    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
   var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(), t = a.currentTime;
   s.buffer = nbuf; s.loop = true;
-  f.type = 'bandpass'; f.frequency.value = cut; f.Q.value = q || 3;
+  f.type = 'bandpass'; f.frequency.setValueAtTime(cut, t); f.Q.value = q || 2.2;
+  if (sweep) f.frequency.exponentialRampToValueAtTime(Math.max(60, sweep), t + dur);
   g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
-  s.connect(f).connect(g).connect(master);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+  s.connect(f).connect(g); g.connect(master); g.connect(wet);
   s.start(t); s.stop(t + dur + 0.02);
 }
-function seq(notes, type, vol, gap) {
+// جسم منغَّم
+function body(f0, dur, vol, type, f1, delay) {
   var a = ac(); if (!a) return;
-  var t0 = a.currentTime, t = 0;
-  for (var i = 0; i < notes.length; i++) {
-    (function (f, at, d) {
-      var o = a.createOscillator(), g = a.createGain(), s = t0 + at;
-      o.type = type; o.frequency.setValueAtTime(f, s);
-      g.gain.setValueAtTime(0, s);
-      g.gain.linearRampToValueAtTime(vol, s + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0008, s + d);
-      o.connect(g).connect(master); o.start(s); o.stop(s + d + 0.02);
-    })(notes[i][0], t, notes[i][1]);
-    t += notes[i][1] + (gap || 0.01);
-  }
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime + (delay || 0);
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f0, t);
+  if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.005);
+  g.gain.exponentialRampToValueAtTime(0.0005, t + dur);
+  o.connect(g); g.connect(master); g.connect(wet);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function seq(notes, type, vol, gap) {
+  var t = 0;
+  for (var i = 0; i < notes.length; i++) { body(notes[i][0], notes[i][1], vol, type, notes[i][2], t); t += notes[i][1] + (gap || 0.012); }
 }
 
 function sfx(name, p) {
   if (!soundOn || !warmed) return;
-  p = p || 1;
+  p = p === undefined ? 1 : p;
   switch (name) {
-    case 'wall':    noise(0.05, 0.12 * p, 1900, 1.6); break;
-    case 'flip':    noise(0.055, 0.2, 620, 1.2); tone(150, 0.07, 'square', 0.05); break;
-    case 'bump':    tone(320 * p, 0.14, 'square', 0.12, 120 * p); noise(0.07, 0.14, 1200, 2); break;
-    case 'sling':   tone(520, 0.09, 'sawtooth', 0.10, 200); noise(0.05, 0.12, 2400, 2); break;
-    case 'target':  tone(880, 0.09, 'square', 0.09, 1320); break;
-    case 'spot':    tone(1320, 0.06, 'triangle', 0.08); break;
-    case 'roll':    tone(1760, 0.045, 'sine', 0.06); break;
-    case 'hole':    seq([[660, .07], [880, .07], [1320, .16]], 'sine', 0.09); break;
-    case 'flag':    tone(2200, 0.04, 'square', 0.05, 1600); break;
-    case 'kickback':tone(180, 0.18, 'sawtooth', 0.14, 900); noise(0.1, 0.16, 800, 1.5); break;
-    case 'select':  seq([[523, .07], [784, .11]], 'triangle', 0.10); break;
-    case 'accept':  seq([[523, .08], [659, .08], [784, .08], [1047, .2]], 'triangle', 0.11); break;
-    case 'goal':    seq([[988, .06], [1319, .12]], 'sine', 0.09); break;
-    case 'up':      seq([[659, .06], [880, .06], [1175, .14]], 'square', 0.08); break;
-    case 'extra':   seq([[784, .08], [1047, .08], [1319, .08], [1568, .22]], 'square', 0.10); break;
-    case 'multi':   seq([[392, .1], [523, .1], [659, .1], [784, .1], [1047, .28]], 'sawtooth', 0.09); break;
-    case 'mission': seq([[523, .1], [659, .1], [784, .1], [1047, .12], [1319, .32]], 'triangle', 0.12); break;
-    case 'rank':    seq([[440, .12], [554, .12], [659, .12], [880, .14], [1109, .14], [1319, .4]], 'square', 0.11); break;
-    case 'tilt':    tone(110, 0.7, 'sawtooth', 0.16, 55); noise(0.5, 0.1, 300, 1); break;
-    case 'drain1':  tone(300, 0.2, 'sine', 0.09, 120); break;
-    case 'lost':    seq([[392, .14], [349, .14], [294, .14], [220, .4]], 'triangle', 0.12); break;
-    case 'over':    seq([[440, .18], [392, .18], [330, .18], [262, .2], [196, .6]], 'sawtooth', 0.12); break;
-    case 'start':   seq([[262, .1], [392, .1], [523, .1], [784, .3]], 'triangle', 0.12); break;
-    case 'click':   tone(700, 0.04, 'square', 0.06); break;
+    // --- اصطدامات: طَرْق المادة ثم جسمها ---
+    case 'wall':    knock(0.045, 0.10 * p, 2600, 1.4, 1200); body(220, 0.05, 0.03 * p, 'sine', 140); break;
+    case 'post':    knock(0.05, 0.13 * p, 900, 1.6, 400); body(150, 0.07, 0.05 * p, 'sine', 90); break;
+    case 'flip':    knock(0.05, 0.22, 700, 1.1, 260); body(120, 0.09, 0.07, 'square', 66); break;
+    case 'bump':    knock(0.06, 0.20, 1500, 1.8, 500);
+                    body(300 * p, 0.16, 0.13, 'triangle', 90 * p); body(150 * p, 0.2, 0.08, 'sine', 60); break;
+    case 'sling':   knock(0.04, 0.2, 3200, 1.6, 900); body(600, 0.08, 0.1, 'sawtooth', 180); break;
+    case 'target':  knock(0.03, 0.16, 2200, 3, 1400); body(900, 0.06, 0.07, 'square', 1400); break;
+    case 'spot':    body(1400, 0.05, 0.07, 'triangle'); knock(0.02, 0.07, 3400, 3); break;
+    case 'roll':    body(1900, 0.04, 0.05, 'sine'); break;
+    case 'flag':    knock(0.03, 0.09, 4200, 4, 2600); body(2300, 0.035, 0.04, 'square', 1700); break;
+    // --- ملفّات لولبية وثقوب ---
+    case 'hole':    knock(0.16, 0.12, 700, 1.2, 180); seq([[500, .06], [700, .06], [1000, .14]], 'sine', 0.07); break;
+    case 'ramp':    knock(0.55, 0.11, 900, 0.9, 2600); break;      // تدحرج معدني صاعد
+    case 'kickback':knock(0.1, 0.22, 500, 1, 1600); body(140, 0.2, 0.14, 'sawtooth', 900); break;
+    case 'plunge':  knock(0.14, 0.18, 380, 0.9, 1100); body(90, 0.22, 0.12, 'sawtooth', 300); break;
+    // --- إعلانات ---
+    case 'select':  seq([[523, .07], [784, .12]], 'triangle', 0.1); break;
+    case 'accept':  seq([[392, .07], [523, .07], [659, .07], [784, .07], [1047, .24]], 'triangle', 0.1); break;
+    case 'goal':    seq([[988, .05], [1319, .11]], 'sine', 0.085); break;
+    case 'up':      seq([[659, .06], [880, .06], [1175, .15]], 'square', 0.07); break;
+    case 'extra':   seq([[784, .07], [1047, .07], [1319, .07], [1568, .26]], 'square', 0.09); break;
+    case 'multi':   body(300, 1.0, 0.1, 'sawtooth', 1200); body(302, 1.0, 0.08, 'sawtooth', 1210);
+                    seq([[392, .1], [523, .1], [659, .1], [784, .3]], 'triangle', 0.08); break;
+    case 'mission': seq([[523, .09], [659, .09], [784, .09], [1047, .1], [1319, .36]], 'triangle', 0.11); break;
+    case 'rank':    seq([[440, .11], [554, .11], [659, .11], [880, .13], [1109, .13], [1319, .46]], 'square', 0.1);
+                    body(110, 1.0, 0.07, 'sawtooth'); break;
+    case 'tilt':    knock(0.6, 0.18, 220, 0.7); body(96, 0.7, 0.16, 'sawtooth', 48); break;
+    case 'drain1':  body(320, 0.22, 0.09, 'sine', 120); break;
+    case 'lost':    seq([[392, .13], [349, .13], [294, .13], [220, .45]], 'triangle', 0.11);
+                    body(160, 0.8, 0.06, 'sawtooth', 60); break;
+    case 'over':    seq([[440, .18], [392, .18], [330, .18], [262, .2], [196, .7]], 'sawtooth', 0.11); break;
+    case 'start':   seq([[262, .1], [392, .1], [523, .1], [784, .34]], 'triangle', 0.11); break;
+    case 'click':   body(760, 0.04, 0.06, 'square'); break;
   }
 }
 
-/* ---- أجواء خفيفة: ثلاث نغمات سفلى بطيئة تتبدّل، وطبقة رياح بعيدة.
-   تُجدول على ساعة الصوت لا على الإطارات، فلا تتعثّر إن تأخّر الرسم. ---- */
-var MUS = { on: false, next: 0, step: 0, drone: null };
+/* صوت التدحرج: يتبع أسرع كرة على الطاولة. ارتفاع الترشيح مع السرعة يعطي
+   إحساس الكرة الثقيلة على الخشب — وهو ما يفرّق بين لعبة ولوحة أزرار. */
+function rollSound(speed, onTable) {
+  if (!actx || !rollGain || !soundOn) return;
+  var t = actx.currentTime;
+  var v = onTable ? Math.min(0.06, speed / BMAX * 0.14) : 0;
+  rollGain.gain.setTargetAtTime(v, t, 0.06);
+  rollFilt.frequency.setTargetAtTime(240 + speed * 0.5, t, 0.08);
+}
+
+/* أجواء: وتر منخفض بطيء يتبدّل، ونغمة عُليا عابرة. تُجدول على ساعة الصوت لا
+   على الإطارات، فلا تتعثّر إن تأخّر الرسم. */
+var MUS = { on: false, next: 0, step: 0 };
 var CHORD = [[110, 165, 220], [98, 147, 196], [123.5, 185, 247], [87.3, 131, 175]];
-function musicStart() {
-  if (!soundOn || MUS.on) return;
-  var a = ac(); if (!a) return;
-  MUS.on = true; MUS.next = a.currentTime + 0.05; MUS.step = 0;
-}
-function musicStop() {
-  MUS.on = false;
-  if (MUS.drone) { try { MUS.drone.stop(); } catch (e) {} MUS.drone = null; }
-}
+function musicStart() { if (!soundOn || MUS.on) return; var a = ac(); if (!a) return; MUS.on = true; MUS.next = a.currentTime + 0.05; MUS.step = 0; }
+function musicStop() { MUS.on = false; }
 function musicTick() {
   if (!MUS.on || !soundOn || !actx) return;
   var a = actx;
@@ -1082,20 +1069,19 @@ function musicTick() {
     for (i = 0; i < 3; i++) {
       var o = a.createOscillator(), g = a.createGain();
       o.type = i ? 'sine' : 'triangle';
-      o.frequency.setValueAtTime(ch[i], t);
+      o.frequency.setValueAtTime(ch[i] * (i === 2 ? 1.003 : 1), t);
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.09 / (i + 1), t + 0.8);
+      g.gain.linearRampToValueAtTime(0.085 / (i + 1), t + 0.9);
       g.gain.linearRampToValueAtTime(0.0001, t + 3.6);
       o.connect(g).connect(mus); o.start(t); o.stop(t + 3.7);
     }
-    // نغمة عُليا عابرة كل دورتين: تكفي لتُشعر بالحركة ولا تزاحم المؤثّرات
     if (MUS.step % 2 === 1) {
       var o2 = a.createOscillator(), g2 = a.createGain(), f = ch[2] * 4;
       o2.type = 'sine'; o2.frequency.setValueAtTime(f, t + 1.6);
       g2.gain.setValueAtTime(0, t + 1.6);
-      g2.gain.linearRampToValueAtTime(0.05, t + 1.75);
-      g2.gain.exponentialRampToValueAtTime(0.0005, t + 3.0);
-      o2.connect(g2).connect(mus); o2.start(t + 1.6); o2.stop(t + 3.05);
+      g2.gain.linearRampToValueAtTime(0.045, t + 1.8);
+      g2.gain.exponentialRampToValueAtTime(0.0005, t + 3.1);
+      o2.connect(g2).connect(mus); o2.start(t + 1.6); o2.stop(t + 3.15);
     }
     MUS.next += 3.4; MUS.step++;
   }
@@ -1104,18 +1090,22 @@ function musicTick() {
 /* ==========================================================================
    ٦ — الرسم
    --------------------------------------------------------------------------
-   الطاولة الساكنة (الخلفية والجدران وعلامات الممرّات وحلقات الأضواء) تُرسم
-   مرّة واحدة على لوحة خارج الشاشة عند كل تغيير مقاس، ثم تُنسخ كصورة واحدة في
-   كل إطار. ما يتحرّك وحده هو ما يُرسم ستّين مرّة في الثانية.
+   ما كان يجعل الطاولة تبدو عرضاً تجريبياً هو أن كل شيء فيها كان خطوطاً
+   نيونية على لون مسطّح. الطاولة الحقيقية ليست خطوطاً: هي سطح مدهون تحته
+   مصابيح، وفوقه قضبان فولاذية لها لمعة، ومنحدرات سلكية، وأعمدة بلاستيكية
+   عليها حلقات مطّاط، وأهداف مجسّمة لها وجه وظلّ، ونصوص مطبوعة على الدهان.
+   هذا ما يُرسم هنا. والطبقة الساكنة (الدهان والقضبان والنصوص) تُرسم مرّة
+   واحدة عند كل تغيير مقاس ثم تُنسخ صورةً واحدة في كل إطار.
    ========================================================================== */
 var cv = document.getElementById('table'), ctx = cv.getContext('2d');
 var stat = document.createElement('canvas'), sctx = stat.getContext('2d');
 var VW = 0, VH = 0, S = 1, OX = 0, OY = 0, HUD = 56, DPR = 1;
+var FONT = '"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif';
+var shakeX = 0, shakeY = 0;                     // ارتجاج الطاولة عند الضربات والنخّ
 var probe = document.createElement('div');
 probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;visibility:hidden;' +
   'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
 document.body.appendChild(probe);
-
 function rnd(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 
 function layout() {
@@ -1126,8 +1116,6 @@ function layout() {
   var cs = getComputedStyle(probe);
   var st = parseFloat(cs.paddingTop) || 0, sb = parseFloat(cs.paddingBottom) || 0;
   var sl = parseFloat(cs.paddingLeft) || 0, sr = parseFloat(cs.paddingRight) || 0;
-  /* شريط الأزرار يعلو الزاوية الميتة أعلى اليسار ولا يحجز عرضاً: لو حجزناه
-     خسرت الطاولة ثُمن عرضها، وعرضها هو ما يحدّد مقياسها على الجوال. */
   HUD = Math.max(44, Math.min(72, VH * 0.08));
   var aw = Math.max(40, VW - sl - sr), ah = Math.max(40, VH - st - sb - HUD);
   S = Math.min(aw / TW, ah / TH);
@@ -1136,244 +1124,375 @@ function layout() {
   stat.width = cv.width; stat.height = cv.height;
   buildStatic();
 }
-
-function tableCtx(c) { c.save(); c.translate(OX, OY); c.scale(S, S); }
+function tableCtx(c) { c.save(); c.translate(OX + shakeX, OY + shakeY); c.scale(S, S); }
+function rr(c, x, y, w, h, r) {
+  c.beginPath();
+  if (c.roundRect) c.roundRect(x, y, w, h, r);
+  else { c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+         c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+}
+// نصّ مطبوع على الدهان: صغير، مباعَد، وبظلّ خفيف كالطباعة الحريرية
+function label(c, txt, x, y, size, col, ang, alpha) {
+  c.save(); c.translate(x, y); if (ang) c.rotate(ang);
+  c.font = '800 ' + size + 'px ' + FONT; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.globalAlpha = alpha === undefined ? 0.85 : alpha;
+  c.fillStyle = 'rgba(0,0,0,.55)'; c.fillText(txt, 0, 1.2);
+  c.fillStyle = col; c.fillText(txt, 0, 0);
+  c.restore();
+}
+// قضيب فولاذي: قلب داكن ولمعة من أعلى اليسار
+function rail(c, pts, w) {
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(pts[0][0], pts[0][1]);
+  for (var i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+  c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = w + 3; c.stroke();
+  c.strokeStyle = '#6d7488'; c.lineWidth = w; c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = Math.max(1, w * 0.3); c.stroke();
+}
+function wallPts(pred) {
+  var runs = [], cur = null, i;
+  for (i = 0; i < WALLS.length; i++) {
+    var o = WALLS[i];
+    if (!pred(o)) { cur = null; continue; }
+    if (cur && cur[cur.length - 1][0] === o.a[0] && cur[cur.length - 1][1] === o.a[1]) cur.push(o.b);
+    else { cur = [o.a, o.b]; runs.push(cur); }
+  }
+  return runs;
+}
 
 function buildStatic() {
-  var c = sctx;
+  var c = sctx, i, j;
   c.setTransform(DPR, 0, 0, DPR, 0, 0);
   c.clearRect(0, 0, VW, VH);
-  // --- سديم ونجوم ---
+  // ---- الفضاء خلف الخزانة ----
   var g = c.createLinearGradient(0, 0, VW * 0.4, VH);
-  g.addColorStop(0, '#190a33'); g.addColorStop(0.5, '#120724'); g.addColorStop(1, '#070312');
+  g.addColorStop(0, '#190a33'); g.addColorStop(0.5, '#110723'); g.addColorStop(1, '#060310');
   c.fillStyle = g; c.fillRect(0, 0, VW, VH);
-  var neb = c.createRadialGradient(VW * 0.2, VH * 0.1, 0, VW * 0.2, VH * 0.1, VW * 0.9);
-  neb.addColorStop(0, 'rgba(160,70,230,.28)'); neb.addColorStop(1, 'rgba(160,70,230,0)');
+  var neb = c.createRadialGradient(VW * 0.18, VH * 0.08, 0, VW * 0.18, VH * 0.08, VW);
+  neb.addColorStop(0, 'rgba(150,70,225,.26)'); neb.addColorStop(1, 'rgba(150,70,225,0)');
   c.fillStyle = neb; c.fillRect(0, 0, VW, VH);
-  var neb2 = c.createRadialGradient(VW * 0.9, VH * 0.75, 0, VW * 0.9, VH * 0.75, VW * 0.8);
-  neb2.addColorStop(0, 'rgba(40,150,220,.18)'); neb2.addColorStop(1, 'rgba(40,150,220,0)');
-  c.fillStyle = neb2; c.fillRect(0, 0, VW, VH);
-  var R1 = rnd(20240917), i;
-  for (i = 0; i < 260; i++) {
-    var sx = R1() * VW, sy = R1() * VH, sr = R1() * 1.3 + 0.2, al = R1() * 0.75 + 0.15;
-    c.fillStyle = 'rgba(255,245,255,' + al.toFixed(2) + ')';
+  var R1 = rnd(20240917);
+  for (i = 0; i < 300; i++) {
+    var sx = R1() * VW, sy = R1() * VH, sr = R1() * 1.3 + 0.2;
+    c.fillStyle = 'rgba(255,245,255,' + (R1() * 0.7 + 0.15).toFixed(2) + ')';
     c.beginPath(); c.arc(sx, sy, sr, 0, 6.2832); c.fill();
   }
 
-  tableCtx(c);
-  // --- سطح الملعب ---
-  c.beginPath();
-  c.moveTo(24, CY); c.lineTo(24, TH); c.lineTo(LANE_R, TH); c.lineTo(LANE_R, CY);
-  c.arc(CX, CY, R_OUT, 0, Math.PI, true); c.closePath();
-  var pf = c.createLinearGradient(0, 0, 0, TH);
-  pf.addColorStop(0, '#2c1550'); pf.addColorStop(0.45, '#1d0f3c'); pf.addColorStop(1, '#140a2c');
-  c.fillStyle = pf; c.fill();
-  c.save(); c.clip();
-  // نسيج بلّوري: شقوق باهتة تُقرأ كزجاج فضائي لا كخطوط
-  var R2 = rnd(7788), k, j;
-  c.strokeStyle = 'rgba(120,200,255,.055)'; c.lineWidth = 1.6;
-  for (k = 0; k < 90; k++) {
+  c.save(); c.translate(OX, OY); c.scale(S, S);
+
+  // ---- الخزانة: حافّة معدنية حول الطاولة ----
+  function tablePath(inset) {
+    var k = inset || 0;
     c.beginPath();
-    var x0 = R2() * TW, y0 = R2() * TH;
-    c.moveTo(x0, y0);
-    for (j = 0; j < 3; j++) { x0 += (R2() - 0.5) * 120; y0 += (R2() - 0.5) * 120; c.lineTo(x0, y0); }
-    c.stroke();
+    c.moveTo(22 + k, CY);
+    c.arc(CX, CY, R_OUT - k, Math.PI, 0, false);
+    c.lineTo(LANE_OUT - k, TH - k); c.lineTo(22 + k, TH - k); c.closePath();
   }
-  var glow = c.createRadialGradient(CX, RANK_Y, 10, CX, RANK_Y, 340);
-  glow.addColorStop(0, 'rgba(120,60,220,.30)'); glow.addColorStop(1, 'rgba(120,60,220,0)');
-  c.fillStyle = glow; c.fillRect(0, 0, TW, TH);
+  c.save();
+  tablePath(-10);
+  c.fillStyle = '#14101f'; c.fill();
+  c.strokeStyle = '#3a3550'; c.lineWidth = 6; c.stroke();
   c.restore();
 
-  // --- الجدران: خطّ زجاجي مضيء، وعلامات نقطية صفراء على امتداده ---
-  c.lineCap = 'round'; c.lineJoin = 'round';
-  for (i = 0; i < WALLS.length; i++) {
-    var w = WALLS[i];
-    c.strokeStyle = 'rgba(150,215,255,.30)';
-    c.lineWidth = 5.5;
-    c.beginPath(); c.moveTo(w.a[0], w.a[1]); c.lineTo(w.b[0], w.b[1]); c.stroke();
-    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.6;
-    c.beginPath(); c.moveTo(w.a[0], w.a[1]); c.lineTo(w.b[0], w.b[1]); c.stroke();
+  tablePath(0);
+  c.save(); c.clip();
+  // ---- دهان الملعب: أزرق بنفسجي عميق بتدرّج وحبيبات ----
+  var pf = c.createLinearGradient(0, 0, 90, TH);
+  pf.addColorStop(0, '#3a1d63'); pf.addColorStop(0.35, '#241246'); pf.addColorStop(1, '#170c30');
+  c.fillStyle = pf; c.fillRect(0, 0, TW, TH);
+  // كوكب كبير أعلى اليسار، مقصوص بحافّة الطاولة كما يُقصّ الدهان
+  var pl = c.createRadialGradient(150, 175, 10, 190, 215, 250);
+  pl.addColorStop(0, 'rgba(255,190,120,.55)'); pl.addColorStop(0.45, 'rgba(210,90,150,.30)');
+  pl.addColorStop(1, 'rgba(120,40,150,0)');
+  c.fillStyle = pl; c.beginPath(); c.arc(170, 200, 230, 0, 6.2832); c.fill();
+  c.strokeStyle = 'rgba(255,220,180,.16)'; c.lineWidth = 3;
+  for (i = 0; i < 3; i++) { c.beginPath(); c.ellipse(170, 200, 250 + i * 26, 74 + i * 9, -0.42, 0, 6.2832); c.stroke(); }
+  // نجوم على الدهان نفسه
+  var R2 = rnd(551);
+  for (i = 0; i < 150; i++) {
+    c.fillStyle = 'rgba(255,255,255,' + (R2() * 0.35 + 0.06).toFixed(2) + ')';
+    c.beginPath(); c.arc(R2() * TW, R2() * TH, R2() * 1.6 + 0.4, 0, 6.2832); c.fill();
   }
-  // مسامير صفراء تحدّد ممرّات اللعب كما في طاولات الأركيد
-  c.fillStyle = 'rgba(255,214,84,.85)';
-  function studs(pts, gap) {
-    for (var q = 0; q < pts.length - 1; q++) {
-      var ax = pts[q][0], ay = pts[q][1], bx = pts[q + 1][0], by = pts[q + 1][1];
-      var L = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.round(L / gap));
-      for (var m = 0; m <= n; m++) {
-        c.beginPath(); c.arc(ax + (bx - ax) * m / n, ay + (by - ay) * m / n, 2.6, 0, 6.2832); c.fill();
-      }
-    }
-  }
-  function SY(a) { for (var q = 0; q < a.length; q++) a[q] = [a[q][0], MY(a[q][1])]; return a; }
-  studs(arc(CX, CY, R_IN, 197, 335, 6), 26);
-  studs(SY([[76, 700], [106, 790], [150, 855], [FLIP_LX, 900]]), 26);
-  studs(SY([[492, 700], [478, 790], [446, 855], [FLIP_RX, 900]]), 26);
-  studs(SY([[24, 660], [40, 760], [90, 850], [150, 940]]), 30);
-  studs(SY([[LANE_L, 660], [516, 772], [472, 858], [420, 946]]), 30);
+  // مسار مدهون يقود العين من المضربين إلى المنحدر، كما تفعل الطاولات
+  c.save();
+  c.strokeStyle = 'rgba(93,225,255,.09)'; c.lineWidth = 40; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(370, 950); c.quadraticCurveTo(438, 760, 452, 566); c.stroke();
+  c.strokeStyle = 'rgba(255,190,60,.07)';
+  c.beginPath(); c.moveTo(218, 950); c.quadraticCurveTo(150, 780, 120, 640); c.stroke();
+  c.restore();
+  // ظلّ داخلي حول الحوافّ يعطي عمق الحوض
+  var vig = c.createRadialGradient(CX, 620, 180, CX, 620, 640);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,.55)');
+  c.fillStyle = vig; c.fillRect(0, 0, TW, TH);
+  c.restore();
 
-  // --- حلقة الرتبة: قاعدة الأضواء ---
-  c.strokeStyle = 'rgba(93,225,255,.22)'; c.lineWidth = 2;
-  c.beginPath(); c.arc(CX, RANK_Y, 54, 0, 6.2832); c.stroke();
-  c.beginPath(); c.arc(CX, RANK_Y, 80, 0, 6.2832); c.stroke();
-  var core = c.createRadialGradient(CX, RANK_Y, 4, CX, RANK_Y, 40);
-  core.addColorStop(0, 'rgba(255,230,130,.75)'); core.addColorStop(1, 'rgba(255,190,60,0)');
-  c.fillStyle = core; c.beginPath(); c.arc(CX, RANK_Y, 40, 0, 6.2832); c.fill();
+  // ---- شعار الرتبة: قرص مدهون في وسط الطاولة ----
+  var eg = c.createRadialGradient(EMB.x, EMB.y, 4, EMB.x, EMB.y, EMB.r2 + 10);
+  eg.addColorStop(0, 'rgba(255,225,150,.30)'); eg.addColorStop(0.6, 'rgba(120,60,200,.22)');
+  eg.addColorStop(1, 'rgba(120,60,200,0)');
+  c.fillStyle = eg; c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r2 + 10, 0, 6.2832); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.22)'; c.lineWidth = 2;
+  c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r1, 0, 6.2832); c.stroke();
+  c.beginPath(); c.arc(EMB.x, EMB.y, EMB.r2, 0, 6.2832); c.stroke();
 
-  // --- أفواه الثقوب والمنحدر ---
+  // ---- نصوص مطبوعة تسمّي معالم الطاولة ----
+  label(c, 'DEPLOYMENT CHUTE', CX, 62, 16, '#cfe8ff', 0, 0.8);
+  label(c, 'RE-ENTRY', CX, 230, 12, '#9fd0ff', 0, 0.55);
+  label(c, 'BOOST', 198, 306, 11, '#ff9ecb');
+  label(c, 'BONUS 2X', 436, 312, 11, '#7ef0ff');
+  label(c, 'LAUNCH LANES', 128, 418, 12, '#ffd98a');
+  label(c, 'WORM HOLE', 104, 566, 12, '#ffd34d', -Math.PI / 2);
+  label(c, 'HYPERSPACE', 418, 430, 12, '#7ef0ff');
+  label(c, 'LAUNCH RAMP', 452, 600, 12, '#7ef0ff');
+  label(c, 'MEDAL', 250, 528, 11, '#ffd34d');
+  label(c, 'MISSION', CX, 604, 13, '#e0b6ff');
+  label(c, 'HAZARD BANK', 160, 700, 11, '#9fd0ff');
+  label(c, 'HAZARD BANK', 420, 700, 11, '#9fd0ff');
+  label(c, 'FUEL', CX, 742, 12, '#8cf0a8');
+  label(c, 'RANK', EMB.x, EMB.y + EMB.r2 + 18, 12, '#b9a6d8', 0, 0.65);
+
+  // ---- أفواه الثقوب: حفرة داكنة في الدهان، طوق معدني، وسهم موجّه ----
   for (i = 0; i < HOLES.length; i++) {
-    var h = HOLES[i];
-    var hg = c.createRadialGradient(h.x, h.y, 1, h.x, h.y, h.r + 8);
-    hg.addColorStop(0, '#000'); hg.addColorStop(0.62, h.c || '#3a1d63'); hg.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = hg; c.beginPath(); c.arc(h.x, h.y, h.r + 8, 0, 6.2832); c.fill();
-    c.strokeStyle = h.c || 'rgba(196,107,255,.85)'; c.lineWidth = 2.5;
-    c.beginPath(); c.arc(h.x, h.y, h.r, 0, 6.2832); c.stroke();
+    var h = HOLES[i], hc = h.c || (h.id === 'ramp' ? '#7ef0ff' : h.id === 'chute' ? '#ff9ecb' : '#c46bff');
+    var hg = c.createRadialGradient(h.x, h.y - h.r * 0.2, 1, h.x, h.y, h.r + 12);
+    hg.addColorStop(0, '#000'); hg.addColorStop(0.55, 'rgba(0,0,0,.92)');
+    hg.addColorStop(0.78, hc); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = hg; c.beginPath(); c.arc(h.x, h.y, h.r + 12, 0, 6.2832); c.fill();
+    c.fillStyle = '#05030c'; c.beginPath(); c.arc(h.x, h.y, h.r, 0, 6.2832); c.fill();
+    c.strokeStyle = '#8f96ab'; c.lineWidth = 3.5;
+    c.beginPath(); c.arc(h.x, h.y, h.r + 2, 0, 6.2832); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.8)'; c.lineWidth = 1.4;
+    c.beginPath(); c.arc(h.x, h.y, h.r + 3.4, Math.PI * 1.05, Math.PI * 1.75); c.stroke();
+    c.save(); c.translate(h.x, h.y + h.r + 16); c.fillStyle = hc; c.globalAlpha = .8;
+    c.beginPath(); c.moveTo(0, -9); c.lineTo(7, 4); c.lineTo(-7, 4); c.closePath(); c.fill(); c.restore();
   }
+
+  // ---- المنحدر السلكي: قضيبان متوازيان وعوارض، مرفوع عن الدهان بظلّه ----
+  var RP = HOLES[4].path, k;
+  function offsetPath(p, d) {
+    var o = [], n = p.length;
+    for (k = 0; k < n; k++) {
+      var a = p[Math.max(0, k - 1)], b = p[Math.min(n - 1, k + 1)];
+      var dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
+      o.push([p[k][0] - dy / L * d, p[k][1] + dx / L * d]);
+    }
+    return o;
+  }
+  var r1 = offsetPath(RP, 17), r2 = offsetPath(RP, -17);
+  c.save();                                       // ظلّ المنحدر على الدهان: هو ما يقول إنه مرفوع
+  c.translate(7, 11); c.globalAlpha = 0.42;
+  c.strokeStyle = '#000'; c.lineWidth = 40; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(RP[0][0], RP[0][1]);
+  for (k = 1; k < RP.length; k++) c.lineTo(RP[k][0], RP[k][1]);
+  c.stroke(); c.restore();
+  c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 3;
+  for (k = 0; k < RP.length; k++) { c.beginPath(); c.moveTo(r1[k][0], r1[k][1]); c.lineTo(r2[k][0], r2[k][1]); c.stroke(); }
+  c.strokeStyle = '#8f96ab'; c.lineWidth = 2;
+  for (k = 0; k < RP.length; k++) { c.beginPath(); c.moveTo(r1[k][0], r1[k][1]); c.lineTo(r2[k][0], r2[k][1]); c.stroke(); }
+  rail(c, r1, 5); rail(c, r2, 5);
+
+  // ---- القضبان: كل جدار في الطاولة يُرسم فولاذاً، والأقواس قطعة واحدة ----
+  rail(c, arc(CX, CY, R_OUT, 180, 360, 4), 7);
+  rail(c, arc(CX, CY, R_IN, 185, 360, 4), 7);
+  var runs = wallPts(function (o) { return o.k === 'w'; });
+  for (i = 0; i < runs.length; i++) if (runs[i].length > 2 || Math.hypot(runs[i][1][0] - runs[i][0][0], runs[i][1][1] - runs[i][0][1]) > 40) rail(c, runs[i], 7);
+  runs = wallPts(function (o) { return o.k === 'sl'; });
+  for (i = 0; i < runs.length; i++) rail(c, runs[i], 6);
+
   c.restore();
   c.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-function lamp(c, x, y, r, on, col, glow) {
+// مصباح تحت الدهان: مطفأً حفرة داكنة، ومُضاءً بؤرة تتوهّج خلف البلاستيك
+function insert(c, x, y, r, on, col) {
+  c.save();
+  c.fillStyle = 'rgba(0,0,0,.55)'; c.beginPath(); c.arc(x, y, r + 1.5, 0, 6.2832); c.fill();
   if (on) {
-    var g = c.createRadialGradient(x, y, 0, x, y, r * (glow || 3));
-    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = g; c.beginPath(); c.arc(x, y, r * (glow || 3), 0, 6.2832); c.fill();
-    c.fillStyle = '#fff';
-  } else c.fillStyle = 'rgba(255,255,255,.14)';
-  c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+    var g = c.createRadialGradient(x, y, 0, x, y, r * 3.4);
+    g.addColorStop(0, col); g.addColorStop(0.28, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalAlpha = 0.85; c.fillStyle = g;
+    c.beginPath(); c.arc(x, y, r * 3.4, 0, 6.2832); c.fill(); c.globalAlpha = 1;
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(x, y, r * 0.62, 0, 6.2832); c.fill();
+  } else {
+    var d = c.createRadialGradient(x - r * .35, y - r * .35, 1, x, y, r);
+    d.addColorStop(0, 'rgba(255,255,255,.26)'); d.addColorStop(0.6, 'rgba(190,175,225,.13)');
+    d.addColorStop(1, 'rgba(20,10,40,.5)');
+    c.fillStyle = d; c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+  }
+  c.strokeStyle = on ? 'rgba(255,255,255,.75)' : 'rgba(210,200,240,.45)'; c.lineWidth = 1.4;
+  c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.stroke();
+  c.restore();
 }
 
-function draw(now) {
+function draw() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0, 0, VW, VH);
-  ctx.drawImage(stat, 0, 0, VW, VH);
-  var c = ctx, i, o, p;
+  ctx.drawImage(stat, shakeX * S, shakeY * S, VW, VH);
+  var c = ctx, i, o, p, b;
   tableCtx(c);
 
   // ---- حلقة الرتبة: تسعة أضواء للرتبة، وأربعة وعشرون للتقدّم نحو الترقية ----
-  for (i = 0; i < 9; i++) { p = pol(-90 + i * 40, 54, CX, RANK_Y); lamp(c, p[0], p[1], 4.6, i <= G.rank, 'rgba(93,225,255,.95)'); }
-  for (i = 0; i < OUTER_LIGHTS; i++) { p = pol(-90 + i * (360 / OUTER_LIGHTS), 80, CX, RANK_Y); lamp(c, p[0], p[1], 3.6, i < G.prog, 'rgba(255,190,60,.95)'); }
+  for (i = 0; i < 9; i++) { p = pol(-90 + i * 40, EMB.r1, EMB.x, EMB.y); insert(c, p[0], p[1], 6, i <= G.rank, 'rgba(93,225,255,.95)'); }
+  for (i = 0; i < OUTER_LIGHTS; i++) { p = pol(-90 + i * (360 / OUTER_LIGHTS), EMB.r2, EMB.x, EMB.y); insert(c, p[0], p[1], 4.6, i < G.prog, 'rgba(255,190,60,.95)'); }
 
   // ---- المجسّات ----
   for (i = 0; i < ROLLS.length; i++) {
     o = ROLLS[i];
-    lamp(c, o.x, o.y, 4.5, o.t > 0, 'rgba(255,230,120,.9)', 2.6);
-    c.strokeStyle = o.t > 0 ? 'rgba(255,230,120,.8)' : 'rgba(255,255,255,.18)';
-    c.lineWidth = 1.5; c.beginPath(); c.arc(o.x, o.y, o.r * 0.7, 0, 6.2832); c.stroke();
+    insert(c, o.x, o.y, o.g === 'warp' ? 9 : 6, o.t > 0, 'rgba(255,230,120,.95)');
+    c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = 1.4;
+    c.beginPath(); c.arc(o.x, o.y, o.r * 0.78, 0, 6.2832); c.stroke();
   }
   // ---- الأهداف ----
   for (i = 0; i < TARGETS.length; i++) {
     o = TARGETS[i];
-    var lit = o.flash > 0;
+    var col = o.g === 'mult' ? '#5de1ff' : o.g === 'medal' ? '#ffd34d' : o.g === 'boost' ? '#ff77c8'
+            : o.g === 'mission' ? '#c46bff' : o.g === 'fuel' ? '#5cf08a' : '#5de1ff';
     if (o.k === 'drop') {
-      if (o.down) { c.fillStyle = 'rgba(255,255,255,.12)'; c.beginPath(); c.arc(o.x, o.y, 4, 0, 6.2832); c.fill(); continue; }
-      var sg = tgtSeg(o);
-      c.strokeStyle = lit ? '#fff' : (o.g === 'mult' ? '#5de1ff' : o.g === 'medal' ? '#ffd34d' : '#ff77c8');
-      c.lineWidth = 8; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(sg[0], sg[1]); c.lineTo(sg[2], sg[3]); c.stroke();
-      c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 2.4;
-      c.beginPath(); c.moveTo(sg[0], sg[1]); c.lineTo(sg[2], sg[3]); c.stroke();
+      var sg = tgtSeg(o), vert = o.a === 90;
+      if (o.down) {                                 // شقّ في الدهان مكان الهدف
+        c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(sg[0], sg[1]); c.lineTo(sg[2], sg[3]); c.stroke();
+        continue;
+      }
+      c.save(); c.translate(o.x, o.y); if (vert) c.rotate(Math.PI / 2);
+      var hw = o.hw, hh = 9;
+      c.fillStyle = 'rgba(0,0,0,.5)'; rr(c, -hw, -hh + 4, hw * 2, hh * 2, 3); c.fill();
+      var tg = c.createLinearGradient(0, -hh, 0, hh);
+      tg.addColorStop(0, o.flash > 0 ? '#fff' : '#ffffff'); tg.addColorStop(0.35, col); tg.addColorStop(1, 'rgba(0,0,0,.65)');
+      c.fillStyle = tg; rr(c, -hw, -hh, hw * 2, hh * 2, 3); c.fill();
+      c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.2; c.stroke();
+      c.restore();
     } else {
-      var on = lit || (o.g === 'hazL' && G.hazL[o.i]) || (o.g === 'hazR' && G.hazR[o.i]) ||
-               (o.g === 'mission' && (G.sel || G.mission));
-      var col = o.g === 'mission' ? '#c46bff' : o.g === 'fuel' ? '#5cf08a' : '#5de1ff';
-      c.fillStyle = 'rgba(10,4,24,.92)'; c.beginPath(); c.arc(o.x, o.y, 9, 0, 6.2832); c.fill();
-      c.strokeStyle = on ? '#fff' : col; c.lineWidth = on ? 3 : 2.2;
-      c.beginPath(); c.arc(o.x, o.y, 9, 0, 6.2832); c.stroke();
-      lamp(c, o.x, o.y, 3.4, on, col, 4.5);
+      var on = o.flash > 0 || (o.g === 'hazL' && G.hazL[o.i]) || (o.g === 'hazR' && G.hazR[o.i]) ||
+               (o.g === 'mission' && !!(G.sel || G.mission));
+      // هدف نقطي: عمود معدني صغير أمام مصباح
+      insert(c, o.x, o.y, 9, on, col);
+      c.fillStyle = 'rgba(0,0,0,.45)'; rr(c, o.x - 3.5, o.y - 15, 7, 13, 2); c.fill();
+      var pg = c.createLinearGradient(o.x - 3, 0, o.x + 3, 0);
+      pg.addColorStop(0, '#f2f4ff'); pg.addColorStop(1, '#7b8296');
+      c.fillStyle = pg; rr(c, o.x - 3, o.y - 16, 6, 13, 2); c.fill();
     }
   }
-  // ---- المنافخ ----
+  // ---- المنافخ: قاعدة ملوّنة، تنّورة، وقبّعة فطرية ----
   for (i = 0; i < BUMPERS.length; i++) {
     o = BUMPERS[i];
-    var f = o.flash > 0 ? 1 : 0, rr = o.r * (1 + f * 0.08);
-    var bg = c.createRadialGradient(o.x - rr * 0.3, o.y - rr * 0.35, 1, o.x, o.y, rr);
-    if (f) { bg.addColorStop(0, '#fff'); bg.addColorStop(1, '#ffd34d'); }
-    else if (o.lit) { bg.addColorStop(0, '#dff6ff'); bg.addColorStop(0.55, '#5de1ff'); bg.addColorStop(1, '#1d5f9e'); }
-    else { bg.addColorStop(0, '#e9d0ff'); bg.addColorStop(0.55, '#a35ce0'); bg.addColorStop(1, '#42176e'); }
-    c.fillStyle = bg; c.beginPath(); c.arc(o.x, o.y, rr, 0, 6.2832); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2.2;
-    c.beginPath(); c.arc(o.x, o.y, rr, 0, 6.2832); c.stroke();
-    c.fillStyle = 'rgba(255,255,255,.9)'; c.beginPath(); c.arc(o.x, o.y, rr * 0.3, 0, 6.2832); c.fill();
+    var f = o.flash > 0, rr2 = o.r;
+    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 3, o.y + 4, rr2, 0, 6.2832); c.fill();
+    var ring = c.createRadialGradient(o.x, o.y, rr2 * 0.5, o.x, o.y, rr2);
+    ring.addColorStop(0, f ? 'rgba(255,255,255,.95)' : (o.lit ? 'rgba(93,225,255,.9)' : 'rgba(196,107,255,.75)'));
+    ring.addColorStop(1, 'rgba(20,8,40,.9)');
+    c.fillStyle = ring; c.beginPath(); c.arc(o.x, o.y, rr2, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(o.x, o.y, rr2, 0, 6.2832); c.stroke();
+    var cap = c.createRadialGradient(o.x - rr2 * .32, o.y - rr2 * .38, 1, o.x, o.y, rr2 * .68);
+    cap.addColorStop(0, '#ffffff'); cap.addColorStop(0.5, f ? '#ffe58a' : '#d9d2ec'); cap.addColorStop(1, '#5b5273');
+    c.fillStyle = cap; c.beginPath(); c.arc(o.x, o.y, rr2 * 0.66, 0, 6.2832); c.fill();
+    c.strokeStyle = f ? '#fff' : 'rgba(255,255,255,.55)'; c.lineWidth = 2;
+    c.beginPath(); c.arc(o.x, o.y, rr2 * 0.66, 0, 6.2832); c.stroke();
   }
-  // ---- الأعمدة المطّاطية ----
+  // ---- الأعمدة: بلاستيك أبيض عليه حلقة مطّاط ----
   for (i = 0; i < POSTS.length; i++) {
     o = POSTS[i];
-    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 2, o.y + 2, o.r, 0, 6.2832); c.fill();
-    var pg = c.createRadialGradient(o.x - o.r * 0.4, o.y - o.r * 0.4, 1, o.x, o.y, o.r);
-    pg.addColorStop(0, '#fff'); pg.addColorStop(0.5, '#ff9ecb'); pg.addColorStop(1, '#a3246a');
-    c.fillStyle = pg; c.beginPath(); c.arc(o.x, o.y, o.r, 0, 6.2832); c.fill();
+    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 2, o.y + 3, o.r + 2, 0, 6.2832); c.fill();
+    c.fillStyle = '#e2436b'; c.beginPath(); c.arc(o.x, o.y, o.r + 2.5, 0, 6.2832); c.fill();
+    var pgd = c.createRadialGradient(o.x - o.r * .4, o.y - o.r * .4, 1, o.x, o.y, o.r);
+    pgd.addColorStop(0, '#fff'); pgd.addColorStop(1, '#b9b3c9');
+    c.fillStyle = pgd; c.beginPath(); c.arc(o.x, o.y, o.r, 0, 6.2832); c.fill();
   }
-  // ---- المصدّان ----
+  // ---- المصدّان: شريط مطّاط بين عمودين ----
   for (i = 0; i < 2; i++) {
     o = SLINGS[i];
-    c.strokeStyle = o.lit > 0 ? '#fff' : 'rgba(255,120,190,.85)';
-    c.lineWidth = o.lit > 0 ? 9 : 7; c.lineCap = 'round';
+    var lit = o.lit > 0;
+    c.lineCap = 'round';
+    c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 11;
+    c.beginPath(); c.moveTo(o.a[0], o.a[1] + 3); c.lineTo(o.b[0], o.b[1] + 3); c.stroke();
+    c.strokeStyle = lit ? '#ffffff' : '#e2436b'; c.lineWidth = lit ? 10 : 8;
     c.beginPath(); c.moveTo(o.a[0], o.a[1]); c.lineTo(o.b[0], o.b[1]); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(o.a[0], o.a[1] - 2); c.lineTo(o.b[0], o.b[1] - 2); c.stroke();
+    for (var q = 0; q < 2; q++) {
+      var pp = q ? o.b : o.a;
+      c.fillStyle = '#efe9ff'; c.beginPath(); c.arc(pp[0], pp[1], 6, 0, 6.2832); c.fill();
+    }
   }
-  // ---- الأعلام ----
+  // ---- الأعلام الدوّارة ----
   for (i = 0; i < FLAGS.length; i++) {
     o = FLAGS[i];
     c.save(); c.translate(o.x, o.y); c.rotate(o.spin);
-    c.strokeStyle = 'rgba(93,225,255,.9)'; c.lineWidth = 3;
-    for (var q = 0; q < 3; q++) {
-      c.rotate(2.094);
-      c.beginPath(); c.moveTo(0, 0); c.lineTo(o.r * 0.85, 0); c.stroke();
+    for (var w = 0; w < 3; w++) {
+      c.rotate(2.0944);
+      c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = 6;
+      c.beginPath(); c.moveTo(0, 2); c.lineTo(o.r * 0.9, 2); c.stroke();
+      c.strokeStyle = G.flagLv > 0 ? '#ffd34d' : '#9fd0ff'; c.lineWidth = 4;
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(o.r * 0.9, 0); c.stroke();
     }
     c.restore();
-    lamp(c, o.x, o.y, 3.4, G.flagLv > 0, 'rgba(255,230,120,.9)', 2.4);
+    c.fillStyle = '#6d7488'; c.beginPath(); c.arc(o.x, o.y, 4, 0, 6.2832); c.fill();
   }
-  // ---- حارس المصرف ----
+  // ---- حارس المصرف والرافعتان ----
   if (BLOCKER.on) {
-    c.strokeStyle = 'rgba(93,225,255,.9)'; c.lineWidth = 6; c.setLineDash([12, 10]);
+    c.strokeStyle = 'rgba(93,225,255,.95)'; c.lineWidth = 7; c.setLineDash([14, 10]);
     c.beginPath(); c.moveTo(BLOCKER.a[0], BLOCKER.a[1]); c.lineTo(BLOCKER.b[0], BLOCKER.b[1]); c.stroke();
     c.setLineDash([]);
   }
-  // ---- الرافعتان ----
-  for (i = 0; i < KICKS.length; i++) lamp(c, KICKS[i].x, KICKS[i].y - 46, 5, KICKS[i].on, 'rgba(120,255,160,.9)', 2.6);
+  for (i = 0; i < KICKS.length; i++) insert(c, KICKS[i].x, KICKS[i].y, 6, KICKS[i].on, 'rgba(120,255,160,.95)');
 
-  // ---- المضربان ----
+  // ---- المضربان: مضرب مستدقّ بخطّ أبيض ومحور معدني ----
   for (i = 0; i < 2; i++) {
     var fl = FLIPS[i], tp = fl.tip();
     c.save(); c.lineCap = 'round';
-    c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = (FLIP_R + 3) * 2;
-    c.beginPath(); c.moveTo(fl.px, fl.py + 3); c.lineTo(tp[0], tp[1] + 3); c.stroke();
-    var fg = c.createLinearGradient(fl.px, fl.py - FLIP_R, fl.px, fl.py + FLIP_R);
-    fg.addColorStop(0, '#fff0f6'); fg.addColorStop(0.45, '#ff6fa8'); fg.addColorStop(1, '#8e1f52');
-    c.strokeStyle = fg; c.lineWidth = FLIP_R * 2;
+    c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = (FLIP_R + 3) * 2;
+    c.beginPath(); c.moveTo(fl.px, fl.py + 4); c.lineTo(tp[0], tp[1] + 4); c.stroke();
+    c.strokeStyle = '#8e1f52'; c.lineWidth = FLIP_R * 2 + 2;
     c.beginPath(); c.moveTo(fl.px, fl.py); c.lineTo(tp[0], tp[1]); c.stroke();
-    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 2;
-    c.beginPath(); c.moveTo(fl.px, fl.py - 3); c.lineTo(tp[0], tp[1] - 3); c.stroke();
-    c.fillStyle = '#2a1044'; c.beginPath(); c.arc(fl.px, fl.py, 4.5, 0, 6.2832); c.fill();
+    var fg = c.createLinearGradient(fl.px, fl.py - FLIP_R, fl.px, fl.py + FLIP_R);
+    fg.addColorStop(0, '#ffd7e6'); fg.addColorStop(0.42, '#ff5f9e'); fg.addColorStop(1, '#a32360');
+    c.strokeStyle = fg; c.lineWidth = FLIP_R * 2 - 2;
+    c.beginPath(); c.moveTo(fl.px, fl.py); c.lineTo(tp[0], tp[1]); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.65)'; c.lineWidth = 2.2;
+    c.beginPath(); c.moveTo(fl.px + (tp[0] - fl.px) * .12, fl.py + (tp[1] - fl.py) * .12 - 2.5);
+    c.lineTo(fl.px + (tp[0] - fl.px) * .85, fl.py + (tp[1] - fl.py) * .85 - 2.5); c.stroke();
+    c.fillStyle = '#c9c3dc'; c.beginPath(); c.arc(fl.px, fl.py, 5, 0, 6.2832); c.fill();
+    c.fillStyle = '#2a1044'; c.beginPath(); c.arc(fl.px, fl.py, 2.4, 0, 6.2832); c.fill();
     c.restore();
   }
 
-  // ---- القاذف ----
-  var py = PL_ROD - PLUNGE.pull * 26;
-  c.strokeStyle = '#7d5bb0'; c.lineWidth = 12; c.lineCap = 'butt';
-  c.beginPath(); c.moveTo(550, py); c.lineTo(550, PL_FOOT); c.stroke();
-  c.fillStyle = '#ffd34d'; c.fillRect(538, py - 8, 24, 9);
-  if (PLUNGE.pull > 0.02) {                       // مؤشّر القوّة
-    var PMH = PM_BOT - PM_TOP;
-    c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(LANE_L + 8, PM_TOP, 10, PMH);
-    var ph = PMH * PLUNGE.pull;
-    var pgd = c.createLinearGradient(0, PM_TOP, 0, PM_BOT);
-    pgd.addColorStop(0, '#ff5a6e'); pgd.addColorStop(0.5, '#ffd34d'); pgd.addColorStop(1, '#5cf08a');
-    c.fillStyle = pgd; c.fillRect(LANE_L + 8, PM_BOT - ph, 10, ph);
+  // ---- القاذف ومؤشّر قوّته ----
+  var py = PLUNGE_REST + 26 - PLUNGE.pull * 30;
+  c.strokeStyle = '#6d7488'; c.lineWidth = 13; c.lineCap = 'butt';
+  c.beginPath(); c.moveTo(LANE_MID, py); c.lineTo(LANE_MID, LANE_FLOOR); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = 3;
+  c.beginPath(); c.moveTo(LANE_MID - 3, py); c.lineTo(LANE_MID - 3, LANE_FLOOR); c.stroke();
+  c.fillStyle = '#ffd34d'; rr(c, LANE_MID - 14, py - 10, 28, 11, 3); c.fill();
+  c.strokeStyle = 'rgba(0,0,0,.4)'; c.lineWidth = 1; c.stroke();
+  if (PLUNGE.pull > 0.02) {
+    var mTop = 760, mBot = 1040, mh = mBot - mTop;
+    c.fillStyle = 'rgba(0,0,0,.5)'; rr(c, LANE_IN + 10, mTop, 11, mh, 5); c.fill();
+    var ph = mh * PLUNGE.pull;
+    var pgd2 = c.createLinearGradient(0, mTop, 0, mBot);
+    pgd2.addColorStop(0, '#ff5a6e'); pgd2.addColorStop(0.5, '#ffd34d'); pgd2.addColorStop(1, '#5cf08a');
+    c.fillStyle = pgd2; rr(c, LANE_IN + 10, mBot - ph, 11, ph, 5); c.fill();
   }
 
-  // ---- الكرات ----
+  // ---- الكرات: ظلّ، ذيل حركة، ومعدن مصقول ----
   for (i = 0; i < balls.length; i++) {
-    var b = balls[i];
-    if (b.hole) continue;
+    b = balls[i];
+    if (b.hole && !b.hole.path) continue;
+    if (b.trail) for (var tI = 0; tI < b.trail.length; tI++) {
+      var tr = b.trail[tI], al = (tI + 1) / b.trail.length * 0.3;
+      c.fillStyle = 'rgba(210,205,235,' + al.toFixed(2) + ')';
+      c.beginPath(); c.arc(tr[0], tr[1], BR * (0.35 + 0.5 * al), 0, 6.2832); c.fill();
+    }
     c.fillStyle = 'rgba(0,0,0,.5)';
-    c.beginPath(); c.arc(b.x + 3, b.y + 4, BR, 0, 6.2832); c.fill();
-    var bgd = c.createRadialGradient(b.x - BR * 0.4, b.y - BR * 0.45, 1, b.x, b.y, BR);
-    bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(0.35, '#d7d2e6');
-    bgd.addColorStop(0.75, '#8d87a8'); bgd.addColorStop(1, '#3b3550');
+    c.beginPath(); c.arc(b.x + 4, b.y + 5, BR, 0, 6.2832); c.fill();
+    var bgd = c.createRadialGradient(b.x - BR * 0.42, b.y - BR * 0.48, 1, b.x, b.y, BR);
+    bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(0.3, '#dcd8ea');
+    bgd.addColorStop(0.72, '#8a84a4'); bgd.addColorStop(1, '#332d47');
     c.fillStyle = bgd; c.beginPath(); c.arc(b.x, b.y, BR, 0, 6.2832); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1;
-    c.beginPath(); c.arc(b.x, b.y, BR - 0.6, 0, 6.2832); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.85)';
+    c.beginPath(); c.arc(b.x - BR * 0.38, b.y - BR * 0.44, BR * 0.2, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1;
+    c.beginPath(); c.arc(b.x, b.y, BR - 0.5, 0, 6.2832); c.stroke();
   }
   c.restore();
   drawHud();
@@ -1383,28 +1502,23 @@ function drawHud() {
   var c = ctx, top = OY - HUD, right = VW - 8;
   c.save();
   c.textBaseline = 'middle';
-  // النتيجة
+  c.fillStyle = 'rgba(8,4,18,.55)'; c.fillRect(0, Math.max(0, top - 2), VW, HUD + 4);
   c.textAlign = 'right';
   c.fillStyle = '#ffd34d';
   c.font = '800 ' + Math.round(HUD * 0.42) + 'px ' + FONT;
   c.fillText(G.score.toLocaleString('en-US'), right, top + HUD * 0.30);
-  // الحالة: الرتبة، الكرة، المضاعِف
   c.font = '700 ' + Math.round(HUD * 0.2) + 'px ' + FONT;
   c.fillStyle = '#b9a6d8';
-  var line = RANKS[G.rank] + '  ·  كرة ' + G.ball + '/' + G.ballsTotal +
-    (G.mult ? '  ·  ×' + MULTS[G.mult] : '') + (G.extra ? '  ·  +' + G.extra : '');
-  c.fillText(line, right, top + HUD * 0.62);
-  // أفضل نتيجة
+  c.fillText(RANKS[G.rank] + '  ·  كرة ' + G.ball + '/' + G.ballsTotal +
+    (G.mult ? '  ·  ×' + MULTS[G.mult] : '') + (G.extra ? '  ·  +' + G.extra : ''), right, top + HUD * 0.62);
   c.textAlign = 'left';
-  c.fillStyle = 'rgba(185,166,216,.75)';
   var lx = Math.max(52, OX + 2);
+  c.fillStyle = 'rgba(185,166,216,.75)';
   c.fillText('TOP ' + G.best.toLocaleString('en-US'), lx, top + HUD * 0.62);
-  // مقياس الوقود
   for (var i = 0; i < 6; i++) {
     c.fillStyle = i < G.fuel ? (G.fuel <= 2 ? '#ff5a6e' : '#5cf08a') : 'rgba(255,255,255,.16)';
     c.fillRect(lx + i * 9, top + HUD * 0.18, 6, Math.round(HUD * 0.2));
   }
-  // سطر المهمّة والإعلانات
   var txt = (G.infoT > 0 && G.info) || (G.msgT > 0 && G.msg) || missionLine();
   c.fillStyle = G.tiltLock ? '#ff5a6e' : (G.msgT > 0 && G.msg) ? '#ffd34d' : '#e9dcff';
   if (txt) {
@@ -1414,8 +1528,6 @@ function drawHud() {
   }
   c.restore();
 }
-var FONT = '"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif';
-
 /* ==========================================================================
    ٧ — الحفظ، والمدخلات، وحلقة اللعب
    ========================================================================== */
@@ -1551,7 +1663,7 @@ function launch() {
   if (pw < 0.03) pw = 0.03;
   b.wait = false; b.spd = 620 + 1150 * pw; b.dx = 0; b.dy = -1;
   PLUNGE.pull = 0;
-  sfx('kickback');
+  sfx('plunge');
 }
 
 // ---------- لوحة المفاتيح ----------
@@ -1580,7 +1692,7 @@ addEventListener('keyup', function (e) {
 // ---------- هزّ الجهاز: نَخّة حقيقية، وكثرتها إمالة ----------
 function nudge(dir) {
   if (G.state !== 'play' || G.tiltLock) return;
-  G.nudgeX = dir * 170; G.nudging = 0.12;
+  G.nudgeX = dir * 170; G.nudging = 0.12; shakeX += dir * 9;
   for (var i = 0; i < balls.length; i++) if (!balls[i].hole && !balls[i].wait) kick(balls[i], dir > 0 ? 1 : -1, -0.35, 90);
   sfx('wall', 0.6);
 }
@@ -1606,7 +1718,7 @@ $('againBtn').addEventListener('click', askMotion);
 // ---------- حلقة اللعب ----------
 var raf = 0, last = 0;
 function tick(dt) {
-  var i, o;
+  var i, o, b;
   if (G.msgT > 0) { G.msgT -= dt; if (G.msgT <= 0) G.msg = ''; }
   if (G.infoT > 0) G.infoT -= dt;
   if (G.comboT > 0) G.comboT -= dt;
@@ -1615,6 +1727,18 @@ function tick(dt) {
   for (i = 0; i < BUMPERS.length; i++) if (BUMPERS[i].flash > 0) BUMPERS[i].flash -= dt;
   for (i = 0; i < SLINGS.length; i++) if (SLINGS[i].lit > 0) SLINGS[i].lit -= dt;
   for (i = 0; i < FLAGS.length; i++) { o = FLAGS[i]; if (o.v > 0.01) { o.spin += o.v * dt; o.v *= 0.94; } }
+  shakeX *= 0.82; shakeY *= 0.82;
+  if (Math.abs(shakeX) < 0.05) shakeX = 0;
+  if (Math.abs(shakeY) < 0.05) shakeY = 0;
+  var fast = 0, onTable = false;
+  for (i = 0; i < balls.length; i++) {
+    b = balls[i];
+    if (b.hole || b.wait) continue;
+    onTable = true; if (b.spd > fast) fast = b.spd;
+    if (!b.trail) b.trail = [];
+    b.trail.push([b.x, b.y]); if (b.trail.length > 5) b.trail.shift();
+  }
+  rollSound(fast, onTable);
   if (G.state !== 'play') return;
 
   if (G.nudging > 0) { G.nudging -= dt; G.tilt += dt * 4; } else if (G.tilt > 0) G.tilt = Math.max(0, G.tilt - dt);
