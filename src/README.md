@@ -23,9 +23,10 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 | `bounce/shell.html` + `bounce/engine.js` + `bounce/*.b64` + `bounce/levels.js` | `bounce.html` |
 | `games/snake.html` | `snake.html` |
 | `games/tetris.html` | `tetris.html` |
+| `games/pinball.html` | `pinball.html` |
 | `build.py` نفسه | `sw.js` و`manifest.webmanifest` |
 
-الألعاب الثلاث تمرّ بـ`with_app_head` التي تضيف روابط الأيقونات ووسوم تطبيق الويب إلى رأس الصفحة فقط، دون أن تمسّ طريقة اللعب. لهذا `games/snake.html` و`snake.html` متشابهان عدا الرأس.
+ألعاب `games/` تمرّ بـ`with_app_head` التي تضيف روابط الأيقونات ووسوم تطبيق الويب إلى رأس الصفحة فقط، دون أن تمسّ طريقة اللعب. لهذا `games/snake.html` و`snake.html` متشابهان عدا الرأس.
 
 `src/build/` ناتج جانبي مُتجاهَل من git: نسخة الكرة الحمراء وحدها، وملف واحد يحوي المجموعة كلها بألعابها مُضمَّنة بترميز base64 — مفيد للمشاركة أو للعمل من `file://`، وليس جزءاً من الموقع المنشور.
 

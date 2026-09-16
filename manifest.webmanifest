@@ -1,7 +1,7 @@
 {
   "name": "Hamad's Games",
   "short_name": "Hamad's Games",
-  "description": "ثلاث ألعاب من زمن نوكيا: الكرة الحمراء، الدودة، وتتريس.",
+  "description": "أربع ألعاب: الكرة الحمراء، الدودة، تتريس، وبينبول الفضاء.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",

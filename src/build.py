@@ -5,7 +5,7 @@
     python3 src/build.py --check    only report whether they are up to date
 
 Writes into the repository root: index.html, sw.js, bounce.html, snake.html,
-tetris.html and manifest.webmanifest. It also writes src/build/, which is
+tetris.html, pinball.html and manifest.webmanifest. It also writes src/build/, which is
 ignored by git and holds a single file copy of the whole collection.
 
 games.json is an INPUT, never an output. Adding a game means editing that file
@@ -124,7 +124,7 @@ DOC_HEAD = ('<!DOCTYPE html>\n<html lang="ar">\n<head>\n<meta charset="UTF-8">\n
 bounce_doc = DOC_HEAD + bounce_frag.replace('</style>\n\n<div id="shell">',
                                             '</style>\n</head>\n<body>\n<div id="shell">') + '</body>\n</html>\n'
 emit(os.path.join(REPO, 'bounce.html'), with_app_head(bounce_doc, 'Bounce'))
-TITLES = {'snake': 'Snake II', 'tetris': 'Tetris'}
+TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'pinball': 'Pinball'}
 for e in ENTRIES:
     if e['id'] == 'bounce':
         continue                                    # built from source above
@@ -181,7 +181,7 @@ emit(os.path.join(BUILD_DIR, 'hamads-games.html'), fill(hub, REGISTRY_JSON, art_
 emit(os.path.join(REPO, 'manifest.webmanifest'), json.dumps({
     "name": "Hamad's Games",
     "short_name": "Hamad's Games",
-    "description": "ثلاث ألعاب من زمن نوكيا: الكرة الحمراء، الدودة، وتتريس.",
+    "description": "أربع ألعاب: الكرة الحمراء، الدودة، تتريس، وبينبول الفضاء.",
     "start_url": "./index.html",
     "scope": "./",
     "display": "fullscreen",

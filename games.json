@@ -33,6 +33,17 @@
       "thumb": {
         "builtin": "tetris"
       }
+    },
+    {
+      "id": "pinball",
+      "file": "pinball.html",
+      "ar": "بينبول الفضاء",
+      "en": "PINBALL",
+      "stripe": "#c46bff",
+      "desc": "طاولة الملاح الفضائي: تسع رتب وسبع عشرة مهمّة، بفيزياء حقيقية ومضربين على نصفَي الشاشة.",
+      "thumb": {
+        "builtin": "pinball"
+      }
     }
   ]
 }

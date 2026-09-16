@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="./icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="./icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="./icon-120.png">
+<link rel="icon" sizes="192x192" href="./icon-192.png" type="image/png">
+<meta name="robots" content="noindex, nofollow">
+<script>if('serviceWorker' in navigator && /^https?:$/.test(location.protocol))addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(function(){});});</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>بينبول الفضاء — Space Cadet</title>
+<meta name="apple-mobile-web-app-title" content="Pinball">
+<meta name="theme-color" content="#140a24">
+<style>
+/* ==========================================================================
+   بينبول الفضاء — استثناء مقصود من عقد المظهر في README.
+   الألعاب الثلاث الأخرى أجهزة نوكيا لها هيكل (.unit/.cap/.deck/.pads) يحيط
+   بشاشة صغيرة. طاولة البينبول عكس ذلك تماماً: نسبتها 6:10 وتحتاج كل بكسل
+   رأسي، والمضربان يُلعبان بنصفَي الشاشة لا بأزرار. فلا هيكل هنا، ولا لوحة
+   مفاتيح؛ الطاولة هي الجهاز. ما يبقى من العقد كما هو: بلا إنترنت، ولا هدف
+   لمس تحت ٤٤ بكسلاً، وخلفية ليست لوناً مسطّحاً، وحركة تحترم تفضيل النظام،
+   وحفظ عند مغادرة الصفحة لا عند ضغط زرّ.
+   ========================================================================== */
+:root {
+  --void:#0b0616; --void-2:#1b0d33; --neon:#c46bff; --neon-2:#5de1ff;
+  --amber:#ffb347; --ink:#f4ecff;
+  --font-ui:"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif;
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family:var(--font-ui); color:var(--ink);
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  touch-action:none; overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+  /* سديم أرجواني: طبقات تدرّج لا لون مسطّح، وهي ما يظهر خلف الطاولة */
+  background:
+    radial-gradient(120% 80% at 18% 4%, rgba(196,107,255,.30), rgba(196,107,255,0) 55%),
+    radial-gradient(90% 70% at 88% 22%, rgba(93,225,255,.16), rgba(93,225,255,0) 60%),
+    radial-gradient(140% 100% at 50% 108%, #2a1148 0%, var(--void-2) 42%, var(--void) 100%);
+}
+
+/* ---- لوحة الرسم: ملء المنفذ كاملاً، والمقياس devicePixelRatio في الكود ---- */
+#table { position:fixed; inset:0; width:100%; height:100%; display:block; z-index:1; }
+
+/* ---- شريط الأزرار: عمود صغير على الحافة اليسرى العليا، بعيداً عن مسار
+   الإبهامين (أسفل الشاشة) وعن مسار الكرة. الزرّ نفسه ٤٤×٤٤ رقعة لمس
+   شفافة، والشكل المرسوم بداخله ٣٠ فقط عبر ::before — فالهدف كبير واليد
+   ترى زرّاً صغيراً. ::after يوسّع الرقعة أربعة بكسلات أخرى نحو الفراغ. ---- */
+#rail {
+  position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
+  top:calc(env(safe-area-inset-top, 0px) + 2px);
+  left:calc(env(safe-area-inset-left, 0px) + 2px);
+}
+#rail button {
+  position:relative; width:44px; height:44px; flex:none; padding:0;
+  border:0; background:transparent; color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  font:600 13px/1 var(--font-ui); cursor:pointer;
+}
+#rail button::before {
+  content:""; position:absolute; top:7px; left:7px; width:30px; height:30px;
+  border-radius:50%; z-index:-1;
+  background:
+    radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
+    linear-gradient(165deg, rgba(90,50,140,.88), rgba(28,14,52,.9));
+  box-shadow:inset 0 0 0 1px rgba(196,107,255,.45), 0 2px 6px rgba(0,0,0,.5);
+}
+/* رقعة اللمس تمتدّ خارج الشكل نحو الحافة، لا نحو الزرّ المجاور */
+#rail button::after { content:""; position:absolute; top:0; bottom:0; left:-6px; right:-2px; }
+#rail button .g { position:relative; z-index:1; font-size:15px; line-height:1; }
+#rail button.off .g { opacity:.42; }
+#rail button:disabled { opacity:.35; pointer-events:none; }
+
+/* ---- الشاشات: بداية، إيقاف، نهاية ---- */
+.sheet {
+  position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:14px; text-align:center;
+  padding:calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  background:
+    radial-gradient(90% 60% at 50% 22%, rgba(196,107,255,.22), rgba(196,107,255,0) 62%),
+    linear-gradient(180deg, rgba(8,4,18,.90), rgba(8,4,18,.965));
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+}
+.sheet[hidden] { display:none; }
+.logo {
+  font:800 clamp(26px, 8vw, 46px)/1.05 var(--font-ui); letter-spacing:.5px;
+  background:linear-gradient(180deg, #fff 0%, var(--neon) 58%, #6a2ea8 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  text-shadow:0 0 22px rgba(196,107,255,.35);
+}
+.sub { font:600 13px/1.7 var(--font-ui); color:#b9a6d8; max-width:30ch; }
+.big { font:800 clamp(22px,7vw,34px)/1.2 var(--font-ui); color:var(--amber); }
+.rank { font:700 14px/1.5 var(--font-ui); color:var(--neon-2); }
+.go {
+  appearance:none; -webkit-appearance:none; min-width:168px; min-height:48px; padding:0 22px;
+  border-radius:26px; border:1.5px solid rgba(196,107,255,.6); cursor:pointer;
+  background:linear-gradient(180deg, rgba(150,80,220,.5), rgba(60,24,110,.6));
+  color:var(--ink); font:800 16px/1 var(--font-ui);
+  box-shadow:0 0 18px rgba(196,107,255,.22), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.hint {
+  font:600 12px/1.8 var(--font-ui); color:#9d8cbb; max-width:34ch;
+  border-top:1px solid rgba(196,107,255,.2); padding-top:12px;
+}
+.hint b { color:var(--neon-2); font-weight:800; }
+
+/* ---- الحركة: ما يتحرّك زخرفياً يتوقّف متى طلب النظام تقليل الحركة ---- */
+@keyframes glow { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+.pulse { animation:glow 1.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation:none !important; transition:none !important; }
+}
+</style>
+</head>
+<body data-layout="fullscreen">
+
+<canvas id="table"></canvas>
+
+<div id="rail">
+  <button id="menuBtn" type="button" aria-label="القائمة"><span class="g">&#9776;</span></button>
+  <button id="pauseBtn" type="button" aria-label="إيقاف مؤقت"><span class="g">&#10074;&#10074;</span></button>
+  <button id="muteBtn" type="button" aria-label="كتم الصوت"><span class="g">&#9834;</span></button>
+</div>
+
+<div class="sheet" id="startSheet">
+  <div class="logo">بينبول الفضاء</div>
+  <div class="sub">طاولة الملاح الفضائي: تسع رتب، سبع عشرة مهمّة، وثلاث كرات.</div>
+  <button class="go" id="playBtn" type="button">ابدأ اللعب</button>
+  <div class="hint">
+    المضرب الأيسر = <b>نصف الشاشة الأيسر</b>، والأيمن = الأيمن، ويعملان معاً.<br>
+    لإطلاق الكرة: <b>اسحب للأسفل</b> على اليمين ثم أفلت.<br>
+    هزّ الجهاز يُميل الطاولة — وكثرته تُقفلها.
+  </div>
+</div>
+
+<div class="sheet" id="pauseSheet" hidden>
+  <div class="logo">إيقاف</div>
+  <button class="go" id="resumeBtn" type="button">متابعة</button>
+  <button class="go" id="quitBtn" type="button">إنهاء الجولة</button>
+</div>
+
+<div class="sheet" id="overSheet" hidden>
+  <div class="logo">انتهت الجولة</div>
+  <div class="big" id="finalScore">0</div>
+  <div class="rank" id="finalRank"></div>
+  <div class="sub" id="recordMsg"></div>
+  <button class="go" id="againBtn" type="button">جولة جديدة</button>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   ١ — ثوابت الطاولة وهندستها
+   --------------------------------------------------------------------------
+   فضاء الطاولة ٦٠٠×١٠٠٠ وحدة، y إلى الأسفل. النسب مأخوذة من طاولة حقيقية:
+   عرض ملعب ٢٠.٢٥ بوصة وكرة ١.٠٦٢٥ ومضرب ٣ بوصات، أي نصف قطر ١٤ ومضرب ٩٠
+   على هذا المقياس. والجاذبية ميل ٦.٥ درجة: ‏9.81·sin(6.5°) ≈ ١٠٥٠ وحدة/ث².
+   ========================================================================== */
+var TW = 600, TH = 1160;
+var BR = 14;                       // نصف قطر الكرة
+var BHALF = BR * 0.5;              // خطوة التقسيم الفرعي (pb::BallHalfRadius)
+var BMAX = BR * 200;               // السقف الأصلي للسرعة (pb::BallMaxSpeed)
+var GRAV = 1050;
+var EL = 0.60, SM = 0.95;          // الافتراضيان في loader.cpp
+
+var CX = 300, CY = 300;            // مركز القبّة
+var R_OUT = 276, R_IN = 204;       // القوسان الخارجي والداخلي للمدار
+var LANE_L = 524, LANE_R = 576;    // ممر القاذف
+var FLIP_LEN = 90, FLIP_R = 9;     // طول المضرب ونصف قطر حافّته
+var FLIP_LY = 900, FLIP_LX = 196, FLIP_RX = 404;
+var REST_A = 0.5236, UP_A = -0.5585;   // ‏٣٠ درجة سكوناً، ‏‎-٣٢ رفعاً
+var FLIP_W = 13.5;                 // سرعة زاوية (راديان/ث)
+
+/* شاشة الجوال نسبتها نحو 0.46 والطاولة المرسومة على شبكة ٦٠٠×١٠٠٠ نسبتها 0.6،
+   فلو احترمنا الشبكة كما هي لبقي رُبع الشاشة فارغاً. لذلك تُمطّ الطاولة رأسياً
+   تحت القبّة وحدها: القبّة قوس دائري يجب أن يبقى دائرياً، وما دونها خطوط
+   ونقاط يُمطّ بلا تشوّه. النتيجة ٦٠٠×١١٦٠ أي 0.517 — تملأ الشاشة.
+   الهندسة تُكتب على الشبكة الأصلية ثم تُمرَّر كلها على MY مرّة واحدة، فلا رقم
+   يُنسى ولا يُطبَّق المطّ مرّتين. */
+var KY = 860 / 700;
+function MY(y) { return y <= 300 ? y : 300 + (y - 300) * KY; }
+
+var D2R = Math.PI / 180;
+function pol(a, r, cx, cy) { return [(cx === undefined ? CX : cx) + r * Math.cos(a * D2R), (cy === undefined ? CY : cy) + r * Math.sin(a * D2R)]; }
+
+/* قوس يُقطّع إلى قطع مستقيمة: مسار تصادم واحد لكل شيء أرخص وأمتن من
+   حسابٍ خاصّ بالأقواس، ولا يُرى الفرق عند ٢.٥ درجة للقطعة. */
+function arc(cx, cy, r, a0, a1, step) {
+  var pts = [], n = Math.max(2, Math.ceil(Math.abs(a1 - a0) / (step || 6))), i;
+  for (i = 0; i <= n; i++) pts.push(pol(a0 + (a1 - a0) * i / n, r, cx, cy));
+  return pts;
+}
+
+var ARCW = { e: 0.88, s: 0.985 };   // معاملات قطع الأقواس، انظر التعليق أعلاه
+var WALLS = [];          // {a,b,e,s,k}
+var DECOR = [];          // خطوط تُرسم ولا تصطدم
+function wall(pts, o) {
+  o = o || {};
+  for (var i = 0; i < pts.length - 1; i++)
+    WALLS.push({ a: pts[i], b: pts[i + 1], e: o.e === undefined ? EL : o.e, s: o.s === undefined ? SM : o.s, k: o.k || 'w' });
+}
+
+// ---- الحدود الخارجية ----
+wall(arc(CX, CY, R_OUT, 180, 360), ARCW);           // القبّة
+wall([[24, 300], [24, 660]]);                       // الجدار الأيسر
+wall([[LANE_R, 300], [LANE_R, 992]]);               // جدار ممر القاذف الخارجي
+wall([[LANE_L, 300], [LANE_L, 992]]);               // فاصل ممر القاذف
+wall([[LANE_L, 992], [LANE_R, 992]]);               // قاع الممر
+wall(arc(CX, CY, R_IN, 197, 335), ARCW);            // القوس الداخلي: يصنع المدار
+
+/* فم ممر القاذف مفتوح على سعته ولا بوّابة تسدّه. جرّبت بوّابة أحادية فكانت
+   هي نفسها الفخّ: سطح مائل ثابت تستقرّ عليه الكرة فلا تنزلق ولا ترتدّ، وتظلّ
+   الطاولة واقفة. والأصل لا يمنع رجوع الكرة إلى القاذف أصلاً — قذفة ضعيفة تعود
+   فتُركن وتُقذف من جديد، وهذا ما تفعله طاولة حقيقية. وبلا البوّابة لا جيب ولا
+   حافّة يستقرّ عليها شيء. */
+
+// ---- أسفل اليسار: جدار خارجي، فاصل ممرّي الخروج والعودة ----
+wall([[24, 676], [50, 800], [110, 886], [160, 960], [186, 1000]]);
+wall([[58, 640], [96, 772], [146, 856], [FLIP_LX, FLIP_LY]]);
+// ---- أسفل اليمين ----
+wall([[LANE_L, 676], [510, 800], [478, 886], [438, 960], [414, 1000]]);
+wall([[488, 640], [482, 772], [446, 856], [FLIP_RX, FLIP_LY]]);
+
+/* ---- أعمدة مطّاطية: تكسر انزلاق الكرة على الجدار الأيسر بعد خروجها من
+   المدار وترميها داخل الملعب. بدونها تهبط الكرة ملتصقة بالحافة من القبّة إلى
+   المصرف بلا أن تمسّ شيئاً — وهو أسوأ ما يمكن أن يحدث في طاولة بينبول. ---- */
+var POSTS = [
+  { x: 54, y: 612, r: 11 }, { x: 124, y: 700, r: 11 },
+  { x: 494, y: 612, r: 11 }, { x: 452, y: 700, r: 11 }
+];
+
+/* ---- المصدّان (slingshots): الوجه المائل يركل، والضلعان الآخران جدار عادي.
+   مثلّث لكل جانب، وجهه يواجه مركز الطاولة. ---- */
+var SLINGS = [
+  { a: [178, 742], b: [244, 866], n: null, lit: 0, side: 0 },
+  { a: [422, 742], b: [356, 866], n: null, lit: 0, side: 1 }
+];
+wall([[178, 742], [178, 848], [244, 866]], { k: 'sl' });
+wall([[422, 742], [422, 848], [356, 866]], { k: 'sl' });
+
+// ---- منافخ: أربعة هجوم وثلاثة إطلاق ----
+var BUMPERS = [
+  { x: 356, y: 178, r: 26, g: 0, i: 0 }, { x: 310, y: 226, r: 26, g: 0, i: 1 },
+  { x: 402, y: 226, r: 26, g: 0, i: 2 }, { x: 356, y: 274, r: 26, g: 0, i: 3 },
+  { x: 116, y: 232, r: 23, g: 1, i: 0 }, { x: 180, y: 216, r: 23, g: 1, i: 1 },
+  { x: 142, y: 290, r: 23, g: 1, i: 2 }
+];
+
+/* ---- الأهداف: ساقطة (drop) تختفي حين تُصاب وترجع مع البنك، ونقطية (spot)
+   لا تختفي. الساقطة جدار قصير يصطدم؛ النقطية حسّاس دائري. ---- */
+var TARGETS = [];
+function bank(kind, group, list, ang) {
+  for (var i = 0; i < list.length; i++)
+    TARGETS.push({ k: kind, g: group, i: i, x: list[i][0], y: list[i][1], a: ang, down: false, hw: kind === 'drop' ? 20 : 13 });
+}
+bank('drop', 'mult',  [[330, 150], [372, 150], [414, 150]], 0);            // أهداف المضاعِف
+bank('drop', 'medal', [[146, 352], [188, 352], [230, 352]], 0);            // أهداف الأوسمة
+bank('drop', 'boost', [[470, 300], [470, 342], [470, 384]], 90);           // أهداف المُعزِّز
+bank('spot', 'mission', [[240, 430], [300, 412], [360, 430]], 0);          // أهداف المهمّة
+bank('spot', 'fuel',    [[176, 690], [300, 704], [424, 690]], 0);          // أهداف الوقود
+bank('spot', 'hazL',    [[64, 530], [64, 580], [64, 630]], 90);            // بنك الخطر الأيسر
+bank('spot', 'hazR',    [[484, 530], [484, 580], [484, 630]], 90);         // بنك الخطر الأيمن
+bank('spot', 'wdest',   [[460, 360]], 0);                                  // وجهة الثقب الدودي
+
+/* ---- المجسّات (rollovers): تُشعل وتُسجّل حين تمرّ الكرة فوقها، بلا تصادم ---- */
+var ROLLS = [];
+function roll(g, i, x, y, r) { ROLLS.push({ g: g, i: i, x: x, y: y, r: r || 20, on: false, t: 0 }); }
+for (var _i = 0; _i < 6; _i++) { var _p = pol(210 + _i * 24, 240); roll('orbit', _i, _p[0], _p[1], 22); }   // وقود المدار
+roll('reentry', 0, 246, 150, 20); roll('reentry', 1, 288, 128, 20); roll('reentry', 2, 246, 196, 20);
+roll('launch', 0, 104, 344, 20); roll('launch', 1, 148, 358, 20); roll('launch', 2, 192, 344, 20);
+roll('outL', 0, 118, 856, 24); roll('outR', 0, 468, 856, 24);      // ممرّا الخروج
+roll('inL', 0, 148, 810, 22);  roll('inR', 0, 444, 810, 22);       // ممرّا العودة
+roll('bonus', 0, 128, 740, 22);                                     // ممر المكافأة
+roll('warp', 0, 300, 772, 24);                                      // مجسّ الانزياح
+
+/* ---- الثقوب: تبتلع الكرة ثم تقذفها. لكل ثقب مخرج وسرعة واتجاه وزمن سفر ---- */
+var HOLES = [
+  { id: 'hyper', x: 300, y: 128, r: 22, wait: 1.1, out: [118, 300], dir: [-0.25, 1], spd: 620 },
+  { id: 'worm0', x: 78, y: 396, r: 19, wait: 1.4, out: [300, 470], dir: [0.1, 1], spd: 420, c: '#ffd34d' },
+  { id: 'worm1', x: 86, y: 462, r: 19, wait: 1.4, out: [300, 470], dir: [-0.1, 1], spd: 420, c: '#ff5a6e' },
+  { id: 'worm2', x: 116, y: 524, r: 19, wait: 1.4, out: [300, 470], dir: [0, 1], spd: 420, c: '#5cf08a' },
+  { id: 'ramp', x: 498, y: 556, r: 22, wait: 1.5, out: [112, 258], dir: [-0.2, 1], spd: 520 },
+  { id: 'chute', x: 166, y: 600, r: 18, wait: 1.2, out: [196, 330], dir: [-0.45, 1], spd: 540 }
+];
+
+/* ---- الأعلام (spinners): تدور حين تمرّ الكرة، ولا تصدّها ---- */
+var FLAGS = [{ x: 120, y: 726, r: 22, spin: 0, v: 0 }, { x: 480, y: 726, r: 22, spin: 0, v: 0 }];
+
+// ---- حارس المصرف: بوّابة تظهر عبر فم المصرف حين تُضاء ----
+var BLOCKER = { a: [FLIP_LX, FLIP_LY + 64], b: [FLIP_RX, FLIP_LY + 64], on: false };
+// ---- الرافعتان الجانبيتان (kickbacks): تعيدان الكرة من ممر الخروج ----
+var KICKS = [{ x: 140, y: 916, on: false, side: 0 }, { x: 446, y: 916, on: false, side: 1 }];
+
+(function stretch() {
+  var seen = [], i;
+  function P(p) { if (p && seen.indexOf(p) < 0) { seen.push(p); p[1] = MY(p[1]); } }
+  for (i = 0; i < WALLS.length; i++) { P(WALLS[i].a); P(WALLS[i].b); }
+  for (i = 0; i < SLINGS.length; i++) { P(SLINGS[i].a); P(SLINGS[i].b); }
+  for (i = 0; i < BUMPERS.length; i++) BUMPERS[i].y = MY(BUMPERS[i].y);
+  for (i = 0; i < POSTS.length; i++) POSTS[i].y = MY(POSTS[i].y);
+  for (i = 0; i < TARGETS.length; i++) TARGETS[i].y = MY(TARGETS[i].y);
+  for (i = 0; i < ROLLS.length; i++) ROLLS[i].y = MY(ROLLS[i].y);
+  for (i = 0; i < FLAGS.length; i++) FLAGS[i].y = MY(FLAGS[i].y);
+  for (i = 0; i < KICKS.length; i++) KICKS[i].y = MY(KICKS[i].y);
+  for (i = 0; i < HOLES.length; i++) { HOLES[i].y = MY(HOLES[i].y); P(HOLES[i].out); }
+  FLIP_LY = MY(FLIP_LY);
+  BLOCKER.a[1] = BLOCKER.b[1] = FLIP_LY + 64;
+})();
+var RANK_Y = MY(620), MULTI_Y = MY(470), LANE_FOOT = MY(890);
+var PL_ROD = MY(972), PL_FOOT = MY(992), PM_TOP = MY(700), PM_BOT = MY(900);
+
+/* ==========================================================================
+   ٢ — الفيزياء
+   --------------------------------------------------------------------------
+   الكرة تحمل اتجاهاً واحديّاً وسرعة قياسية منفصلة كما في الأصل، لا متّجه سرعة.
+   وكل خطوة زمنية ثابتة تُقسَّم داخلياً إلى قفزات لا تتجاوز نصف قطر الكرة، وفي
+   كل قفزة يُطلق شعاع مُكتسِح يبحث عن أقرب تصادم — فلا تعبر الكرة جداراً مهما
+   بلغت سرعتها. هذه بنية ‎pb::timed_frame‎ نفسها.
+   ========================================================================== */
+function Ball(x, y) {
+  this.x = x; this.y = y; this.dx = 0; this.dy = 1; this.spd = 0;
+  this.live = true; this.hole = null; this.ht = 0;
+  /* wait: الكرة مركونة عند القاذف تنتظر السحب. تُشتقّ من الموضع لا تُمسك يدوياً:
+     أي كرة بطيئة في ممر القاذف تُركن، فقذفة ضعيفة لا تبلغ أعلى الممر تعود
+     وتُركن من جديد بدل أن تموت في القاع بلا طريقة لقذفها ثانية. */
+  this.wait = true; this.stuck = 0; this.px = x; this.py = y; this.ro = {};
+}
+
+/* ارتداد: نقل حرفي لـ‎maths::basic_collision‎.
+   n متّجه واحدي خارج السطح، e مرونة، s نعومة (احتكاك مماسّي). */
+function bounce(b, nx, ny, e, s, thr, boost) {
+  var proj = -(nx * b.dx + ny * b.dy), m;
+  if (proj < 0) { proj = -proj; }
+  else {
+    var d1x = proj * nx, d1y = proj * ny;
+    b.dx = (d1x + b.dx) * s + d1x * e;
+    b.dy = (d1y + b.dy) * s + d1y * e;
+    m = Math.sqrt(b.dx * b.dx + b.dy * b.dy) || 1; b.dx /= m; b.dy /= m;
+  }
+  var rs = proj * b.spd;
+  b.spd -= (1 - e) * rs;
+  if (rs >= thr) {
+    b.dx = b.spd * b.dx + nx * boost;
+    b.dy = b.spd * b.dy + ny * boost;
+    m = Math.sqrt(b.dx * b.dx + b.dy * b.dy);
+    b.spd = m; if (m > 1e-6) { b.dx /= m; b.dy /= m; }
+  }
+  if (b.spd > BMAX) b.spd = BMAX;
+  return rs;
+}
+
+// أقرب تلامس بين قرص متحرّك وقطعة مستقيمة: الوجه أولاً ثم طرفاه
+var _h = { t: 0, nx: 0, ny: 0, push: 0 };
+/* أقرب تلامس بين قرص متحرّك وقطعة مستقيمة: الوجه أولاً ثم طرفاها.
+   وفي كلٍّ منهما فرعٌ للتداخل القائم أصلاً — يحدث حين يدور المضرب إلى داخل
+   كرة ساكنة عليه — وبلا هذا الفرع يعيد الحساب زمناً سالباً فتُرفض الملامسة
+   وتسقط الكرة عبر المضرب. ولا يُمدّ الوجه خارج طرفيه: خارجهما الطرف دائرة
+   لا خطّ، ومدّه هناك يصنع جداراً وهمياً يعلّق الكرة بين المضربين. */
+function hitSeg(px, py, mx, my, rad, ax, ay, bx, by, out) {
+  var ux = bx - ax, uy = by - ay, L = Math.sqrt(ux * ux + uy * uy);
+  if (L < 1e-9) return -1;
+  ux /= L; uy /= L;
+  var nx = -uy, ny = ux;
+  var sx = px - ax, sy = py - ay, side = sx * nx + sy * ny;
+  if (side < 0) { nx = -nx; ny = -ny; side = -side; }
+  var den = mx * nx + my * ny, best = -1, q0 = sx * ux + sy * uy;
+  out.push = 0;
+  if (side < rad) {
+    if (q0 >= 0 && q0 <= L && den < 0) {
+      out.t = 0; out.nx = nx; out.ny = ny; out.push = rad - side; return 0;
+    }
+  } else if (den < -1e-9) {
+    var t = (rad - side) / den;
+    if (t >= 0 && t <= 1) {
+      var q = (sx + mx * t) * ux + (sy + my * t) * uy;
+      if (q >= 0 && q <= L) { out.t = t; out.nx = nx; out.ny = ny; return t; }
+    }
+  }
+  var ex, ey, i;
+  for (i = 0; i < 2; i++) {
+    ex = i ? bx : ax; ey = i ? by : ay;
+    var ox = px - ex, oy = py - ey, dd = ox * ox + oy * oy;
+    if (dd < rad * rad) {                       // متداخلة مع طرف القطعة
+      var dl = Math.sqrt(dd) || 1e-6, ex2 = ox / dl, ey2 = oy / dl;
+      if (mx * ex2 + my * ey2 < 0) { out.t = 0; out.nx = ex2; out.ny = ey2; out.push = rad - dl; return 0; }
+      continue;
+    }
+    var A = mx * mx + my * my; if (A < 1e-12) continue;
+    var B = 2 * (mx * ox + my * oy), C = dd - rad * rad;
+    var D = B * B - 4 * A * C; if (D < 0) continue;
+    var tt = (-B - Math.sqrt(D)) / (2 * A);
+    if (tt < 0 || tt > 1) continue;
+    if (best < 0 || tt < best) {
+      var cx = ox + mx * tt, cy = oy + my * tt, mm = Math.sqrt(cx * cx + cy * cy) || 1;
+      best = tt; out.t = tt; out.nx = cx / mm; out.ny = cy / mm; out.push = 0;
+    }
+  }
+  return best;
+}
+
+function hitCirc(px, py, mx, my, rad, cx, cy, cr) {
+  var ox = px - cx, oy = py - cy, sum = rad + cr;
+  var A = mx * mx + my * my; if (A < 1e-12) return -1;
+  var B = 2 * (mx * ox + my * oy), C = ox * ox + oy * oy - sum * sum;
+  out2.push = 0;
+  if (C < 0) {                                  // متداخلة أصلاً: ادفعها للخارج
+    var d = Math.sqrt(ox * ox + oy * oy) || 1;
+    out2.t = 0; out2.nx = ox / d; out2.ny = oy / d; out2.push = sum - d; return 0;
+  }
+  var D = B * B - 4 * A * C; if (D < 0) return -1;
+  var t = (-B - Math.sqrt(D)) / (2 * A);
+  if (t < 0 || t > 1) return -1;
+  var qx = ox + mx * t, qy = oy + my * t, m = Math.sqrt(qx * qx + qy * qy) || 1;
+  out2.t = t; out2.nx = qx / m; out2.ny = qy / m; return t;
+}
+var out2 = { t: 0, nx: 0, ny: 0, push: 0 };
+
+// قطعة الهدف الساقط: عرضها حول مركزها بزاوية البنك
+function tgtSeg(t) {
+  var a = t.a * D2R, ux = Math.cos(a) * t.hw, uy = Math.sin(a) * t.hw;
+  return [t.x - ux, t.y - uy, t.x + ux, t.y + uy];
+}
+
+/* ---- المضربان: كلٌّ كبسولة تدور حول محورها. الزاوية تُقسَّم مع خطوة الكرة،
+   فالمضرب في كل قفزة ساكن عند زاويته، وتُضاف سرعة سطحه إلى الارتداد —
+   وهذا ما ينقل الطاقة: طرف المضرب أسرع من قاعدته فيضرب أقوى. ---- */
+function Flipper(px, py, side) {
+  this.px = px; this.py = py; this.side = side;      // side: 0 يسار، 1 يمين
+  this.rest = side ? Math.PI - REST_A : REST_A;
+  this.up = side ? Math.PI - UP_A : UP_A;
+  this.a = this.rest; this.held = false; this.w = 0;
+}
+Flipper.prototype.step = function (dt) {
+  var tgt = this.held ? this.up : this.rest;
+  var d = tgt - this.a, dir = d > 0 ? 1 : -1, max = FLIP_W * dt;
+  if (Math.abs(d) <= max) { this.w = d / (dt || 1); this.a = tgt; }
+  else { this.w = dir * FLIP_W; this.a += dir * max; }
+};
+Flipper.prototype.tip = function () { return [this.px + FLIP_LEN * Math.cos(this.a), this.py + FLIP_LEN * Math.sin(this.a)]; };
+
+var flipL = new Flipper(FLIP_LX, FLIP_LY, 0), flipR = new Flipper(FLIP_RX, FLIP_LY, 1);
+var FLIPS = [flipL, flipR];
+
+/* ---- وجها المصدّين يُضافان إلى الجدران بمفتاح خاص ليُعرفا عند الإصابة ---- */
+WALLS.push({ a: SLINGS[0].a, b: SLINGS[0].b, e: 0.4, s: 0.9, one: null, k: 'sl0' });
+WALLS.push({ a: SLINGS[1].a, b: SLINGS[1].b, e: 0.4, s: 0.9, one: null, k: 'sl1' });
+
+/* أقرب تصادم على امتداد حركة واحدة. يعيد نوع المصدوم ومعاملاته كي تتولّى
+   طبقة القواعد ما بعد الارتداد (نقاط، أصوات، أضواء). */
+var CH = { t: 0, nx: 0, ny: 0, kind: null, obj: null, e: EL, s: SM, boost: 0, push: 0 };
+function cast(b, mx, my) {
+  var best = 2, i, t, o;
+  CH.kind = null;
+  for (i = 0; i < WALLS.length; i++) {
+    o = WALLS[i];
+    t = hitSeg(b.x, b.y, mx, my, BR, o.a[0], o.a[1], o.b[0], o.b[1], _h);
+    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = _h.nx; CH.ny = _h.ny; CH.kind = o.k; CH.obj = o; CH.e = o.e; CH.s = o.s; CH.boost = 0; CH.push = _h.push; }
+  }
+  for (i = 0; i < BUMPERS.length; i++) {
+    o = BUMPERS[i];
+    t = hitCirc(b.x, b.y, mx, my, BR, o.x, o.y, o.r);
+    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = out2.nx; CH.ny = out2.ny; CH.kind = 'bump'; CH.obj = o; CH.e = 0.5; CH.s = 0.9; CH.boost = 0; CH.push = out2.push; }
+  }
+  for (i = 0; i < POSTS.length; i++) {
+    o = POSTS[i];
+    t = hitCirc(b.x, b.y, mx, my, BR, o.x, o.y, o.r);
+    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = out2.nx; CH.ny = out2.ny; CH.kind = 'post'; CH.obj = o; CH.e = 0.78; CH.s = 0.9; CH.boost = 0; CH.push = out2.push; }
+  }
+  for (i = 0; i < TARGETS.length; i++) {
+    o = TARGETS[i];
+    if (o.k !== 'drop' || o.down) continue;
+    var sg = tgtSeg(o);
+    t = hitSeg(b.x, b.y, mx, my, BR, sg[0], sg[1], sg[2], sg[3], _h);
+    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = _h.nx; CH.ny = _h.ny; CH.kind = 'drop'; CH.obj = o; CH.e = 0.35; CH.s = 0.85; CH.boost = 0; CH.push = _h.push; }
+  }
+  if (BLOCKER.on) {
+    t = hitSeg(b.x, b.y, mx, my, BR, BLOCKER.a[0], BLOCKER.a[1], BLOCKER.b[0], BLOCKER.b[1], _h);
+    if (t >= 0 && t < best) { best = t; CH.t = t; CH.nx = _h.nx; CH.ny = _h.ny; CH.kind = 'blocker'; CH.obj = BLOCKER; CH.e = 0.5; CH.s = 0.9; CH.boost = 0; CH.push = _h.push; }
+  }
+  for (i = 0; i < 2; i++) {
+    var f = FLIPS[i], tp = f.tip();
+    t = hitSeg(b.x, b.y, mx, my, BR + FLIP_R, f.px, f.py, tp[0], tp[1], _h);
+    if (t >= 0 && t < best) {
+      // سرعة السطح عند نقطة التلامس: ω × r، ومركّبتها على العمود هي الدفعة
+      var cxp = b.x + mx * t - f.px, cyp = b.y + my * t - f.py;
+      var vsx = -f.w * cyp, vsy = f.w * cxp;
+      var vn = vsx * _h.nx + vsy * _h.ny;
+      best = t; CH.t = t; CH.nx = _h.nx; CH.ny = _h.ny; CH.kind = 'flip'; CH.obj = f;
+      CH.e = 0.32; CH.s = 0.92; CH.boost = vn > 0 ? vn * 0.92 : 0; CH.push = _h.push;
+    }
+  }
+  return best <= 1 ? best : -1;
+}
+
+/* ==========================================================================
+   ٣ — قواعد اللعبة: النقاط والرتب والمهمّات
+   --------------------------------------------------------------------------
+   كل رقم هنا منقول من محرّك اللعبة الأصلي كما أعاد بناءه مشروع
+   SpaceCadetPinball المفتوح (رخصة MIT): جداول النقاط من ‎control.cpp‎،
+   ومضاعِفات النتيجة من ‎TPinballTable.cpp‎، وأسماء الرتب والمهمّات وعدّاداتها
+   ونصوص أهدافها من الجداول نفسها. الرسوم والأصوات من عندنا لا من اللعبة.
+   ========================================================================== */
+var MULTS = [1, 2, 3, 5, 10];
+var SC = {
+  atk:  [500, 1000, 1500, 2000],       lau: [1500, 2500, 3500, 4500],
+  reen: [2000],                        laneRoll: [500],
+  rebo: [500],                         chute: [15000, 30000, 75000, 30000, 15000, 7500],
+  ramp: [5000],                        outl: [20000],
+  inl:  [5000, 25000],                 bonusLane: [10000],
+  fuelRoll: [500],                     flag: [500, 2500],
+  hyper: [10000, 0, 20000, 50000, 150000], sink: [2500, 5000, 7500],
+  boost: [500, 5000],                  medal: [1500, 10000, 50000],
+  mult: [500, 1500],                   fuelT: [750],
+  missionT: [1000],                    hazard: [750],
+  wdest: [750],                        warp: [10000]
+};
+
+var RANKS = ['مُبتدئ', 'ملازم ثانٍ', 'ملازم أول', 'نقيب', 'مقدّم', 'عقيد', 'عميد', 'أميرال', 'أميرال الأسطول'];
+var OUTER_LIGHTS = 24;               // حلقة التقدّم؛ امتلاؤها ترقية
+
+/* المهمّات السبع عشرة. score و rank و عدّادات المراحل أرقام الأصل نفسها.
+   parts: قائمة مراحل، لكل مرحلة نصّ هدف ونوع حدث ومطلوب. */
+function P(g, ev, n) { return { g: g, ev: ev, n: n || 1 }; }
+var MIS = {
+  2:  { n: 'تدريب الرماية', s: 500000,  r: 6,  d: 'اجتزت تدريب الرماية', p: [P('أصب منافخ الهجوم: %d', 'atk', 8)] },
+  3:  { n: 'تدريب الإطلاق', s: 500000,  r: 6,  d: 'اجتزت تدريب الإطلاق', p: [P('إطلاقات متبقّية: %d', 'ramp', 3)] },
+  4:  { n: 'تدريب العودة',  s: 500000,  r: 6,  d: 'اجتزت تدريب العودة',  p: [P('عودات متبقّية: %d', 'reen', 3)] },
+  5:  { n: 'مهمّة علمية',   s: 750000,  r: 9,  d: 'اكتملت المهمّة العلمية', p: [P('أهداف ساقطة: %d', 'drop', 9)] },
+  6:  { n: 'مذنّب شارد',    s: 1000000, r: 8,  d: 'دُمِّر المذنّب',
+        p: [P('املأ بنك الخطر الأيسر', 'hazL', 3), P('ادخل الثقب الدودي', 'worm', 1)] },
+  7:  { n: 'ثقب أسود',      s: 1000000, r: 8,  d: 'أُزيل الثقب الأسود',
+        p: [P('طوّر منافخ الإطلاق', 'lauUp', 3), P('ادخل الثقب الأسود', 'hyper', 1)] },
+  8:  { n: 'إشعاع فضائي',   s: 1000000, r: 8,  d: 'أُزيل الإشعاع',
+        p: [P('املأ بنك الخطر الأيمن', 'hazR', 3), P('أطلق عبر الفضاء الفائق', 'hyper', 1)] },
+  9:  { n: 'صيد الحشرات',   s: 750000,  r: 7,  d: 'أُبيدت الكائنات', p: [P('أهداف متبقّية: %d', 'spot', 15)] },
+  10: { n: 'خطر فضائي',     s: 750000,  r: 7,  d: 'صُدَّ الغزاة',
+        p: [P('طوّر منافخ الهجوم', 'atkUp', 4), P('أصب منافخ الهجوم: %d', 'atk', 8)] },
+  11: { n: 'إنقاذ',         s: 750000,  r: 6,  d: 'أُنقذ الناجون',
+        p: [P('طوّر الأعلام', 'flagUp', 2), P('أطلق عبر الفضاء الفائق', 'hyper', 1)] },
+  12: { n: 'استعادة قمر',   s: 1250000, r: 9,  d: 'أُصلح القمر', p: [P('إصابات المنافخ البعيدة: %d', 'lau', 3)] },
+  13: { n: 'استطلاع',       s: 1250000, r: 9,  d: 'اكتمل المسح', p: [P('عبورات الممرّات: %d', 'lane', 15)] },
+  14: { n: 'آلة يوم القيامة', s: 1250000, r: 9, d: 'دُمِّرت آلة يوم القيامة', p: [P('عبورات ممر الخروج: %d', 'outl', 3)] },
+  15: { n: 'الطاعون الكوني', s: 1750000, r: 11, d: 'أُبيد الطاعون',
+        p: [P('دوّر الأعلام: %d', 'flag', 75), P('أصب مجسّ الانزياح', 'warp', 1)] },
+  16: { n: 'مهمّة سرّية',    s: 1500000, r: 10, d: 'استُعيدت المخطّطات',
+        p: [P('أصب الثقب الأصفر', 'worm0', 1), P('أصب الثقب الأحمر', 'worm1', 1), P('أصب الثقب الأخضر', 'worm2', 1)] },
+  17: { n: 'انزياح زمني',   s: 2000000, r: 12, d: 'انتهى الانزياح الزمني',
+        p: [P('إصابات المصدّ: %d', 'rebo', 25), P('الفضاء الفائق أو المنحدر', 'hyperRamp', 1)] },
+  18: { n: 'الدوّامة',       s: 5000000, r: 18, d: 'أُخمدت الدوّامة',
+        p: [P('إصابات الأهداف الساقطة: %d', 'drop', 3), P('إصابات الأهداف النقطية: %d', 'spot', 3),
+            P('عبورات الممرّات: %d', 'lane', 5), P('اقذف الكرة في مزلق الوقود', 'chute', 1),
+            P('أصب منحدر الإطلاق', 'ramp', 1), P('أصب الأعلام', 'flag', 1),
+            P('أصب الثقب الدودي', 'worm', 1), P('مزلق الفضاء الفائق لإنهاء الدوّامة', 'hyper', 1)] }
+};
+
+/* مصفوفة اختيار المهمّة كما في ‎SelectMissionController‎: الرتبة الحالية تحدّد
+   الصفّ، والهدف الذي أصبته (١‏/٢‏/٣، والرابع عبر الفضاء الفائق) يحدّد العمود. */
+var PICK = {
+  1: [3, 4, 2, 5], 2: [9, 11, 10, 16], 3: [9, 11, 10, 16],
+  4: [6, 8, 7, 15], 5: [6, 8, 7, 15], 6: [12, 13, 14, 17], 7: [12, 13, 14, 17],
+  8: [15, 16, 17, 18], 9: [15, 16, 17, 18]
+};
+// مكافأة قبول المهمّة: ‎mission_select_scores‎
+function selectScore(id) { return id <= 5 ? 10000 : id <= 14 ? 20000 : 30000; }
+
+// ---------- حالة الجولة ----------
+var G = {
+  state: 'menu', score: 0, best: 0, ball: 1, ballsTotal: 3, extra: 0,
+  rank: 0, prog: 0, mult: 0, bonus: 0, bonusFlag: false, jack: 0, jackFlag: false,
+  fuel: 6, fuelT: 0, mission: 0, sel: 0, part: 0, cnt: 0,
+  tilt: 0, tiltLock: false, tiltT: 0, nudging: 0, nudgeX: 0,
+  msg: '', msgT: 0, info: '', infoT: 0,
+  atkLv: 0, lauLv: 0, flagLv: 0, medalLv: 0, boostLv: 0, multLv: 0, hyperLv: 0, chuteLv: 0,
+  wormLit: [false, false, false], hazL: [false, false, false], hazR: [false, false, false],
+  ballSave: 0, blockerT: 0, comboT: 0
+};
+var balls = [];
+
+function say(t, secs) { G.msg = t; G.msgT = secs === undefined ? 4 : secs; }
+function missionLine() {
+  if (G.tiltLock) return 'إمالة — الطاولة مقفلة';
+  if (G.mission) { var m = MIS[G.mission]; return m.n + ' · ' + fmt(m.p[G.part].g, G.cnt); }
+  if (G.sel) return 'المنحدر لقبول مهمّة ' + MIS[G.sel].n;
+  if (G.fuel <= 0) return 'أعد تعبئة الوقود';
+  return 'أصب أهداف المهمّة لاختيارها';
+}
+function info(t, secs) { G.info = t; G.infoT = secs === undefined ? 2.5 : secs; }
+function fmt(t, n) { return t.replace('%d', String(n)); }
+
+function addScore(n) {
+  if (G.tiltLock) return 0;
+  if (G.jackFlag) { G.jack = Math.min(5000000, G.jack + n); }
+  if (G.bonusFlag) { G.bonus = Math.min(5000000, G.bonus + n); }
+  var got = n * MULTS[G.mult];
+  G.score += got;
+  bumpBest();
+  return got;
+}
+// SpecialAddScore: النقاط الخاصّة لا تتضاعف ولا تُراكم في المكافأة
+function special(n) {
+  var b = G.bonusFlag, j = G.jackFlag, m = G.mult;
+  G.bonusFlag = false; G.jackFlag = false; G.mult = 0;
+  var got = addScore(n);
+  G.bonusFlag = b; G.jackFlag = j; G.mult = m;
+  return got;
+}
+// حلقة التقدّم تمتلئ فتترقّى الرتبة وتُفرَّغ الحلقة — منطق AddRankProgress
+function rankProgress(n) {
+  G.prog += n;
+  if (G.prog >= OUTER_LIGHTS) {
+    G.prog = 0;
+    if (G.rank < 8) {
+      G.rank++;
+      say('تمّت ترقيتك إلى ' + RANKS[G.rank], 6);
+      sfx('rank');
+      return true;
+    }
+  }
+  return false;
+}
+
+// ---------- المهمّات ----------
+function missionPick(col) {
+  if (G.mission || G.sel) return;
+  if (G.fuel <= 0) { say('أعد تعبئة الوقود', 3); return; }
+  var id = PICK[G.rank + 1][col];
+  G.sel = id;
+  info('مهمّة ' + MIS[id].n + ' جاهزة', 2.5);
+  sfx('select');
+}
+function missionAccept() {
+  var id = G.sel; G.sel = 0; G.mission = id; G.part = 0; G.cnt = MIS[id].p[0].n;
+  var got = special(selectScore(id));
+  say('قُبلت المهمّة — ' + got.toLocaleString('en-US'), 3);
+  sfx('accept');
+}
+function missionEv(kind) {
+  if (!G.mission || G.tiltLock) return;
+  var m = MIS[G.mission], part = m.p[G.part], ok =
+    part.ev === kind ||
+    (part.ev === 'worm' && kind.slice(0, 4) === 'worm') ||
+    (part.ev === 'hyperRamp' && (kind === 'hyper' || kind === 'ramp'));
+  if (!ok) return;
+  if (--G.cnt > 0) { sfx('goal'); return; }
+  if (++G.part < m.p.length) { G.cnt = m.p[G.part].n; info('المرحلة التالية', 2); sfx('goal'); return; }
+  missionDone();
+}
+function missionDone() {
+  var m = MIS[G.mission];
+  var got = special(m.s);
+  G.mission = 0; G.part = 0; G.jackFlag = false; G.jack = 0;
+  say(m.d + ' — ' + got.toLocaleString('en-US'), 6);
+  sfx('mission');
+  rankProgress(m.r);
+}
+function missionAbort() {
+  if (!G.mission && !G.sel) return;
+  G.mission = 0; G.sel = 0; G.jackFlag = false;
+  say('أُلغيت المهمّة', 3);
+}
+
+// ---------- أحداث الطاولة ----------
+function onBumper(b) {
+  if (G.tiltLock) return;
+  var grp = b.g, lv = grp ? G.lauLv : G.atkLv;
+  addScore((grp ? SC.lau : SC.atk)[lv]);
+  sfx('bump', 1 + lv * 0.12);
+  b.flash = 0.18;
+  if (!b.lit) {
+    b.lit = true;
+    var all = true, i;
+    for (i = 0; i < BUMPERS.length; i++) if (BUMPERS[i].g === grp && !BUMPERS[i].lit) all = false;
+    if (all) {
+      for (i = 0; i < BUMPERS.length; i++) if (BUMPERS[i].g === grp) BUMPERS[i].lit = false;
+      if (grp) { if (G.lauLv < 3) { G.lauLv++; missionEv('lauUp'); info('طُوِّرت منافخ الإطلاق'); } }
+      else { if (G.atkLv < 3) { G.atkLv++; missionEv('atkUp'); info('طُوِّرت منافخ الهجوم'); } }
+    }
+  }
+  missionEv(grp ? 'lau' : 'atk');
+}
+function bankDown(g) { var i, all = true; for (i = 0; i < TARGETS.length; i++) if (TARGETS[i].g === g && !TARGETS[i].down) all = false; return all; }
+function bankReset(g) { for (var i = 0; i < TARGETS.length; i++) if (TARGETS[i].g === g) TARGETS[i].down = false; }
+function onTarget(t) {
+  if (G.tiltLock) return;
+  t.flash = 0.3;
+  if (t.k === 'drop') {
+    t.down = true; sfx('target');
+    if (t.g === 'mult') {
+      addScore(SC.mult[Math.min(1, G.multLv)]);
+      if (bankDown('mult')) {
+        bankReset('mult'); G.multLv = Math.min(1, G.multLv + 1);
+        if (G.mult < 4) { G.mult++; info('مضاعِف ×' + MULTS[G.mult], 3); sfx('up'); }
+      }
+    } else if (t.g === 'medal') {
+      addScore(SC.medal[Math.min(2, G.medalLv)]);
+      if (bankDown('medal')) {
+        bankReset('medal');
+        if (G.medalLv < 2) { G.medalLv++; info(['وسام برونزي', 'وسام فضّي', 'وسام ذهبي'][G.medalLv], 3); sfx('up'); }
+        else if (!G.extraLit) { G.extraLit = true; info('كرة إضافية مُضاءة', 3); sfx('up'); }
+      }
+    } else {
+      addScore(SC.boost[Math.min(1, G.boostLv)]);
+      if (bankDown('boost')) {
+        bankReset('boost'); G.boostLv = Math.min(1, G.boostLv + 1);
+        G.bonusFlag = true; info('المكافأة تتراكم', 3); sfx('up');
+      }
+    }
+    missionEv('drop');
+    return;
+  }
+  sfx('spot');
+  if (t.g === 'mission') { addScore(SC.missionT[0]); missionPick(t.i); }
+  else if (t.g === 'fuel') { addScore(SC.fuelT[0]); G.fuel = Math.min(6, G.fuel + 1); }
+  else if (t.g === 'hazL' || t.g === 'hazR') {
+    addScore(SC.hazard[0]);
+    var arr = t.g === 'hazL' ? G.hazL : G.hazR;
+    if (!arr[t.i]) { arr[t.i] = true; missionEv(t.g); }
+    if (arr[0] && arr[1] && arr[2]) { arr[0] = arr[1] = arr[2] = false; info('اكتمل بنك الخطر', 2); }
+  } else { addScore(SC.wdest[0]); G.wdest = ((G.wdest || 0) + 1) % 3; info('وجهة الثقب الدودي تغيّرت', 2); }
+  missionEv('spot');
+}
+function onRoll(r) {
+  if (G.tiltLock) return;
+  sfx('roll');
+  if (r.g === 'orbit') { addScore(SC.fuelRoll[0]); G.fuel = Math.min(6, G.fuel + 1); }
+  else if (r.g === 'reentry') { addScore(SC.reen[0]); missionEv('reen'); missionEv('lane'); }
+  else if (r.g === 'launch') { addScore(SC.laneRoll[0]); missionEv('lane'); }
+  else if (r.g === 'outL' || r.g === 'outR') {
+    addScore(SC.outl[0]); missionEv('outl');
+    if (G.extraLit) { G.extraLit = false; G.extra++; info('كرة إضافية!', 3); sfx('extra'); }
+  }
+  else if (r.g === 'inL' || r.g === 'inR') { addScore(SC.inl[G.comboT > 0 ? 1 : 0]); G.comboT = 3; missionEv('lane'); }
+  else if (r.g === 'bonus') { addScore(SC.bonusLane[0]); G.bonusFlag = true; }
+  else if (r.g === 'warp') { addScore(SC.warp[0]); missionEv('warp'); }
+}
+function onHole(b, h) {
+  if (G.tiltLock) return;
+  sfx('hole');
+  if (h.id === 'hyper') {
+    addScore(SC.hyper[G.hyperLv]); if (G.hyperLv < 4) G.hyperLv++;
+    if (!G.mission && !G.sel) missionPick(3); else missionEv('hyper');
+  } else if (h.id.slice(0, 4) === 'worm') {
+    var i = +h.id[4];
+    addScore(SC.sink[i]);
+    if (!G.wormLit[i]) { G.wormLit[i] = true; }
+    missionEv('worm' + i);
+    if (G.wormLit[0] && G.wormLit[1] && G.wormLit[2] && balls.length < 2) {
+      G.wormLit = [false, false, false]; startMultiball();
+    }
+  } else if (h.id === 'ramp') {
+    addScore(SC.ramp[0]);
+    if (G.sel && G.fuel > 0) missionAccept(); else missionEv('ramp');
+  } else if (h.id === 'chute') {
+    addScore(SC.chute[G.chuteLv]); G.chuteLv = (G.chuteLv + 1) % 6; missionEv('chute');
+  }
+}
+function onSling(i) {
+  if (G.tiltLock) return;
+  SLINGS[i].lit = 0.16; addScore(SC.rebo[0]); sfx('sling'); missionEv('rebo');
+}
+function onFlag(f) {
+  if (G.tiltLock) return;
+  addScore(SC.flag[Math.min(1, G.flagLv)]); sfx('flag');
+  f.rolls = (f.rolls || 0) + 1;
+  if (f.rolls % 10 === 0 && G.flagLv < 1) { G.flagLv++; missionEv('flagUp'); info('طُوِّرت الأعلام'); }
+  missionEv('flag');
+}
+
+// ---------- الإمالة ----------
+function doTilt() {
+  if (G.tiltLock) return;
+  G.tiltLock = true; G.tiltT = 30;
+  say('إمالة — الطاولة مقفلة', 5); sfx('tilt');
+  flipL.held = flipR.held = false;
+}
+
+/* ==========================================================================
+   ٤ — دورة الكرة والمحاكاة
+   ========================================================================== */
+var PLUNGE = { pull: 0, active: false, rest: MY(940) };
+
+function park(b) {
+  b.wait = true; b.spd = 0; b.x = 550; b.y = PLUNGE.rest; b.dx = 0; b.dy = -1; b.ro = {};
+  PLUNGE.pull = 0;
+}
+function newBall() {
+  var b = new Ball(550, PLUNGE.rest);
+  park(b);
+  balls.push(b);
+  PLUNGE.pull = 0;
+  KICKS[0].on = KICKS[1].on = true;      // إنقاذ واحد لكل جانب في كل كرة
+  return b;
+}
+function startMultiball() {
+  info('كرات متعدّدة!', 4); sfx('multi');
+  var i, b;
+  for (i = 0; i < 2; i++) {
+    b = new Ball(300 + (i ? 40 : -40), MULTI_Y); b.wait = false;
+    b.dx = i ? 0.3 : -0.3; b.dy = 1; b.spd = 300;
+    balls.push(b);
+  }
+}
+function drainBall(b) {
+  var i = balls.indexOf(b); if (i >= 0) balls.splice(i, 1);
+  if (balls.length) { sfx('drain1'); return; }
+  endOfBall();
+}
+function endOfBall() {
+  sfx('lost');
+  if (!G.tiltLock && G.bonus > 0) {
+    var got = special(G.bonus);
+    info('مكافأة: ' + got.toLocaleString('en-US'), 3);
+  }
+  missionAbort();
+  G.tiltLock = false; G.tilt = 0; G.bonus = 0; G.bonusFlag = false; G.jackFlag = false;
+  G.mult = 0; G.fuel = 6; G.atkLv = 0; G.lauLv = 0; G.flagLv = 0;
+  G.hazL = [false, false, false]; G.hazR = [false, false, false]; G.wormLit = [false, false, false];
+  bankReset('mult'); bankReset('medal'); bankReset('boost');
+  for (var i = 0; i < BUMPERS.length; i++) BUMPERS[i].lit = false;
+  if (G.extra > 0) { G.extra--; say('اضرب ثانية', 4); newBall(); return; }
+  G.ball++;
+  if (G.ball > G.ballsTotal) { gameOver(); return; }
+  say('الكرة ' + G.ball, 3);
+  newBall();
+}
+
+/* ---- الجاذبية ثم التقدّم بخطوات نصف قطر ----
+   عدد القفزات يُشتق من أسرع متحرّك في المشهد: الكرة أو طرف المضرب، فتبقى
+   الدقّة ثابتة مهما اشتدّت الحركة. */
+var STEP = 1 / 120, ACC = 0;
+function physics(dt) {
+  var i, b, vx, vy, maxS = 1;
+  for (i = 0; i < balls.length; i++) {
+    b = balls[i];
+    if (b.hole) { b.ht -= dt; continue; }
+    if (b.wait) continue;
+    vx = b.dx * b.spd; vy = b.dy * b.spd;
+    vy += GRAV * dt;
+    if (G.nudgeX) { vx += G.nudgeX * dt * 60; }
+    var drag = 1 - 0.2 * dt; vx *= drag; vy *= drag;
+    b.spd = Math.sqrt(vx * vx + vy * vy);
+    if (b.spd > 1e-6) { b.dx = vx / b.spd; b.dy = vy / b.spd; }
+    if (b.spd > BMAX) b.spd = BMAX;
+    var st = Math.ceil(b.spd * dt / BHALF); if (st > maxS) maxS = st;
+  }
+  var fs = Math.ceil(FLIP_W * dt * FLIP_LEN / BHALF); if (fs > maxS) maxS = fs;
+  if (maxS > 24) maxS = 24;
+  var sdt = dt / maxS;
+  for (var s = 0; s < maxS; s++) {
+    flipL.step(sdt); flipR.step(sdt);
+    for (i = 0; i < balls.length; i++) moveBall(balls[i], sdt);
+  }
+  G.nudgeX = 0;
+  for (i = balls.length - 1; i >= 0; i--) sensors(balls[i], dt);
+  ballToBall();
+}
+
+function moveBall(b, dt) {
+  if (b.hole || b.wait) return;
+  var remain = dt, guard = 0;
+  while (remain > 1e-9 && guard++ < 8) {
+    var mx = b.dx * b.spd * remain, my = b.dy * b.spd * remain;
+    var t = cast(b, mx, my);
+    if (t < 0) { b.x += mx; b.y += my; break; }
+    b.x += mx * t; b.y += my * t;
+    var kind = CH.kind, obj = CH.obj, nx = CH.nx, ny = CH.ny, sp = b.spd;
+    var push = (CH.push || 0) + 0.05;
+    b.x += nx * push; b.y += ny * push;
+    bounce(b, nx, ny, CH.e, CH.s, 0, CH.boost);
+    hit(b, kind, obj, nx, ny, sp);
+    remain *= (1 - t);
+    if (b.spd < 1e-6) break;
+  }
+}
+// دفعة خارجية على امتداد العمود: هذا ما يجعل المنفاخ منفاخاً لا جداراً
+function kick(b, nx, ny, add) {
+  var vx = b.dx * b.spd + nx * add, vy = b.dy * b.spd + ny * add;
+  var m = Math.sqrt(vx * vx + vy * vy);
+  b.spd = Math.min(BMAX, m); if (m > 1e-6) { b.dx = vx / m; b.dy = vy / m; }
+}
+function hit(b, kind, obj, nx, ny, sp) {
+  if (kind === 'bump') { kick(b, nx, ny, 520 + 60 * (obj.g ? G.lauLv : G.atkLv)); onBumper(obj); }
+  else if (kind === 'sl0') { kick(b, nx, ny, 540); onSling(0); }
+  else if (kind === 'sl1') { kick(b, nx, ny, 540); onSling(1); }
+  else if (kind === 'drop') { onTarget(obj); }
+  else if (kind === 'flip') { if (sp > 260) sfx('flip'); }
+  else if (sp > 420) sfx('wall', Math.min(1, sp / 1600));
+}
+
+/* ---- الحسّاسات: مجسّات وأهداف نقطية وثقوب وأعلام ومصرف.
+   لكل كرة ذاكرة دخول/خروج كي لا يتكرّر الحدث ما دامت فوق الحسّاس. ---- */
+function sensors(b, dt) {
+  if (b.hole) {
+    if (b.ht <= 0) {
+      var h = b.hole; b.hole = null;
+      b.x = h.out[0]; b.y = h.out[1];
+      var m = Math.sqrt(h.dir[0] * h.dir[0] + h.dir[1] * h.dir[1]) || 1;
+      b.dx = h.dir[0] / m; b.dy = h.dir[1] / m; b.spd = h.spd;
+    }
+    return;
+  }
+  if (b.wait) return;
+  var i, o, d, key;
+  for (i = 0; i < ROLLS.length; i++) {
+    o = ROLLS[i]; key = 'r' + i;
+    d = (b.x - o.x) * (b.x - o.x) + (b.y - o.y) * (b.y - o.y) < o.r * o.r;
+    if (d && !b.ro[key]) { b.ro[key] = 1; o.on = true; o.t = 0.7; onRoll(o); }
+    else if (!d && b.ro[key]) b.ro[key] = 0;
+  }
+  for (i = 0; i < TARGETS.length; i++) {
+    o = TARGETS[i]; if (o.k !== 'spot') continue; key = 't' + i;
+    d = (b.x - o.x) * (b.x - o.x) + (b.y - o.y) * (b.y - o.y) < (o.hw + BR) * (o.hw + BR);
+    if (d && !b.ro[key]) { b.ro[key] = 1; onTarget(o); }
+    else if (!d && b.ro[key]) b.ro[key] = 0;
+  }
+  for (i = 0; i < FLAGS.length; i++) {
+    o = FLAGS[i]; key = 'f' + i;
+    d = (b.x - o.x) * (b.x - o.x) + (b.y - o.y) * (b.y - o.y) < o.r * o.r;
+    if (d && !b.ro[key]) { b.ro[key] = 1; o.v = 14; onFlag(o); }
+    else if (!d && b.ro[key]) b.ro[key] = 0;
+  }
+  for (i = 0; i < HOLES.length; i++) {
+    o = HOLES[i];
+    if ((b.x - o.x) * (b.x - o.x) + (b.y - o.y) * (b.y - o.y) < o.r * o.r) {
+      b.hole = o; b.ht = o.wait; b.spd = 0; b.ro = {}; onHole(b, o); return;
+    }
+  }
+  if (b.y > TH + 20) { drainBall(b); return; }
+  // كرة هدأت في ممر القاذف: أعدها إلى وضع الانتظار كي تُقذف من جديد
+  if (b.x > LANE_L && b.y > LANE_FOOT && b.spd < 120) { park(b); return; }
+  // الرافعة الجانبية: تُعيد الكرة من ممر الخروج حين تكون مُضاءة
+  for (i = 0; i < KICKS.length; i++) {
+    o = KICKS[i];
+    if (o.on && b.y > o.y - 30 && Math.abs(b.x - o.x) < 34) {
+      o.on = false; o.flash = 0.3; b.dx = 0; b.dy = -1; b.spd = 1250; sfx('kickback');
+    }
+  }
+  // كرة عالقة: هزّة خفيفة كما تفعل ‎control::UnstuckBall‎
+  var moved = (b.x - b.px) * (b.x - b.px) + (b.y - b.py) * (b.y - b.py);
+  b.px = b.x; b.py = b.y;
+  if (b.spd < 24 && moved < 1) {
+    b.stuck += dt;
+    if (b.stuck > 1.6) {
+      b.stuck = 0; b.kicks = (b.kicks || 0) + 1;
+      b.dx = (Math.random() - 0.5); b.dy = -1;
+      var mm = Math.sqrt(b.dx * b.dx + 1); b.dx /= mm; b.dy /= mm; b.spd = 300 + 90 * b.kicks;
+      /* شبكة أمان أخيرة: هندسة فيها جيب لم أره قد تبتلع كرة إلى الأبد وتُجمّد
+         الجولة. بعد خمس محاولات تُعدّ الكرة ضائعة وتمضي اللعبة — خسارة كرة
+         أرحم من طاولة واقفة لا تفعل شيئاً. */
+      if (b.kicks > 5) { drainBall(b); return; }
+    }
+  } else { b.stuck = 0; b.kicks = 0; }
+}
+function ballToBall() {
+  for (var i = 0; i < balls.length; i++) for (var j = i + 1; j < balls.length; j++) {
+    var a = balls[i], c = balls[j];
+    if (a.hole || c.hole || a.wait || c.wait) continue;
+    var dx = c.x - a.x, dy = c.y - a.y, d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 1e-6 || d >= BR * 2) continue;
+    var nx = dx / d, ny = dy / d, overlap = BR * 2 - d;
+    a.x -= nx * overlap * 0.5; a.y -= ny * overlap * 0.5;
+    c.x += nx * overlap * 0.5; c.y += ny * overlap * 0.5;
+    var av = a.dx * nx + a.dy * ny, cv = c.dx * nx + c.dy * ny;
+    var ai = av * a.spd, ci = cv * c.spd;
+    if (ai - ci <= 0) continue;
+    kick(a, -nx, -ny, (ai - ci) * 0.9); kick(c, nx, ny, (ai - ci) * 0.9);
+  }
+}
+
+/* ==========================================================================
+   ٥ — الصوت: كل شيء مُولَّد بـWebAudio، ولا ملف صوتي واحد
+   --------------------------------------------------------------------------
+   السياق لا يُنشأ إلا بعد أوّل لمسة (شرط iOS)، وحالة الكتم تُحفظ.
+   ========================================================================== */
+var SKEY = 'pinball-sound', soundOn = true;
+try { soundOn = localStorage.getItem(SKEY) !== 'off'; } catch (e) {}
+var actx = null, master = null, mus = null, warmed = false;
+
+function ac() {
+  if (!actx) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    actx = new AC();
+    master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination);
+    mus = actx.createGain(); mus.gain.value = 0.16; mus.connect(master);
+  }
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function warm() { if (!warmed && soundOn) { warmed = true; ac(); } }
+
+function tone(f, dur, type, vol, f2, dest) {
+  var a = ac(); if (!a) return;
+  var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f, t);
+  if (f2) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+  o.connect(g).connect(dest || master);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+// ضجيج قصير مُرشَّح: صوت المعدن على المعدن
+var nbuf = null;
+function noise(dur, vol, cut, q) {
+  var a = ac(); if (!a) return;
+  if (!nbuf) {
+    nbuf = a.createBuffer(1, a.sampleRate * 0.5, a.sampleRate);
+    var d = nbuf.getChannelData(0);
+    for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  var s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(), t = a.currentTime;
+  s.buffer = nbuf; s.loop = true;
+  f.type = 'bandpass'; f.frequency.value = cut; f.Q.value = q || 3;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0006, t + dur);
+  s.connect(f).connect(g).connect(master);
+  s.start(t); s.stop(t + dur + 0.02);
+}
+function seq(notes, type, vol, gap) {
+  var a = ac(); if (!a) return;
+  var t0 = a.currentTime, t = 0;
+  for (var i = 0; i < notes.length; i++) {
+    (function (f, at, d) {
+      var o = a.createOscillator(), g = a.createGain(), s = t0 + at;
+      o.type = type; o.frequency.setValueAtTime(f, s);
+      g.gain.setValueAtTime(0, s);
+      g.gain.linearRampToValueAtTime(vol, s + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0008, s + d);
+      o.connect(g).connect(master); o.start(s); o.stop(s + d + 0.02);
+    })(notes[i][0], t, notes[i][1]);
+    t += notes[i][1] + (gap || 0.01);
+  }
+}
+
+function sfx(name, p) {
+  if (!soundOn || !warmed) return;
+  p = p || 1;
+  switch (name) {
+    case 'wall':    noise(0.05, 0.12 * p, 1900, 1.6); break;
+    case 'flip':    noise(0.055, 0.2, 620, 1.2); tone(150, 0.07, 'square', 0.05); break;
+    case 'bump':    tone(320 * p, 0.14, 'square', 0.12, 120 * p); noise(0.07, 0.14, 1200, 2); break;
+    case 'sling':   tone(520, 0.09, 'sawtooth', 0.10, 200); noise(0.05, 0.12, 2400, 2); break;
+    case 'target':  tone(880, 0.09, 'square', 0.09, 1320); break;
+    case 'spot':    tone(1320, 0.06, 'triangle', 0.08); break;
+    case 'roll':    tone(1760, 0.045, 'sine', 0.06); break;
+    case 'hole':    seq([[660, .07], [880, .07], [1320, .16]], 'sine', 0.09); break;
+    case 'flag':    tone(2200, 0.04, 'square', 0.05, 1600); break;
+    case 'kickback':tone(180, 0.18, 'sawtooth', 0.14, 900); noise(0.1, 0.16, 800, 1.5); break;
+    case 'select':  seq([[523, .07], [784, .11]], 'triangle', 0.10); break;
+    case 'accept':  seq([[523, .08], [659, .08], [784, .08], [1047, .2]], 'triangle', 0.11); break;
+    case 'goal':    seq([[988, .06], [1319, .12]], 'sine', 0.09); break;
+    case 'up':      seq([[659, .06], [880, .06], [1175, .14]], 'square', 0.08); break;
+    case 'extra':   seq([[784, .08], [1047, .08], [1319, .08], [1568, .22]], 'square', 0.10); break;
+    case 'multi':   seq([[392, .1], [523, .1], [659, .1], [784, .1], [1047, .28]], 'sawtooth', 0.09); break;
+    case 'mission': seq([[523, .1], [659, .1], [784, .1], [1047, .12], [1319, .32]], 'triangle', 0.12); break;
+    case 'rank':    seq([[440, .12], [554, .12], [659, .12], [880, .14], [1109, .14], [1319, .4]], 'square', 0.11); break;
+    case 'tilt':    tone(110, 0.7, 'sawtooth', 0.16, 55); noise(0.5, 0.1, 300, 1); break;
+    case 'drain1':  tone(300, 0.2, 'sine', 0.09, 120); break;
+    case 'lost':    seq([[392, .14], [349, .14], [294, .14], [220, .4]], 'triangle', 0.12); break;
+    case 'over':    seq([[440, .18], [392, .18], [330, .18], [262, .2], [196, .6]], 'sawtooth', 0.12); break;
+    case 'start':   seq([[262, .1], [392, .1], [523, .1], [784, .3]], 'triangle', 0.12); break;
+    case 'click':   tone(700, 0.04, 'square', 0.06); break;
+  }
+}
+
+/* ---- أجواء خفيفة: ثلاث نغمات سفلى بطيئة تتبدّل، وطبقة رياح بعيدة.
+   تُجدول على ساعة الصوت لا على الإطارات، فلا تتعثّر إن تأخّر الرسم. ---- */
+var MUS = { on: false, next: 0, step: 0, drone: null };
+var CHORD = [[110, 165, 220], [98, 147, 196], [123.5, 185, 247], [87.3, 131, 175]];
+function musicStart() {
+  if (!soundOn || MUS.on) return;
+  var a = ac(); if (!a) return;
+  MUS.on = true; MUS.next = a.currentTime + 0.05; MUS.step = 0;
+}
+function musicStop() {
+  MUS.on = false;
+  if (MUS.drone) { try { MUS.drone.stop(); } catch (e) {} MUS.drone = null; }
+}
+function musicTick() {
+  if (!MUS.on || !soundOn || !actx) return;
+  var a = actx;
+  while (MUS.next < a.currentTime + 0.4) {
+    var ch = CHORD[MUS.step % CHORD.length], t = MUS.next, i;
+    for (i = 0; i < 3; i++) {
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = i ? 'sine' : 'triangle';
+      o.frequency.setValueAtTime(ch[i], t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.09 / (i + 1), t + 0.8);
+      g.gain.linearRampToValueAtTime(0.0001, t + 3.6);
+      o.connect(g).connect(mus); o.start(t); o.stop(t + 3.7);
+    }
+    // نغمة عُليا عابرة كل دورتين: تكفي لتُشعر بالحركة ولا تزاحم المؤثّرات
+    if (MUS.step % 2 === 1) {
+      var o2 = a.createOscillator(), g2 = a.createGain(), f = ch[2] * 4;
+      o2.type = 'sine'; o2.frequency.setValueAtTime(f, t + 1.6);
+      g2.gain.setValueAtTime(0, t + 1.6);
+      g2.gain.linearRampToValueAtTime(0.05, t + 1.75);
+      g2.gain.exponentialRampToValueAtTime(0.0005, t + 3.0);
+      o2.connect(g2).connect(mus); o2.start(t + 1.6); o2.stop(t + 3.05);
+    }
+    MUS.next += 3.4; MUS.step++;
+  }
+}
+
+/* ==========================================================================
+   ٦ — الرسم
+   --------------------------------------------------------------------------
+   الطاولة الساكنة (الخلفية والجدران وعلامات الممرّات وحلقات الأضواء) تُرسم
+   مرّة واحدة على لوحة خارج الشاشة عند كل تغيير مقاس، ثم تُنسخ كصورة واحدة في
+   كل إطار. ما يتحرّك وحده هو ما يُرسم ستّين مرّة في الثانية.
+   ========================================================================== */
+var cv = document.getElementById('table'), ctx = cv.getContext('2d');
+var stat = document.createElement('canvas'), sctx = stat.getContext('2d');
+var VW = 0, VH = 0, S = 1, OX = 0, OY = 0, HUD = 56, DPR = 1;
+var probe = document.createElement('div');
+probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;visibility:hidden;' +
+  'padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+document.body.appendChild(probe);
+
+function rnd(seed) { return function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
+
+function layout() {
+  DPR = Math.min(3, window.devicePixelRatio || 1);
+  VW = Math.max(1, window.innerWidth); VH = Math.max(1, window.innerHeight);
+  cv.width = Math.round(VW * DPR); cv.height = Math.round(VH * DPR);
+  cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
+  var cs = getComputedStyle(probe);
+  var st = parseFloat(cs.paddingTop) || 0, sb = parseFloat(cs.paddingBottom) || 0;
+  var sl = parseFloat(cs.paddingLeft) || 0, sr = parseFloat(cs.paddingRight) || 0;
+  /* شريط الأزرار يعلو الزاوية الميتة أعلى اليسار ولا يحجز عرضاً: لو حجزناه
+     خسرت الطاولة ثُمن عرضها، وعرضها هو ما يحدّد مقياسها على الجوال. */
+  HUD = Math.max(44, Math.min(72, VH * 0.08));
+  var aw = Math.max(40, VW - sl - sr), ah = Math.max(40, VH - st - sb - HUD);
+  S = Math.min(aw / TW, ah / TH);
+  OX = sl + (aw - TW * S) / 2;
+  OY = st + HUD + (ah - TH * S) / 2;
+  stat.width = cv.width; stat.height = cv.height;
+  buildStatic();
+}
+
+function tableCtx(c) { c.save(); c.translate(OX, OY); c.scale(S, S); }
+
+function buildStatic() {
+  var c = sctx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.clearRect(0, 0, VW, VH);
+  // --- سديم ونجوم ---
+  var g = c.createLinearGradient(0, 0, VW * 0.4, VH);
+  g.addColorStop(0, '#190a33'); g.addColorStop(0.5, '#120724'); g.addColorStop(1, '#070312');
+  c.fillStyle = g; c.fillRect(0, 0, VW, VH);
+  var neb = c.createRadialGradient(VW * 0.2, VH * 0.1, 0, VW * 0.2, VH * 0.1, VW * 0.9);
+  neb.addColorStop(0, 'rgba(160,70,230,.28)'); neb.addColorStop(1, 'rgba(160,70,230,0)');
+  c.fillStyle = neb; c.fillRect(0, 0, VW, VH);
+  var neb2 = c.createRadialGradient(VW * 0.9, VH * 0.75, 0, VW * 0.9, VH * 0.75, VW * 0.8);
+  neb2.addColorStop(0, 'rgba(40,150,220,.18)'); neb2.addColorStop(1, 'rgba(40,150,220,0)');
+  c.fillStyle = neb2; c.fillRect(0, 0, VW, VH);
+  var R1 = rnd(20240917), i;
+  for (i = 0; i < 260; i++) {
+    var sx = R1() * VW, sy = R1() * VH, sr = R1() * 1.3 + 0.2, al = R1() * 0.75 + 0.15;
+    c.fillStyle = 'rgba(255,245,255,' + al.toFixed(2) + ')';
+    c.beginPath(); c.arc(sx, sy, sr, 0, 6.2832); c.fill();
+  }
+
+  tableCtx(c);
+  // --- سطح الملعب ---
+  c.beginPath();
+  c.moveTo(24, CY); c.lineTo(24, TH); c.lineTo(LANE_R, TH); c.lineTo(LANE_R, CY);
+  c.arc(CX, CY, R_OUT, 0, Math.PI, true); c.closePath();
+  var pf = c.createLinearGradient(0, 0, 0, TH);
+  pf.addColorStop(0, '#2c1550'); pf.addColorStop(0.45, '#1d0f3c'); pf.addColorStop(1, '#140a2c');
+  c.fillStyle = pf; c.fill();
+  c.save(); c.clip();
+  // نسيج بلّوري: شقوق باهتة تُقرأ كزجاج فضائي لا كخطوط
+  var R2 = rnd(7788), k, j;
+  c.strokeStyle = 'rgba(120,200,255,.055)'; c.lineWidth = 1.6;
+  for (k = 0; k < 90; k++) {
+    c.beginPath();
+    var x0 = R2() * TW, y0 = R2() * TH;
+    c.moveTo(x0, y0);
+    for (j = 0; j < 3; j++) { x0 += (R2() - 0.5) * 120; y0 += (R2() - 0.5) * 120; c.lineTo(x0, y0); }
+    c.stroke();
+  }
+  var glow = c.createRadialGradient(CX, RANK_Y, 10, CX, RANK_Y, 340);
+  glow.addColorStop(0, 'rgba(120,60,220,.30)'); glow.addColorStop(1, 'rgba(120,60,220,0)');
+  c.fillStyle = glow; c.fillRect(0, 0, TW, TH);
+  c.restore();
+
+  // --- الجدران: خطّ زجاجي مضيء، وعلامات نقطية صفراء على امتداده ---
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  for (i = 0; i < WALLS.length; i++) {
+    var w = WALLS[i];
+    c.strokeStyle = 'rgba(150,215,255,.30)';
+    c.lineWidth = 5.5;
+    c.beginPath(); c.moveTo(w.a[0], w.a[1]); c.lineTo(w.b[0], w.b[1]); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(w.a[0], w.a[1]); c.lineTo(w.b[0], w.b[1]); c.stroke();
+  }
+  // مسامير صفراء تحدّد ممرّات اللعب كما في طاولات الأركيد
+  c.fillStyle = 'rgba(255,214,84,.85)';
+  function studs(pts, gap) {
+    for (var q = 0; q < pts.length - 1; q++) {
+      var ax = pts[q][0], ay = pts[q][1], bx = pts[q + 1][0], by = pts[q + 1][1];
+      var L = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.round(L / gap));
+      for (var m = 0; m <= n; m++) {
+        c.beginPath(); c.arc(ax + (bx - ax) * m / n, ay + (by - ay) * m / n, 2.6, 0, 6.2832); c.fill();
+      }
+    }
+  }
+  function SY(a) { for (var q = 0; q < a.length; q++) a[q] = [a[q][0], MY(a[q][1])]; return a; }
+  studs(arc(CX, CY, R_IN, 197, 335, 6), 26);
+  studs(SY([[76, 700], [106, 790], [150, 855], [FLIP_LX, 900]]), 26);
+  studs(SY([[492, 700], [478, 790], [446, 855], [FLIP_RX, 900]]), 26);
+  studs(SY([[24, 660], [40, 760], [90, 850], [150, 940]]), 30);
+  studs(SY([[LANE_L, 660], [516, 772], [472, 858], [420, 946]]), 30);
+
+  // --- حلقة الرتبة: قاعدة الأضواء ---
+  c.strokeStyle = 'rgba(93,225,255,.22)'; c.lineWidth = 2;
+  c.beginPath(); c.arc(CX, RANK_Y, 54, 0, 6.2832); c.stroke();
+  c.beginPath(); c.arc(CX, RANK_Y, 80, 0, 6.2832); c.stroke();
+  var core = c.createRadialGradient(CX, RANK_Y, 4, CX, RANK_Y, 40);
+  core.addColorStop(0, 'rgba(255,230,130,.75)'); core.addColorStop(1, 'rgba(255,190,60,0)');
+  c.fillStyle = core; c.beginPath(); c.arc(CX, RANK_Y, 40, 0, 6.2832); c.fill();
+
+  // --- أفواه الثقوب والمنحدر ---
+  for (i = 0; i < HOLES.length; i++) {
+    var h = HOLES[i];
+    var hg = c.createRadialGradient(h.x, h.y, 1, h.x, h.y, h.r + 8);
+    hg.addColorStop(0, '#000'); hg.addColorStop(0.62, h.c || '#3a1d63'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = hg; c.beginPath(); c.arc(h.x, h.y, h.r + 8, 0, 6.2832); c.fill();
+    c.strokeStyle = h.c || 'rgba(196,107,255,.85)'; c.lineWidth = 2.5;
+    c.beginPath(); c.arc(h.x, h.y, h.r, 0, 6.2832); c.stroke();
+  }
+  c.restore();
+  c.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+function lamp(c, x, y, r, on, col, glow) {
+  if (on) {
+    var g = c.createRadialGradient(x, y, 0, x, y, r * (glow || 3));
+    g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r * (glow || 3), 0, 6.2832); c.fill();
+    c.fillStyle = '#fff';
+  } else c.fillStyle = 'rgba(255,255,255,.14)';
+  c.beginPath(); c.arc(x, y, r, 0, 6.2832); c.fill();
+}
+
+function draw(now) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, VW, VH);
+  ctx.drawImage(stat, 0, 0, VW, VH);
+  var c = ctx, i, o, p;
+  tableCtx(c);
+
+  // ---- حلقة الرتبة: تسعة أضواء للرتبة، وأربعة وعشرون للتقدّم نحو الترقية ----
+  for (i = 0; i < 9; i++) { p = pol(-90 + i * 40, 54, CX, RANK_Y); lamp(c, p[0], p[1], 4.6, i <= G.rank, 'rgba(93,225,255,.95)'); }
+  for (i = 0; i < OUTER_LIGHTS; i++) { p = pol(-90 + i * (360 / OUTER_LIGHTS), 80, CX, RANK_Y); lamp(c, p[0], p[1], 3.6, i < G.prog, 'rgba(255,190,60,.95)'); }
+
+  // ---- المجسّات ----
+  for (i = 0; i < ROLLS.length; i++) {
+    o = ROLLS[i];
+    lamp(c, o.x, o.y, 4.5, o.t > 0, 'rgba(255,230,120,.9)', 2.6);
+    c.strokeStyle = o.t > 0 ? 'rgba(255,230,120,.8)' : 'rgba(255,255,255,.18)';
+    c.lineWidth = 1.5; c.beginPath(); c.arc(o.x, o.y, o.r * 0.7, 0, 6.2832); c.stroke();
+  }
+  // ---- الأهداف ----
+  for (i = 0; i < TARGETS.length; i++) {
+    o = TARGETS[i];
+    var lit = o.flash > 0;
+    if (o.k === 'drop') {
+      if (o.down) { c.fillStyle = 'rgba(255,255,255,.12)'; c.beginPath(); c.arc(o.x, o.y, 4, 0, 6.2832); c.fill(); continue; }
+      var sg = tgtSeg(o);
+      c.strokeStyle = lit ? '#fff' : (o.g === 'mult' ? '#5de1ff' : o.g === 'medal' ? '#ffd34d' : '#ff77c8');
+      c.lineWidth = 8; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(sg[0], sg[1]); c.lineTo(sg[2], sg[3]); c.stroke();
+      c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 2.4;
+      c.beginPath(); c.moveTo(sg[0], sg[1]); c.lineTo(sg[2], sg[3]); c.stroke();
+    } else {
+      var on = lit || (o.g === 'hazL' && G.hazL[o.i]) || (o.g === 'hazR' && G.hazR[o.i]) ||
+               (o.g === 'mission' && (G.sel || G.mission));
+      var col = o.g === 'mission' ? '#c46bff' : o.g === 'fuel' ? '#5cf08a' : '#5de1ff';
+      c.fillStyle = 'rgba(10,4,24,.92)'; c.beginPath(); c.arc(o.x, o.y, 9, 0, 6.2832); c.fill();
+      c.strokeStyle = on ? '#fff' : col; c.lineWidth = on ? 3 : 2.2;
+      c.beginPath(); c.arc(o.x, o.y, 9, 0, 6.2832); c.stroke();
+      lamp(c, o.x, o.y, 3.4, on, col, 4.5);
+    }
+  }
+  // ---- المنافخ ----
+  for (i = 0; i < BUMPERS.length; i++) {
+    o = BUMPERS[i];
+    var f = o.flash > 0 ? 1 : 0, rr = o.r * (1 + f * 0.08);
+    var bg = c.createRadialGradient(o.x - rr * 0.3, o.y - rr * 0.35, 1, o.x, o.y, rr);
+    if (f) { bg.addColorStop(0, '#fff'); bg.addColorStop(1, '#ffd34d'); }
+    else if (o.lit) { bg.addColorStop(0, '#dff6ff'); bg.addColorStop(0.55, '#5de1ff'); bg.addColorStop(1, '#1d5f9e'); }
+    else { bg.addColorStop(0, '#e9d0ff'); bg.addColorStop(0.55, '#a35ce0'); bg.addColorStop(1, '#42176e'); }
+    c.fillStyle = bg; c.beginPath(); c.arc(o.x, o.y, rr, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 2.2;
+    c.beginPath(); c.arc(o.x, o.y, rr, 0, 6.2832); c.stroke();
+    c.fillStyle = 'rgba(255,255,255,.9)'; c.beginPath(); c.arc(o.x, o.y, rr * 0.3, 0, 6.2832); c.fill();
+  }
+  // ---- الأعمدة المطّاطية ----
+  for (i = 0; i < POSTS.length; i++) {
+    o = POSTS[i];
+    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 2, o.y + 2, o.r, 0, 6.2832); c.fill();
+    var pg = c.createRadialGradient(o.x - o.r * 0.4, o.y - o.r * 0.4, 1, o.x, o.y, o.r);
+    pg.addColorStop(0, '#fff'); pg.addColorStop(0.5, '#ff9ecb'); pg.addColorStop(1, '#a3246a');
+    c.fillStyle = pg; c.beginPath(); c.arc(o.x, o.y, o.r, 0, 6.2832); c.fill();
+  }
+  // ---- المصدّان ----
+  for (i = 0; i < 2; i++) {
+    o = SLINGS[i];
+    c.strokeStyle = o.lit > 0 ? '#fff' : 'rgba(255,120,190,.85)';
+    c.lineWidth = o.lit > 0 ? 9 : 7; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(o.a[0], o.a[1]); c.lineTo(o.b[0], o.b[1]); c.stroke();
+  }
+  // ---- الأعلام ----
+  for (i = 0; i < FLAGS.length; i++) {
+    o = FLAGS[i];
+    c.save(); c.translate(o.x, o.y); c.rotate(o.spin);
+    c.strokeStyle = 'rgba(93,225,255,.9)'; c.lineWidth = 3;
+    for (var q = 0; q < 3; q++) {
+      c.rotate(2.094);
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(o.r * 0.85, 0); c.stroke();
+    }
+    c.restore();
+    lamp(c, o.x, o.y, 3.4, G.flagLv > 0, 'rgba(255,230,120,.9)', 2.4);
+  }
+  // ---- حارس المصرف ----
+  if (BLOCKER.on) {
+    c.strokeStyle = 'rgba(93,225,255,.9)'; c.lineWidth = 6; c.setLineDash([12, 10]);
+    c.beginPath(); c.moveTo(BLOCKER.a[0], BLOCKER.a[1]); c.lineTo(BLOCKER.b[0], BLOCKER.b[1]); c.stroke();
+    c.setLineDash([]);
+  }
+  // ---- الرافعتان ----
+  for (i = 0; i < KICKS.length; i++) lamp(c, KICKS[i].x, KICKS[i].y - 46, 5, KICKS[i].on, 'rgba(120,255,160,.9)', 2.6);
+
+  // ---- المضربان ----
+  for (i = 0; i < 2; i++) {
+    var fl = FLIPS[i], tp = fl.tip();
+    c.save(); c.lineCap = 'round';
+    c.strokeStyle = 'rgba(0,0,0,.45)'; c.lineWidth = (FLIP_R + 3) * 2;
+    c.beginPath(); c.moveTo(fl.px, fl.py + 3); c.lineTo(tp[0], tp[1] + 3); c.stroke();
+    var fg = c.createLinearGradient(fl.px, fl.py - FLIP_R, fl.px, fl.py + FLIP_R);
+    fg.addColorStop(0, '#fff0f6'); fg.addColorStop(0.45, '#ff6fa8'); fg.addColorStop(1, '#8e1f52');
+    c.strokeStyle = fg; c.lineWidth = FLIP_R * 2;
+    c.beginPath(); c.moveTo(fl.px, fl.py); c.lineTo(tp[0], tp[1]); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(fl.px, fl.py - 3); c.lineTo(tp[0], tp[1] - 3); c.stroke();
+    c.fillStyle = '#2a1044'; c.beginPath(); c.arc(fl.px, fl.py, 4.5, 0, 6.2832); c.fill();
+    c.restore();
+  }
+
+  // ---- القاذف ----
+  var py = PL_ROD - PLUNGE.pull * 26;
+  c.strokeStyle = '#7d5bb0'; c.lineWidth = 12; c.lineCap = 'butt';
+  c.beginPath(); c.moveTo(550, py); c.lineTo(550, PL_FOOT); c.stroke();
+  c.fillStyle = '#ffd34d'; c.fillRect(538, py - 8, 24, 9);
+  if (PLUNGE.pull > 0.02) {                       // مؤشّر القوّة
+    var PMH = PM_BOT - PM_TOP;
+    c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(LANE_L + 8, PM_TOP, 10, PMH);
+    var ph = PMH * PLUNGE.pull;
+    var pgd = c.createLinearGradient(0, PM_TOP, 0, PM_BOT);
+    pgd.addColorStop(0, '#ff5a6e'); pgd.addColorStop(0.5, '#ffd34d'); pgd.addColorStop(1, '#5cf08a');
+    c.fillStyle = pgd; c.fillRect(LANE_L + 8, PM_BOT - ph, 10, ph);
+  }
+
+  // ---- الكرات ----
+  for (i = 0; i < balls.length; i++) {
+    var b = balls[i];
+    if (b.hole) continue;
+    c.fillStyle = 'rgba(0,0,0,.5)';
+    c.beginPath(); c.arc(b.x + 3, b.y + 4, BR, 0, 6.2832); c.fill();
+    var bgd = c.createRadialGradient(b.x - BR * 0.4, b.y - BR * 0.45, 1, b.x, b.y, BR);
+    bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(0.35, '#d7d2e6');
+    bgd.addColorStop(0.75, '#8d87a8'); bgd.addColorStop(1, '#3b3550');
+    c.fillStyle = bgd; c.beginPath(); c.arc(b.x, b.y, BR, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1;
+    c.beginPath(); c.arc(b.x, b.y, BR - 0.6, 0, 6.2832); c.stroke();
+  }
+  c.restore();
+  drawHud();
+}
+
+function drawHud() {
+  var c = ctx, top = OY - HUD, right = VW - 8;
+  c.save();
+  c.textBaseline = 'middle';
+  // النتيجة
+  c.textAlign = 'right';
+  c.fillStyle = '#ffd34d';
+  c.font = '800 ' + Math.round(HUD * 0.42) + 'px ' + FONT;
+  c.fillText(G.score.toLocaleString('en-US'), right, top + HUD * 0.30);
+  // الحالة: الرتبة، الكرة، المضاعِف
+  c.font = '700 ' + Math.round(HUD * 0.2) + 'px ' + FONT;
+  c.fillStyle = '#b9a6d8';
+  var line = RANKS[G.rank] + '  ·  كرة ' + G.ball + '/' + G.ballsTotal +
+    (G.mult ? '  ·  ×' + MULTS[G.mult] : '') + (G.extra ? '  ·  +' + G.extra : '');
+  c.fillText(line, right, top + HUD * 0.62);
+  // أفضل نتيجة
+  c.textAlign = 'left';
+  c.fillStyle = 'rgba(185,166,216,.75)';
+  var lx = Math.max(52, OX + 2);
+  c.fillText('TOP ' + G.best.toLocaleString('en-US'), lx, top + HUD * 0.62);
+  // مقياس الوقود
+  for (var i = 0; i < 6; i++) {
+    c.fillStyle = i < G.fuel ? (G.fuel <= 2 ? '#ff5a6e' : '#5cf08a') : 'rgba(255,255,255,.16)';
+    c.fillRect(lx + i * 9, top + HUD * 0.18, 6, Math.round(HUD * 0.2));
+  }
+  // سطر المهمّة والإعلانات
+  var txt = (G.infoT > 0 && G.info) || (G.msgT > 0 && G.msg) || missionLine();
+  c.fillStyle = G.tiltLock ? '#ff5a6e' : (G.msgT > 0 && G.msg) ? '#ffd34d' : '#e9dcff';
+  if (txt) {
+    c.textAlign = 'center';
+    c.font = '700 ' + Math.round(Math.max(11, HUD * 0.23)) + 'px ' + FONT;
+    c.fillText(txt, VW / 2, top + HUD * 0.9);
+  }
+  c.restore();
+}
+var FONT = '"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif';
+
+/* ==========================================================================
+   ٧ — الحفظ، والمدخلات، وحلقة اللعب
+   ========================================================================== */
+var BKEY = 'pinball-best', bestSaved = 0, bestAt = 0;
+try { G.best = parseInt(localStorage.getItem(BKEY) || '0', 10) || 0; } catch (e) { G.best = 0; }
+bestSaved = G.best;
+/* أعلى نتيجة تُكتب وهي ترتفع لا عند انتهاء الجولة وحدها: من يُغلق التطبيق في
+   منتصف جولة جيدة كان يفقد رقمها. الكتابة مخنوقة بثانية كي لا يُلمس التخزين
+   مع كل منفاخ، ومضمونة عند مغادرة الصفحة. هذا نمط snake.html وtetris.html. */
+function writeBest() {
+  if (G.best <= bestSaved) return;
+  try { localStorage.setItem(BKEY, String(G.best)); bestSaved = G.best; } catch (e) {}
+}
+function bumpBest() {
+  if (G.score <= G.best) return;
+  G.best = G.score;
+  var now = Date.now();
+  if (now - bestAt >= 1000) { bestAt = now; writeBest(); }
+}
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { writeBest(); if (G.state === 'play') doPause(); stopLoop(); }
+  else startLoop();
+});
+window.addEventListener('pagehide', function () { writeBest(); stopLoop(); });
+
+// ---------- الشاشات ----------
+var $ = function (id) { return document.getElementById(id); };
+var startSheet = $('startSheet'), pauseSheet = $('pauseSheet'), overSheet = $('overSheet');
+function show(el) {
+  startSheet.hidden = el !== startSheet; pauseSheet.hidden = el !== pauseSheet; overSheet.hidden = el !== overSheet;
+  $('pauseBtn').disabled = !el ? false : true;
+  if (!el) $('pauseBtn').disabled = false;
+}
+function startGame() {
+  G.score = 0; G.ball = 1; G.extra = 0; G.rank = 0; G.prog = 0; G.mult = 0;
+  G.bonus = 0; G.bonusFlag = false; G.jack = 0; G.jackFlag = false; G.fuel = 6; G.fuelT = 0;
+  G.mission = 0; G.sel = 0; G.part = 0; G.cnt = 0; G.tilt = 0; G.tiltLock = false; G.tiltT = 0;
+  G.atkLv = 0; G.lauLv = 0; G.flagLv = 0; G.medalLv = 0; G.boostLv = 0; G.multLv = 0;
+  G.hyperLv = 0; G.chuteLv = 0; G.extraLit = false; G.wdest = 0; G.comboT = 0;
+  G.hazL = [false, false, false]; G.hazR = [false, false, false]; G.wormLit = [false, false, false];
+  bankReset('mult'); bankReset('medal'); bankReset('boost');
+  for (var i = 0; i < BUMPERS.length; i++) { BUMPERS[i].lit = false; BUMPERS[i].flash = 0; }
+  for (i = 0; i < FLAGS.length; i++) { FLAGS[i].rolls = 0; FLAGS[i].spin = 0; FLAGS[i].v = 0; }
+  balls.length = 0; ACC = 0;
+  KICKS[0].on = KICKS[1].on = true; BLOCKER.on = false;
+  info('', 0);
+  newBall();
+  G.state = 'play'; show(null);
+  warm(); sfx('start'); musicStart();
+}
+function gameOver() {
+  G.state = 'over'; writeBest(); musicStop(); sfx('over');
+  $('finalScore').textContent = G.score.toLocaleString('en-US');
+  $('finalRank').textContent = 'رتبتك: ' + RANKS[G.rank];
+  $('recordMsg').textContent = (G.score >= G.best && G.score > 0) ? 'رقم قياسي جديد!' : 'أعلى نتيجة: ' + G.best.toLocaleString('en-US');
+  show(overSheet);
+}
+function doPause() { if (G.state !== 'play') return; G.state = 'pause'; musicStop(); show(pauseSheet); }
+function doResume() { if (G.state !== 'pause') return; G.state = 'play'; show(null); warm(); musicStart(); }
+function toMenu() { G.state = 'menu'; musicStop(); writeBest(); balls.length = 0; show(startSheet); }
+
+$('playBtn').addEventListener('click', function () { warm(); startGame(); });
+$('againBtn').addEventListener('click', function () { warm(); startGame(); });
+$('resumeBtn').addEventListener('click', function () { warm(); doResume(); });
+$('quitBtn').addEventListener('click', function () { warm(); gameOver(); });
+$('menuBtn').addEventListener('click', function () { warm(); sfx('click'); G.state === 'menu' ? 0 : toMenu(); });
+$('pauseBtn').addEventListener('click', function () {
+  warm(); sfx('click');
+  if (G.state === 'play') doPause(); else if (G.state === 'pause') doResume();
+});
+var muteBtn = $('muteBtn');
+function syncMute() {
+  muteBtn.classList.toggle('off', !soundOn);
+  muteBtn.setAttribute('aria-label', soundOn ? 'كتم الصوت' : 'تشغيل الصوت');
+}
+muteBtn.addEventListener('click', function () {
+  soundOn = !soundOn;
+  try { localStorage.setItem(SKEY, soundOn ? 'on' : 'off'); } catch (e) {}
+  syncMute();
+  if (soundOn) { warm(); sfx('click'); if (G.state === 'play') musicStart(); }
+  else { musicStop(); if (master) master.gain.value = 0; }
+  if (soundOn && master) master.gain.value = 0.9;
+});
+syncMute();
+
+/* ---------- اللمس: نصف الشاشة لكل مضرب، ومعاً في آنٍ واحد ----------
+   pointer events مع setPointerCapture: كل إصبع يُتابَع باسمه حتى لو غادر
+   نصفه، فلا يعلق مضرب مرفوعاً حين ينزلق الإبهام. ولا زرّ مضرب مرسوم يسرق
+   من الطاولة شيئاً — الشاشة كلها مضربان. */
+var pointers = {};
+function ballWaiting() {
+  for (var i = 0; i < balls.length; i++) if (balls[i].wait) return balls[i];
+  return null;
+}
+function setFlips() {
+  var L = false, R = false;
+  for (var k in pointers) if (pointers[k].mode === 'flip') { if (pointers[k].side) R = true; else L = true; }
+  if (keyL) L = true; if (keyR) R = true;
+  if (G.tiltLock || G.state !== 'play') { L = R = false; }
+  if (L && !flipL.held) sfx('flip');
+  if (R && !flipR.held) sfx('flip');
+  flipL.held = L; flipR.held = R;
+}
+cv.addEventListener('pointerdown', function (e) {
+  warm();
+  if (G.state !== 'play') return;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  var side = e.clientX > VW / 2 ? 1 : 0;
+  var mode = (side === 1 && ballWaiting()) ? 'plunge' : 'flip';
+  pointers[e.pointerId] = { side: side, mode: mode, y0: e.clientY };
+  if (mode === 'plunge') PLUNGE.pull = 0;
+  setFlips();
+  e.preventDefault();
+}, { passive: false });
+cv.addEventListener('pointermove', function (e) {
+  var p = pointers[e.pointerId]; if (!p || p.mode !== 'plunge') return;
+  PLUNGE.pull = Math.max(0, Math.min(1, (e.clientY - p.y0) / (VH * 0.26)));
+  e.preventDefault();
+}, { passive: false });
+function endPointer(e) {
+  var p = pointers[e.pointerId]; if (!p) return;
+  delete pointers[e.pointerId];
+  if (p.mode === 'plunge') launch();
+  setFlips();
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+
+function launch() {
+  var b = ballWaiting();
+  if (!b) { PLUNGE.pull = 0; return; }
+  var pw = PLUNGE.pull;
+  if (pw < 0.03) pw = 0.03;
+  b.wait = false; b.spd = 620 + 1150 * pw; b.dx = 0; b.dy = -1;
+  PLUNGE.pull = 0;
+  sfx('kickback');
+}
+
+// ---------- لوحة المفاتيح ----------
+var keyL = false, keyR = false;
+addEventListener('keydown', function (e) {
+  if (e.repeat) return;
+  var k = e.key;
+  warm();
+  if (k === 'ArrowLeft' || k === 'z' || k === 'Z') { keyL = true; setFlips(); e.preventDefault(); }
+  else if (k === 'ArrowRight' || k === '/' || k === '.') { keyR = true; setFlips(); e.preventDefault(); }
+  else if (k === ' ') {
+    if (G.state === 'menu') startGame();
+    else if (ballWaiting()) { PLUNGE.pull = 1; launch(); }
+    e.preventDefault();
+  }
+  else if (k === 'ArrowUp') { nudge((Math.random() - 0.5) * 2); e.preventDefault(); }
+  else if (k === 'p' || k === 'P') { G.state === 'play' ? doPause() : doResume(); }
+  else if (k === 'Escape') { if (G.state === 'play' || G.state === 'pause') toMenu(); }
+});
+addEventListener('keyup', function (e) {
+  var k = e.key;
+  if (k === 'ArrowLeft' || k === 'z' || k === 'Z') { keyL = false; setFlips(); }
+  else if (k === 'ArrowRight' || k === '/' || k === '.') { keyR = false; setFlips(); }
+});
+
+// ---------- هزّ الجهاز: نَخّة حقيقية، وكثرتها إمالة ----------
+function nudge(dir) {
+  if (G.state !== 'play' || G.tiltLock) return;
+  G.nudgeX = dir * 170; G.nudging = 0.12;
+  for (var i = 0; i < balls.length; i++) if (!balls[i].hole && !balls[i].wait) kick(balls[i], dir > 0 ? 1 : -1, -0.35, 90);
+  sfx('wall', 0.6);
+}
+var lastShake = 0, motionOn = false;
+function onMotion(e) {
+  var a = e.accelerationIncludingGravity || e.acceleration; if (!a) return;
+  var mag = Math.abs(a.x || 0) + Math.abs(a.y || 0);
+  var now = performance.now();
+  if (mag > 22 && now - lastShake > 260) { lastShake = now; nudge((a.x || 0) > 0 ? 1 : -1); }
+}
+function askMotion() {
+  if (motionOn || !window.DeviceMotionEvent) return;
+  motionOn = true;
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(function (r) {
+      if (r === 'granted') addEventListener('devicemotion', onMotion);
+    }).catch(function () {});
+  } else addEventListener('devicemotion', onMotion);
+}
+$('playBtn').addEventListener('click', askMotion);
+$('againBtn').addEventListener('click', askMotion);
+
+// ---------- حلقة اللعب ----------
+var raf = 0, last = 0;
+function tick(dt) {
+  var i, o;
+  if (G.msgT > 0) { G.msgT -= dt; if (G.msgT <= 0) G.msg = ''; }
+  if (G.infoT > 0) G.infoT -= dt;
+  if (G.comboT > 0) G.comboT -= dt;
+  for (i = 0; i < ROLLS.length; i++) if (ROLLS[i].t > 0) ROLLS[i].t -= dt;
+  for (i = 0; i < TARGETS.length; i++) if (TARGETS[i].flash > 0) TARGETS[i].flash -= dt;
+  for (i = 0; i < BUMPERS.length; i++) if (BUMPERS[i].flash > 0) BUMPERS[i].flash -= dt;
+  for (i = 0; i < SLINGS.length; i++) if (SLINGS[i].lit > 0) SLINGS[i].lit -= dt;
+  for (i = 0; i < FLAGS.length; i++) { o = FLAGS[i]; if (o.v > 0.01) { o.spin += o.v * dt; o.v *= 0.94; } }
+  if (G.state !== 'play') return;
+
+  if (G.nudging > 0) { G.nudging -= dt; G.tilt += dt * 4; } else if (G.tilt > 0) G.tilt = Math.max(0, G.tilt - dt);
+  if (!G.tiltLock) {
+    if (G.tilt > 0.5 && G.infoT <= 0) info('احذر — الطاولة تهتزّ', 1.2);
+    if (G.tilt > 1) doTilt();
+  } else {
+    G.tiltT -= dt;
+    if (G.tiltT <= 0) { while (balls.length > 1) balls.pop(); if (balls.length) drainBall(balls[0]); }
+  }
+  // الوقود يتناقص مع الوقت؛ نفاده يمنع قبول مهمّة جديدة حتى يُعاد ملؤه
+  G.fuelT += dt;
+  if (G.fuelT > 18) { G.fuelT = 0; if (G.fuel > 0) { G.fuel--; if (G.fuel === 1) info('تحذير — الوقود منخفض', 3); } }
+  BLOCKER.on = balls.length > 1;
+
+  ACC += dt; if (ACC > 0.25) ACC = 0.25;
+  while (ACC >= STEP) { physics(STEP); ACC -= STEP; }
+  musicTick();
+}
+function frame(now) {
+  raf = requestAnimationFrame(frame);
+  var dt = (now - last) / 1000; last = now;
+  if (!(dt > 0)) dt = 1 / 60;
+  if (dt > 0.25) dt = 0.25;
+  tick(dt);
+  draw(now);
+}
+function startLoop() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+function stopLoop() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+
+addEventListener('resize', layout);
+addEventListener('orientationchange', function () { setTimeout(layout, 120); });
+layout();
+show(startSheet);
+startLoop();
+</script>
+</body>
+</html>
