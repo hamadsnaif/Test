@@ -223,6 +223,10 @@ CACHED = ['./', './index.html', './games.json', './manifest.webmanifest',
 # cache. Keeping them would put 140KB on every visitor's first load for a file
 # they never fetch twice.
 CACHED += ['./' + e['file'] for e in ENTRIES if have(os.path.join(REPO, e['file']))]
+# Assets a game page needs beside itself. Only pinball has one: its sky is a
+# real nebula photograph, too big to inline and pointless to inline anyway
+# since the worker keeps it offline just as well next to the page.
+CACHED += ['./' + f for f in ['pinball-sky.jpg'] if have(os.path.join(REPO, f))]
 CACHED = sorted(set(CACHED))
 
 SW_BODY = r"""// Offline cache for Hamad's Games, and the path new versions travel down.

@@ -1180,6 +1180,27 @@ function fbm(n, x, y, oct) {
   for (i = 0; i < oct; i++) { v += n(x * f, y * f) * amp; f *= 2.07; amp *= 0.5; }
   return v;
 }
+/* ---- خلفية الطاولة ----
+   صورة سديم حقيقية مجاورة للصفحة (‎pinball-sky.jpg‎): أصلها ملك عام من
+   NASA/JPL-Caltech، أُعيد تلوينها على لوحة الطاولة بـ‎src/sky/make-sky.js‎.
+   وهي الاستثناء الوحيد لقاعدة «كل شيء داخل الملف» في هذه اللعبة: ملفّ مجاور
+   من الأصل نفسه، يحفظه عامل الخدمة فتعمل اللعبة بلا إنترنت كما كانت.
+   وإن لم تصل — أوّل زيارة بلا شبكة، أو فتح من ‎file://‎، أو بناء الملف الواحد —
+   فالسديم المُولَّد أدناه يحلّ محلّها، والصفحة لا تنتظرها ولا تنكسر بغيابها. */
+var SKY = null, skyOK = false;
+(function loadSky() {
+  SKY = new Image();
+  SKY.onload = function () { skyOK = true; if (VW > 0) buildStatic(); };
+  SKY.onerror = function () { SKY = null; };
+  SKY.src = 'pinball-sky.jpg';
+})();
+// رسم يملأ الإطار مع حفظ نسبة الصورة (اقتصاص لا تشويه)
+function cover(c, img, x, y, w, h) {
+  var s = Math.max(w / img.width, h / img.height);
+  var dw = img.width * s, dh = img.height * s;
+  c.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+
 var _neb = null;
 function nebula() {
   if (_neb) return _neb;
@@ -1279,11 +1300,14 @@ function buildStatic() {
   c.clearRect(0, 0, VW, VH);
   // ---- الفضاء خلف الخزانة ----
   c.fillStyle = '#06030f'; c.fillRect(0, 0, VW, VH);
-  var NB = nebula();
-  c.save(); c.globalAlpha = 0.78;
-  c.drawImage(NB, -VW * 0.15, -VH * 0.08, VW * 1.35, VH * 1.2);
-  c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.2;
-  c.drawImage(NB, VW * 0.4, VH * 0.5, VW * 1.3, VH * 0.9);
+  c.save(); c.globalAlpha = 0.85;
+  if (skyOK) cover(c, SKY, -VW * 0.06, -VH * 0.04, VW * 1.12, VH * 1.08);
+  else {
+    var NB = nebula();
+    c.drawImage(NB, -VW * 0.15, -VH * 0.08, VW * 1.35, VH * 1.2);
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.2;
+    c.drawImage(NB, VW * 0.4, VH * 0.5, VW * 1.3, VH * 0.9);
+  }
   c.restore();
   var dk = c.createRadialGradient(VW * 0.5, VH * 0.45, VW * 0.2, VW * 0.5, VH * 0.5, VW * 1.1);
   dk.addColorStop(0, 'rgba(6,3,15,0)'); dk.addColorStop(1, 'rgba(6,3,15,.75)');
@@ -1320,10 +1344,11 @@ function buildStatic() {
   var pf = c.createLinearGradient(0, 0, 120, TH);
   pf.addColorStop(0, '#2e1552'); pf.addColorStop(0.4, '#1d0f3b'); pf.addColorStop(1, '#130a29');
   c.fillStyle = pf; c.fillRect(0, 0, TW, TH);
-  c.save(); c.globalAlpha = 0.34; c.globalCompositeOperation = 'lighter';
-  c.drawImage(nebula(), -40, -30, TW + 80, TH + 60);
+  c.save(); c.globalAlpha = 0.46; c.globalCompositeOperation = 'lighter';
+  if (skyOK) cover(c, SKY, -30, -24, TW + 60, TH + 48);
+  else c.drawImage(nebula(), -40, -30, TW + 80, TH + 60);
   c.restore();
-  c.fillStyle = 'rgba(11,5,24,.34)'; c.fillRect(0, 0, TW, TH);
+  c.fillStyle = 'rgba(11,5,24,.38)'; c.fillRect(0, 0, TW, TH);
   var R2 = rnd(551);
   for (i = 0; i < 190; i++) {
     var sr2 = R2(); sr2 = 0.3 + sr2 * sr2 * 1.4;
