@@ -1244,6 +1244,7 @@ function layout() {
   OX = sl + (aw - TW * S) / 2;
   OY = st + HUD + (ah - TH * S) / 2;
   stat.width = cv.width; stat.height = cv.height;
+  bakeSprites(S * DPR);          // القطع تُخبز على كثافة بكسل الجهاز فلا تُكبَّر أبداً
   buildStatic();
 }
 function tableCtx(c) { c.save(); c.translate(OX + shakeX, OY + shakeY); c.scale(S, S); }
@@ -1469,6 +1470,150 @@ function buildStatic() {
   c.setTransform(1, 0, 0, 1, 0, 0);
 }
 
+
+/* ==========================================================================
+   ٦أ — أطلس السبرايت: قطع مخبوزة بإضاءة لكل بكسل
+   --------------------------------------------------------------------------
+   بحثت عن سبرايتات بينبول جاهزة برخصة صالحة، فما وجدته (CC0 على OpenGameArt)
+   صور صمّاء بديلة: دائرة رمادية للمنفاخ وظلّ أسود للمضرب — أسوأ ممّا كان.
+   والمتاح بجودة حقيقية (حزم Kenney مثلاً) ليس قطع بينبول.
+
+   فالقطع تُخبز هنا: تُحسب مرّة واحدة عند كل تغيير مقاس، بإضاءة لكل بكسل من
+   متّجه سطحها — انتشار، ولمعة مرآوية بأُسّ عالٍ، وحافّة فرينل، وانعكاس بيئة
+   للكرة الكروميّة. وهذا بالضبط ما يجعل السبرايت سبرايتاً: كلفةُ تظليلٍ لا
+   تُحتمل ستّين مرّة في الثانية، تُدفع مرّة ثم تُنسخ صورةً جاهزة. والنتيجة
+   أدقّ من أي صورة منزّلة لأنها تُخبز على كثافة بكسل الجهاز نفسه، فلا تُكبَّر.
+   ========================================================================== */
+var SPR = {}, SPR_PX = 0;
+var LX = -0.45, LY = -0.62, LZ = 0.64;            // اتجاه الضوء: أعلى اليسار
+
+function bake(w, h, fn) {
+  var cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.ceil(w)); cv.height = Math.max(1, Math.ceil(h));
+  var c = cv.getContext('2d'), img = c.createImageData(cv.width, cv.height), D = img.data;
+  var x, y, i = 0;
+  for (y = 0; y < cv.height; y++) for (x = 0; x < cv.width; x++, i += 4)
+    fn(D, i, (x + 0.5) / cv.width * 2 - 1, (y + 0.5) / cv.height * 2 - 1);
+  c.putImageData(img, 0, 0);
+  return cv;
+}
+// إضاءة نقطة على سطح متّجهه (nx,ny,nz): انتشار + لمعة + حافّة
+function shade(D, i, nx, ny, nz, r, g, b, shin, specAmt, rimAmt, a) {
+  var diff = nx * LX + ny * LY + nz * LZ; if (diff < 0) diff = 0;
+  var hx = LX, hy = LY, hz = LZ + 1, hl = Math.sqrt(hx * hx + hy * hy + hz * hz);
+  var sp = (nx * hx + ny * hy + nz * hz) / hl; if (sp < 0) sp = 0;
+  sp = Math.pow(sp, shin) * specAmt;
+  var rim = Math.pow(1 - nz, 3.2) * rimAmt;
+  var k = 0.2 + 0.88 * diff;
+  D[i]     = Math.min(255, r * k + 255 * sp + 150 * rim);
+  D[i + 1] = Math.min(255, g * k + 255 * sp + 180 * rim);
+  D[i + 2] = Math.min(255, b * k + 255 * sp + 255 * rim);
+  D[i + 3] = a === undefined ? 255 : a;
+}
+function hex(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+
+/* الكرة: كروم. لونها ليس لونها بل ما تعكسه — سماء فوق وأرضية تحت وبقعة ضوء.
+   هذا ما يجعل كرة البينبول تبدو معدناً لا رخاماً. */
+function bakeBall(px) {
+  return bake(px, px, function (D, i, u, v) {
+    var d2 = u * u + v * v; if (d2 > 1) return;
+    var nz = Math.sqrt(1 - d2);
+    var ry = 2 * nz * v, rx = 2 * nz * u;                 // متّجه الانعكاس
+    var t = Math.max(0, Math.min(1, (ry + 0.55) / 1.3));  // سماء ← أرضية
+    var r = 232 - 176 * t, g = 234 - 182 * t, b = 246 - 180 * t;
+    var lobe = Math.exp(-((rx + 0.62) * (rx + 0.62) + (ry + 0.72) * (ry + 0.72)) * 5.5);
+    r += 150 * lobe; g += 150 * lobe; b += 150 * lobe;
+    var edge = Math.pow(d2, 8);                            // تعتيم الحافّة
+    r *= 1 - edge * 0.72; g *= 1 - edge * 0.72; b *= 1 - edge * 0.68;
+    shade(D, i, u, v, nz, r, g, b, 90, 0.85, 0.28, d2 > 0.985 ? (1 - d2) / 0.015 * 255 : 255);
+  });
+}
+/* المنفاخ: قاعدة معدنية، تنّورة ملوّنة، وقبّعة فطرية — ثلاث مناطق لكلٍّ
+   متّجهها، فالضوء يمرّ عليها كما يمرّ على القطعة الحقيقية. */
+function bakeBumper(px, capHex, ringHex) {
+  var cap = hex(capHex), ring = hex(ringHex);
+  return bake(px, px, function (D, i, u, v) {
+    var d = Math.sqrt(u * u + v * v); if (d > 1) return;
+    var a = d > 0.98 ? (1 - d) / 0.02 * 255 : 255;
+    if (d > 0.62) {                                        // الحلقة والتنّورة
+      var t = (d - 0.62) / 0.38;
+      var nz = Math.cos(t * 2.1), nr = Math.sin(t * 2.1);
+      var m = d || 1;
+      var c0 = t < 0.45 ? ring : [90, 84, 116];
+      shade(D, i, u / m * nr, v / m * nr, nz, c0[0], c0[1], c0[2], 26, 0.5, 0.35, a);
+      return;
+    }
+    var q = d / 0.62, nz2 = Math.sqrt(Math.max(0, 1 - q * q * 0.82)), m2 = d || 1;
+    shade(D, i, u / m2 * q * 0.9, v / m2 * q * 0.9, nz2, cap[0], cap[1], cap[2], 54, 0.95, 0.2, a);
+  });
+}
+// العمود: بلاستيك أبيض تحته حلقة مطّاط — كرة فوق حلقة مقطعها دائري
+function bakePost(px) {
+  return bake(px, px, function (D, i, u, v) {
+    var d = Math.sqrt(u * u + v * v); if (d > 1) return;
+    var a = d > 0.97 ? (1 - d) / 0.03 * 255 : 255, m = d || 1;
+    if (d > 0.68) {
+      var t = (d - 0.68) / 0.32, nz = Math.cos(t * 2.2), nr = Math.sin(t * 2.2);
+      shade(D, i, u / m * nr, v / m * nr, nz, 226, 58, 96, 22, 0.55, 0.3, a);
+      return;
+    }
+    var q = d / 0.68, nz2 = Math.sqrt(Math.max(0, 1 - q * q));
+    shade(D, i, u / m * q, v / m * q, nz2, 238, 236, 248, 40, 0.8, 0.18, a);
+  });
+}
+// الهدف الساقط: صندوق مشطوف الحواف، وجهه ملوّن وحافّته العليا لامعة
+function bakeTarget(w, h, colHex) {
+  var col = hex(colHex), bev = 0.42;
+  return bake(w, h, function (D, i, u, v) {
+    var eu = 1 - Math.abs(u), ev = 1 - Math.abs(v), e = Math.min(eu / bev, ev / bev);
+    if (e < 0) return;
+    var t = Math.min(1, e);
+    var nz = t, nr = Math.sqrt(Math.max(0, 1 - t * t));
+    var nx = t < 1 ? (eu / bev < ev / bev ? Math.sign(u) * nr : 0) : 0;
+    var ny = t < 1 ? (ev / bev <= eu / bev ? Math.sign(v) * nr : 0) : 0;
+    var k = v < -0.2 ? 1.18 : v > 0.35 ? 0.66 : 1;         // وجه علويّ أفتح
+    shade(D, i, nx, ny, nz, col[0] * k, col[1] * k, col[2] * k, 34, 0.7, 0.22, 255);
+  });
+}
+// المضرب: قضيب مستدقّ بمقطع نصف أسطواني، فله ظهر لامع كالمضرب الحقيقي
+function bakeFlipper(w, h, colHex) {
+  var col = hex(colHex);
+  return bake(w, h, function (D, i, u, v) {
+    var t = (u + 1) / 2;                                   // ٠ عند المحور، ١ عند الطرف
+    var half = 1 - 0.42 * t * t;                           // استدقاق
+    var r = Math.abs(v) / half; if (r > 1) return;
+    var cap = t < 0.06 ? (t / 0.06) : t > 0.97 ? (1 - t) / 0.03 : 1;
+    if (cap <= 0) return;
+    var nz = Math.sqrt(Math.max(0, 1 - r * r));
+    var a = 255 * Math.min(1, cap * 3);
+    shade(D, i, 0, Math.sign(v) * r, nz, col[0], col[1], col[2], 46, 0.9, 0.24, a);
+  });
+}
+
+function bakeSprites(px) {
+  if (px === SPR_PX || !isFinite(px) || px <= 0) return;
+  SPR_PX = px;
+  var U = function (n) { return Math.max(2, Math.round(n * px)); };
+  SPR.ball = bakeBall(U(BR * 2));
+  SPR.bump = [bakeBumper(U(54), '#e9d5ff', '#8a3fd0'),     // ساكن
+              bakeBumper(U(54), '#dff6ff', '#2aa6e0'),     // مُضاء
+              bakeBumper(U(54), '#fff8d8', '#ffc24d')];    // لحظة الإصابة
+  SPR.post = bakePost(U(24));
+  SPR.tgt = {}; SPR.tgtV = {};
+  ['#5de1ff', '#ffd34d', '#ff77c8', '#ffffff'].forEach(function (h) {
+    SPR.tgt[h] = bakeTarget(U(40), U(19), h);
+    SPR.tgtV[h] = bakeTarget(U(19), U(40), h);
+  });
+  SPR.flip = bakeFlipper(U(FLIP_LEN + FLIP_R * 2), U(FLIP_R * 2 + 2), '#ff5f9e');
+  SPR.flipUp = bakeFlipper(U(FLIP_LEN + FLIP_R * 2), U(FLIP_R * 2 + 2), '#ffd9e8');
+}
+// نسخ سبرايت بمركزه عند (x,y) بمقاس وحدات الطاولة، مع دوران اختياري
+function blit(c, img, x, y, w, h, ang) {
+  if (!img) return;
+  c.save(); c.translate(x, y); if (ang) c.rotate(ang);
+  c.drawImage(img, -w / 2, -h / 2, w, h); c.restore();
+}
+
 // مصباح تحت الدهان: مطفأً حفرة داكنة، ومُضاءً بؤرة تتوهّج خلف البلاستيك
 function insert(c, x, y, r, on, col) {
   c.save();
@@ -1520,14 +1665,10 @@ function draw() {
         c.beginPath(); c.moveTo(sg[0], sg[1]); c.lineTo(sg[2], sg[3]); c.stroke();
         continue;
       }
-      c.save(); c.translate(o.x, o.y); if (vert) c.rotate(Math.PI / 2);
-      var hw = o.hw, hh = 9;
-      c.fillStyle = 'rgba(0,0,0,.5)'; rr(c, -hw, -hh + 4, hw * 2, hh * 2, 3); c.fill();
-      var tg = c.createLinearGradient(0, -hh, 0, hh);
-      tg.addColorStop(0, o.flash > 0 ? '#fff' : '#ffffff'); tg.addColorStop(0.35, col); tg.addColorStop(1, 'rgba(0,0,0,.65)');
-      c.fillStyle = tg; rr(c, -hw, -hh, hw * 2, hh * 2, 3); c.fill();
-      c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.2; c.stroke();
-      c.restore();
+      var key = o.flash > 0 ? '#ffffff' : col;
+      var tw = vert ? 19 : o.hw * 2, th = vert ? o.hw * 2 : 19;
+      c.fillStyle = 'rgba(0,0,0,.5)'; rr(c, o.x - tw / 2, o.y - th / 2 + 5, tw, th, 3); c.fill();
+      blit(c, (vert ? SPR.tgtV : SPR.tgt)[key] || SPR.tgt['#5de1ff'], o.x, o.y, tw, th);
     } else {
       var on = o.flash > 0 || (o.g === 'hazL' && G.hazL[o.i]) || (o.g === 'hazR' && G.hazR[o.i]) ||
                (o.g === 'mission' && !!(G.sel || G.mission));
@@ -1542,28 +1683,18 @@ function draw() {
   // ---- المنافخ: قاعدة ملوّنة، تنّورة، وقبّعة فطرية ----
   for (i = 0; i < BUMPERS.length; i++) {
     o = BUMPERS[i];
-    var f = o.flash > 0, rr2 = o.r;
-    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 3, o.y + 4, rr2, 0, 6.2832); c.fill();
-    var ring = c.createRadialGradient(o.x, o.y, rr2 * 0.5, o.x, o.y, rr2);
-    ring.addColorStop(0, f ? 'rgba(255,255,255,.95)' : (o.lit ? 'rgba(93,225,255,.9)' : 'rgba(196,107,255,.75)'));
-    ring.addColorStop(1, 'rgba(20,8,40,.9)');
-    c.fillStyle = ring; c.beginPath(); c.arc(o.x, o.y, rr2, 0, 6.2832); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 1.5;
-    c.beginPath(); c.arc(o.x, o.y, rr2, 0, 6.2832); c.stroke();
-    var cap = c.createRadialGradient(o.x - rr2 * .32, o.y - rr2 * .38, 1, o.x, o.y, rr2 * .68);
-    cap.addColorStop(0, '#ffffff'); cap.addColorStop(0.5, f ? '#ffe58a' : '#d9d2ec'); cap.addColorStop(1, '#5b5273');
-    c.fillStyle = cap; c.beginPath(); c.arc(o.x, o.y, rr2 * 0.66, 0, 6.2832); c.fill();
-    c.strokeStyle = f ? '#fff' : 'rgba(255,255,255,.55)'; c.lineWidth = 2;
-    c.beginPath(); c.arc(o.x, o.y, rr2 * 0.66, 0, 6.2832); c.stroke();
+    var f = o.flash > 0, dd = o.r * 2;
+    if (f) { var hg = c.createRadialGradient(o.x, o.y, o.r * .4, o.x, o.y, o.r * 2.1);
+      hg.addColorStop(0, 'rgba(255,225,140,.55)'); hg.addColorStop(1, 'rgba(255,225,140,0)');
+      c.fillStyle = hg; c.beginPath(); c.arc(o.x, o.y, o.r * 2.1, 0, 6.2832); c.fill(); }
+    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 3, o.y + 5, o.r, 0, 6.2832); c.fill();
+    blit(c, SPR.bump[f ? 2 : o.lit ? 1 : 0], o.x, o.y, dd * (f ? 1.06 : 1), dd * (f ? 1.06 : 1));
   }
   // ---- الأعمدة: بلاستيك أبيض عليه حلقة مطّاط ----
   for (i = 0; i < POSTS.length; i++) {
     o = POSTS[i];
-    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 2, o.y + 3, o.r + 2, 0, 6.2832); c.fill();
-    c.fillStyle = '#e2436b'; c.beginPath(); c.arc(o.x, o.y, o.r + 2.5, 0, 6.2832); c.fill();
-    var pgd = c.createRadialGradient(o.x - o.r * .4, o.y - o.r * .4, 1, o.x, o.y, o.r);
-    pgd.addColorStop(0, '#fff'); pgd.addColorStop(1, '#b9b3c9');
-    c.fillStyle = pgd; c.beginPath(); c.arc(o.x, o.y, o.r, 0, 6.2832); c.fill();
+    c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(o.x + 2, o.y + 4, o.r + 2, 0, 6.2832); c.fill();
+    blit(c, SPR.post, o.x, o.y, (o.r + 3) * 2, (o.r + 3) * 2);
   }
   // ---- المصدّان: شريط مطّاط بين عمودين ----
   for (i = 0; i < 2; i++) {
@@ -1605,22 +1736,17 @@ function draw() {
 
   // ---- المضربان: مضرب مستدقّ بخطّ أبيض ومحور معدني ----
   for (i = 0; i < 2; i++) {
-    var fl = FLIPS[i], tp = fl.tip();
+    var fl = FLIPS[i], tp = fl.tip(), FW = FLIP_LEN + FLIP_R * 2, FH = FLIP_R * 2 + 2;
     c.save(); c.lineCap = 'round';
-    c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = (FLIP_R + 3) * 2;
-    c.beginPath(); c.moveTo(fl.px, fl.py + 4); c.lineTo(tp[0], tp[1] + 4); c.stroke();
-    c.strokeStyle = '#8e1f52'; c.lineWidth = FLIP_R * 2 + 2;
-    c.beginPath(); c.moveTo(fl.px, fl.py); c.lineTo(tp[0], tp[1]); c.stroke();
-    var fg = c.createLinearGradient(fl.px, fl.py - FLIP_R, fl.px, fl.py + FLIP_R);
-    fg.addColorStop(0, '#ffd7e6'); fg.addColorStop(0.42, '#ff5f9e'); fg.addColorStop(1, '#a32360');
-    c.strokeStyle = fg; c.lineWidth = FLIP_R * 2 - 2;
-    c.beginPath(); c.moveTo(fl.px, fl.py); c.lineTo(tp[0], tp[1]); c.stroke();
-    c.strokeStyle = 'rgba(255,255,255,.65)'; c.lineWidth = 2.2;
-    c.beginPath(); c.moveTo(fl.px + (tp[0] - fl.px) * .12, fl.py + (tp[1] - fl.py) * .12 - 2.5);
-    c.lineTo(fl.px + (tp[0] - fl.px) * .85, fl.py + (tp[1] - fl.py) * .85 - 2.5); c.stroke();
+    c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = (FLIP_R + 2) * 2;
+    c.beginPath(); c.moveTo(fl.px, fl.py + 5); c.lineTo(tp[0], tp[1] + 5); c.stroke();
+    c.translate(fl.px, fl.py);
+    if (fl.side) { c.scale(-1, 1); c.rotate(Math.PI - fl.a); } else c.rotate(fl.a);
+    var sp2 = fl.held ? SPR.flipUp : SPR.flip;
+    if (sp2) c.drawImage(sp2, -FLIP_R, -FH / 2, FW, FH);
+    c.restore();
     c.fillStyle = '#c9c3dc'; c.beginPath(); c.arc(fl.px, fl.py, 5, 0, 6.2832); c.fill();
     c.fillStyle = '#2a1044'; c.beginPath(); c.arc(fl.px, fl.py, 2.4, 0, 6.2832); c.fill();
-    c.restore();
   }
 
   // ---- القاذف ومؤشّر قوّته ----
@@ -1649,16 +1775,9 @@ function draw() {
       c.fillStyle = 'rgba(210,205,235,' + al.toFixed(2) + ')';
       c.beginPath(); c.arc(tr[0], tr[1], BR * (0.35 + 0.5 * al), 0, 6.2832); c.fill();
     }
-    c.fillStyle = 'rgba(0,0,0,.5)';
-    c.beginPath(); c.arc(b.x + 4, b.y + 5, BR, 0, 6.2832); c.fill();
-    var bgd = c.createRadialGradient(b.x - BR * 0.42, b.y - BR * 0.48, 1, b.x, b.y, BR);
-    bgd.addColorStop(0, '#ffffff'); bgd.addColorStop(0.3, '#dcd8ea');
-    bgd.addColorStop(0.72, '#8a84a4'); bgd.addColorStop(1, '#332d47');
-    c.fillStyle = bgd; c.beginPath(); c.arc(b.x, b.y, BR, 0, 6.2832); c.fill();
-    c.fillStyle = 'rgba(255,255,255,.85)';
-    c.beginPath(); c.arc(b.x - BR * 0.38, b.y - BR * 0.44, BR * 0.2, 0, 6.2832); c.fill();
-    c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1;
-    c.beginPath(); c.arc(b.x, b.y, BR - 0.5, 0, 6.2832); c.stroke();
+    c.fillStyle = 'rgba(0,0,0,.52)';
+    c.beginPath(); c.ellipse(b.x + 5, b.y + 6, BR * 1.02, BR * 0.92, 0, 0, 6.2832); c.fill();
+    blit(c, SPR.ball, b.x, b.y, BR * 2, BR * 2);
   }
   c.restore();
   drawHud();
