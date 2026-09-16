@@ -162,6 +162,26 @@ function mir(pts) { var o = [], i; for (i = 0; i < pts.length; i++) o.push([2 * 
    هندسياً: منحنى بيزييه التربيعي لا يخرج أبداً عن مثلّث نقاطه الثلاث، فالجدار
    لا يزحف داخل مسار اللعب ولا خارج الطاولة مهما بلغ نصف قطر التنعيم. ولأن
    الجدران هي نفسها ما يُرسم، فالتنعيم يصلح الشكل والفيزياء معاً. */
+/* منحنى كاتمول-روم: يمرّ بكل نقاط التحكّم ويصل بينها بانحناء متّصل. fillet
+   يدوّر الأركان لكنه يترك ما بينها مستقيماً، وعلى مسار طويل كاسح تُرى تلك
+   المستقيمات أوجهاً مكسّرة. هذا للمسارات المرسومة (المنحدرات) لا للجدران. */
+function spline(pts, step) {
+  if (pts.length < 3) return pts;
+  var P = [pts[0]].concat(pts).concat([pts[pts.length - 1]]), out = [], i, t;
+  for (i = 1; i < P.length - 2; i++) {
+    var p0 = P[i - 1], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2];
+    var seg = Math.sqrt((p2[0] - p1[0]) * (p2[0] - p1[0]) + (p2[1] - p1[1]) * (p2[1] - p1[1]));
+    var m = Math.max(2, Math.ceil(seg / (step || 8)));
+    for (t = 0; t < m; t++) {
+      var u = t / m, u2 = u * u, u3 = u2 * u;
+      out.push([0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * u + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * u2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * u3),
+                0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * u + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * u2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * u3)]);
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
 function fillet(pts, r, step) {
   if (pts.length < 3) return pts;
   var out = [pts[0]], i, t;
@@ -199,8 +219,8 @@ function wall(pts, o) {
 /* ---- المِزلق العلوي: قوسان متراكزان، والداخلي ينتهي عند ‎(510,300)‎ بالضبط
    فيصير امتداداً لجدار ممر القاذف بلا فاصل ولا فتحة ولا حافّة يستقرّ عليها
    شيء. الكرة المقذوفة تُحمل داخله حول السقف وتخرج أعلى اليسار. ---- */
-wall(arc(CX, CY, R_OUT, 180, 360), ARCW);
-wall(arc(CX, CY, R_IN, 185, 360), ARCW);
+wall(arc(CX, CY, R_OUT, 180, 360), { e: ARCW.e, s: ARCW.s, k: 'arc' });
+wall(arc(CX, CY, R_IN, 185, 360), { e: ARCW.e, s: ARCW.s, k: 'arc' });
 wall([[LANE_IN, CY], [LANE_IN, LANE_FLOOR]]);       // جدار الممر الداخلي = حافّة الملعب اليمنى
 wall([[LANE_OUT, CY], [LANE_OUT, LANE_FLOOR]]);
 wall([[LANE_IN, LANE_FLOOR], [LANE_OUT, LANE_FLOOR]]);
@@ -277,10 +297,13 @@ var HOLES = [
   { id: 'worm0', x: 64, y: 486, r: 22, wait: 1.3, out: [368, 470], dir: [0.15, 1], spd: 430, c: '#ffd34d' },
   { id: 'worm1', x: 64, y: 566, r: 22, wait: 1.3, out: [368, 470], dir: [0, 1], spd: 430, c: '#ff5a6e' },
   { id: 'worm2', x: 64, y: 646, r: 22, wait: 1.3, out: [368, 470], dir: [-0.15, 1], spd: 430, c: '#5cf08a' },
-  { id: 'ramp',  x: 452, y: 540, r: 24, wait: 1.7, out: [133, 340], dir: [-0.15, 1], spd: 380, lab: 'LAUNCH RAMP',
-    path: [[452, 540], [484, 452], [492, 356], [486, 290], [438, 218], [360, 164], [284, 142], [212, 158], [164, 198], [142, 256], [138, 322], [133, 340]] },
+  /* المنحدر يصعد الحافّة اليمنى ويصبّ في المِزلق العلوي، فتُعاد الكرة إلى
+     دورتها كما يفعل «منحدر الإطلاق» في الأصل. كان يلتفّ فوق الملعب كلّه
+     فيعبر المِزلق والمنافخ ويُقرأ سُلَّماً مكسوراً فوق كل شيء. */
+  { id: 'ramp',  x: 452, y: 540, r: 24, wait: 1.5, out: [528, 240], dir: [-0.24, -0.97], spd: 980, lab: 'LAUNCH RAMP',
+    path: [[452, 540], [468, 482], [482, 420], [492, 356], [502, 300], [516, 250], [528, 240]] },
   { id: 'chute', x: 452, y: 648, r: 22, wait: 1.2, out: [232, 340], dir: [-0.2, 1], spd: 460, lab: 'CHUTE',
-    path: [[452, 648], [416, 570], [372, 480], [318, 402], [266, 360], [232, 340]] }
+    path: [[452, 648], [420, 576], [376, 492], [322, 414], [268, 364], [232, 340]] }
 ];
 
 // ---- الأعلام الدوّارة ----
@@ -1272,6 +1295,16 @@ function rail(c, pts, w) {
   c.strokeStyle = '#6d7488'; c.lineWidth = w; c.stroke();
   c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = Math.max(1, w * 0.3); c.stroke();
 }
+/* قضيب على قوس حقيقي لا على مضلّع. كان المِزلق يُرسم مرّتين — قوساً ناعماً
+   ثم مضلّعَ الاصطدام بخطوة مختلفة — فيتراكب خطّان مزاحان ويُقرأ الأنبوب
+   متعرّجاً. الآن يُرسم مرّة واحدة بمسار قوس، فلا تقطيع أصلاً. */
+function railArc(c, cx, cy, r, a0, a1, w) {
+  c.lineCap = 'butt';
+  c.beginPath(); c.arc(cx, cy, r, a0 * D2R, a1 * D2R);
+  c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = w + 3; c.stroke();
+  c.strokeStyle = '#6d7488'; c.lineWidth = w; c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = Math.max(1, w * 0.3); c.stroke();
+}
 function wallPts(pred) {
   var runs = [], cur = null, i;
   for (i = 0; i < WALLS.length; i++) {
@@ -1427,7 +1460,7 @@ function buildStatic() {
   }
 
   // ---- المنحدر السلكي: قضيبان متوازيان وعوارض، مرفوع عن الدهان بظلّه ----
-  var RP = fillet(HOLES[4].path, 60, 9), k;
+  var RP = spline(HOLES[4].path, 7), k;
   function offsetPath(p, d) {
     var o = [], n = p.length;
     for (k = 0; k < n; k++) {
@@ -1459,8 +1492,8 @@ function buildStatic() {
   rail(c, r1, 5); rail(c, r2, 5);
 
   // ---- القضبان: كل جدار في الطاولة يُرسم فولاذاً، والأقواس قطعة واحدة ----
-  rail(c, arc(CX, CY, R_OUT, 180, 360, 4), 7);
-  rail(c, arc(CX, CY, R_IN, 185, 360, 4), 7);
+  railArc(c, CX, CY, R_OUT, 180, 360, 7);
+  railArc(c, CX, CY, R_IN, 185, 360, 7);
   var runs = wallPts(function (o) { return o.k === 'w'; });
   for (i = 0; i < runs.length; i++) if (runs[i].length > 2 || Math.hypot(runs[i][1][0] - runs[i][0][0], runs[i][1][1] - runs[i][0][1]) > 40) rail(c, runs[i], 7);
   runs = wallPts(function (o) { return o.k === 'sl'; });
@@ -1575,18 +1608,23 @@ function bakeTarget(w, h, colHex) {
     shade(D, i, nx, ny, nz, col[0] * k, col[1] * k, col[2] * k, 34, 0.7, 0.22, 255);
   });
 }
-// المضرب: قضيب مستدقّ بمقطع نصف أسطواني، فله ظهر لامع كالمضرب الحقيقي
-function bakeFlipper(w, h, colHex) {
-  var col = hex(colHex);
-  return bake(w, h, function (D, i, u, v) {
-    var t = (u + 1) / 2;                                   // ٠ عند المحور، ١ عند الطرف
-    var half = 1 - 0.42 * t * t;                           // استدقاق
-    var r = Math.abs(v) / half; if (r > 1) return;
-    var cap = t < 0.06 ? (t / 0.06) : t > 0.97 ? (1 - t) / 0.03 : 1;
-    if (cap <= 0) return;
-    var nz = Math.sqrt(Math.max(0, 1 - r * r));
-    var a = 255 * Math.min(1, cap * 3);
-    shade(D, i, 0, Math.sign(v) * r, nz, col[0], col[1], col[2], 46, 0.9, 0.24, a);
+/* المضرب: كبسولة حقيقية — نصف أسطوانة بطرفين نصف كرويين — نصف قطرها
+   FLIP_R بالضبط، وهو نصف قطر الاصطدام نفسه. كان مرسوماً مستدقّاً من ١٠ عند
+   المحور إلى ٥.٨ عند الطرف بينما الاصطدام يُبقي حافّة الكرة على بُعد ٩ ثابت،
+   فكانت الكرة تغوص في قاعدة المضرب وتطفو فوق طرفه. الآن الحدّ المرسوم هو
+   الحدّ المحسوب، فالكرة مماسّة تماماً على طول المضرب. */
+function bakeFlipper(px, len, R, colHex) {
+  var col = hex(colHex), W = len + R * 2, H = R * 2;
+  return bake(W * px, H * px, function (D, i, u, v) {
+    var X = (u + 1) / 2 * W, Y = v * R;                    // بوحدات الطاولة
+    var t = Math.max(0, Math.min(len, X - R));             // أقرب نقطة على المحور
+    var dx = X - (R + t), dy = Y, d = Math.sqrt(dx * dx + dy * dy);
+    if (d > R) return;
+    var q = d / R, nz = Math.sqrt(Math.max(0, 1 - q * q));
+    var nx = d > 1e-6 ? dx / d * q : 0, ny = d > 1e-6 ? dy / d * q : 0;
+    var k = 1 + 0.12 * (1 - X / W);                        // جذر أفتح قليلاً
+    var a = q > 0.93 ? (1 - q) / 0.07 * 255 : 255;         // حافّة ناعمة
+    shade(D, i, nx, ny, nz, col[0] * k, col[1] * k, col[2] * k, 46, 0.9, 0.24, a);
   });
 }
 
@@ -1604,8 +1642,8 @@ function bakeSprites(px) {
     SPR.tgt[h] = bakeTarget(U(40), U(19), h);
     SPR.tgtV[h] = bakeTarget(U(19), U(40), h);
   });
-  SPR.flip = bakeFlipper(U(FLIP_LEN + FLIP_R * 2), U(FLIP_R * 2 + 2), '#ff5f9e');
-  SPR.flipUp = bakeFlipper(U(FLIP_LEN + FLIP_R * 2), U(FLIP_R * 2 + 2), '#ffd9e8');
+  SPR.flip = bakeFlipper(px, FLIP_LEN, FLIP_R, '#ff5f9e');
+  SPR.flipUp = bakeFlipper(px, FLIP_LEN, FLIP_R, '#ffd9e8');
 }
 // نسخ سبرايت بمركزه عند (x,y) بمقاس وحدات الطاولة، مع دوران اختياري
 function blit(c, img, x, y, w, h, ang) {
@@ -1736,7 +1774,7 @@ function draw() {
 
   // ---- المضربان: مضرب مستدقّ بخطّ أبيض ومحور معدني ----
   for (i = 0; i < 2; i++) {
-    var fl = FLIPS[i], tp = fl.tip(), FW = FLIP_LEN + FLIP_R * 2, FH = FLIP_R * 2 + 2;
+    var fl = FLIPS[i], tp = fl.tip(), FW = FLIP_LEN + FLIP_R * 2, FH = FLIP_R * 2;
     c.save(); c.lineCap = 'round';
     c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = (FLIP_R + 2) * 2;
     c.beginPath(); c.moveTo(fl.px, fl.py + 5); c.lineTo(tp[0], tp[1] + 5); c.stroke();
