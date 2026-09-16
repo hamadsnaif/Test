@@ -414,7 +414,16 @@
   // ------------------------------------------------------------------
   function px(c, x, y, w, h, color) { c.fillStyle = color; c.fillRect(x, y, w, h); }
 
-  function drawBounce(c) {
+  /* Each scene is a loop rather than a still: a few seconds of the game
+     actually being played, drawn at 32x32 from the same palette as the game
+     it opens. The frame number comes from one clock shared by all the tiles
+     (see the ticker below), so a scene is a pure function of f and nothing
+     here holds state of its own. */
+
+  // Bounce: the ball hops along the bricks and takes the ring on its way.
+  const BOUNCE_T = 36;
+  function drawBounce(c, f) {
+    const t = (f | 0) % BOUNCE_T;
     px(c, 0, 0, 32, 32, '#b0e0f0');
     for (let x = 0; x < 32; x += 8) {
       px(c, x, 24, 8, 8, '#c8722a');
@@ -422,33 +431,68 @@
       px(c, x, 28, 7, 3, '#e59a4d');
     }
     px(c, 0, 24, 32, 1, '#8b4a16');
+    // There and back rather than a lap: a loop that ends where it began has
+    // nothing to jump over when it restarts.
+    const u = t / BOUNCE_T, out = u < 0.5;
+    const bx = Math.round(6 + 21 * (out ? u * 2 : 2 - u * 2));
+    const hop = (t % 9) / 9;                         // four hops, the turn on a landing
+    const by = Math.round(17 - 9 * Math.sin(Math.PI * hop));
+    // the ring is taken on the way out and is back for the next pass
+    if (out && bx < 22) { px(c, 25, 9, 3, 10, '#e8b53a'); px(c, 26, 10, 1, 8, '#fff2b0'); }
     c.fillStyle = '#8f0d0a';
-    c.beginPath(); c.arc(16, 15, 8, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(bx, by, 7, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#e8231f';
-    c.beginPath(); c.arc(16, 15, 7, 0, Math.PI * 2); c.fill();
-    px(c, 12, 10, 3, 2, '#ff8c8c');
+    c.beginPath(); c.arc(bx, by, 6, 0, Math.PI * 2); c.fill();
+    px(c, bx - 4, by - 5, 3, 2, '#ff8c8c');
   }
 
-  function drawSnake(c) {
+  // Snake: a lap of the screen, one bite per lap, a segment longer each time.
+  const SNAKE_PATH = (function () {
+    const p = [];
+    for (let x = 1; x <= 6; x++) p.push([x, 1]);
+    for (let y = 2; y <= 6; y++) p.push([6, y]);
+    for (let x = 5; x >= 1; x--) p.push([x, 6]);
+    for (let y = 5; y >= 2; y--) p.push([1, y]);
+    return p;                                        // 20 cells of 4px
+  })();
+  function drawSnake(c, f) {
+    const P = SNAKE_PATH, N = P.length;
+    const t = (f | 0) % (N * 3);
+    const lap = Math.floor(t / N), head = t % N;
+    const len = 5 + lap, food = (7 + lap * 6) % N;
     px(c, 0, 0, 32, 32, '#9bbc0f');
-    const body = [[6, 20], [10, 20], [14, 20], [18, 20], [18, 16], [18, 12], [22, 12]];
-    for (const [x, y] of body) { px(c, x, y, 4, 4, '#0f380f'); px(c, x, y, 3, 3, '#306230'); }
-    px(c, 22, 12, 4, 4, '#0f380f');
-    px(c, 8, 8, 4, 4, '#0f380f');
-    px(c, 9, 9, 2, 2, '#9bbc0f');
+    if (head < food) px(c, P[food][0] * 4 + 1, P[food][1] * 4 + 1, 2, 2, '#0f380f');
+    for (let i = len - 1; i >= 0; i--) {
+      const cell = P[(head - i + N * 4) % N];
+      px(c, cell[0] * 4, cell[1] * 4, 4, 4, '#0f380f');
+      if (i) px(c, cell[0] * 4, cell[1] * 4, 3, 3, '#306230');
+    }
+    px(c, P[head][0] * 4 + 1, P[head][1] * 4 + 1, 1, 1, '#9bbc0f');   // the eye
   }
 
-  function drawTetris(c) {
-    px(c, 0, 0, 32, 32, '#1a1813');
-    const blocks = [
-      [4, 20, '#5ab7c4'], [10, 20, '#5ab7c4'], [16, 20, '#5ab7c4'], [22, 20, '#5ab7c4'],
-      [4, 26, '#e0a45e'], [10, 26, '#e3c65f'], [16, 26, '#7fbe74'], [22, 26, '#b48bd6'],
-      [10, 8, '#df8179'], [16, 8, '#df8179'], [16, 14, '#df8179'], [22, 14, '#df8179']
-    ];
-    for (const [x, y, col] of blocks) {
+  // Tetris: a piece drops into the gap, the row lights up and goes.
+  const TETRIS_T = 24;
+  function drawTetris(c, f) {
+    const t = (f | 0) % TETRIS_T;
+    const CY = '#5ab7c4', AM = '#e0a45e', YE = '#e3c65f', GR = '#7fbe74', VI = '#b48bd6', RE = '#df8179';
+    function cell(i, j, col) {
+      const x = 4 + i * 6, y = 2 + j * 6;
       px(c, x, y, 6, 6, col);
       px(c, x, y, 6, 1, '#fffaf0');
       px(c, x, y + 5, 6, 1, 'rgba(0,0,0,.35)');
+    }
+    px(c, 0, 0, 32, 32, '#1a1813');
+    if (t < 12) {                                    // falling
+      cell(0, 3, VI); cell(3, 3, GR);
+      cell(0, 4, AM); cell(1, 4, YE); cell(3, 4, CY);
+      const drop = Math.min(3, (t / 3) | 0);
+      cell(2, drop, RE); cell(2, drop + 1, RE);
+    } else if (t < 16) {                             // the full row flashes
+      cell(0, 3, VI); cell(2, 3, RE); cell(3, 3, GR);
+      const lit = t % 2 === 0, row = [AM, YE, RE, CY];
+      for (let i = 0; i < 4; i++) cell(i, 4, lit ? '#fffaf0' : row[i]);
+    } else {                                         // cleared, what was above has fallen (8 frames)
+      cell(0, 4, VI); cell(2, 4, RE); cell(3, 4, GR);
     }
   }
 
@@ -506,13 +550,44 @@
     return canvasThumb(g, false);
   }
 
+  /* One clock for every moving tile. Three canvases each running their own
+     timer would be three wake ups per frame for 32x32 pixels; this is one,
+     at ten frames a second, and it stops dead whenever nobody can see it —
+     a game is open over the shelf, or the tab is in the background. Anyone
+     who asked their system for less motion gets the first frame, still. */
+  const moving = [];
+  let thumbFrame = 0, ticking = false, lastAt = 0;
+  const FRAME_MS = 100;
+  const stillOnly = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  function paintThumbs() { for (const m of moving) m.draw(m.ctx, thumbFrame); }
+  function tickThumbs(now) {
+    if (!ticking) return;
+    requestAnimationFrame(tickThumbs);
+    if (now - lastAt < FRAME_MS) return;
+    lastAt = now;
+    thumbFrame++;
+    paintThumbs();
+  }
+  function startThumbs() {
+    if (stillOnly || ticking || !moving.length) return;
+    if (document.hidden || !player.hidden) return;
+    ticking = true; lastAt = 0;
+    requestAnimationFrame(tickThumbs);
+  }
+  function stopThumbs() { ticking = false; }
+
   function canvasThumb(g, forceInitial) {
     const cv = document.createElement('canvas');
     cv.className = 'thumb';
     cv.width = cv.height = 32;
     const c = cv.getContext('2d');
     const t = g.thumb;
-    if (!forceInitial && t && typeof t === 'object' && BUILTIN[t.builtin]) BUILTIN[t.builtin](c);
+    if (!forceInitial && t && typeof t === 'object' && BUILTIN[t.builtin]) {
+      const draw = BUILTIN[t.builtin];
+      draw(c, thumbFrame);
+      if (!stillOnly) moving.push({ ctx: c, draw: draw });
+    }
     else if (!forceInitial && t && typeof t === 'object' && Array.isArray(t.rects)) drawFromRects(c, t, g);
     else drawInitial(c, g);
     return cv;
@@ -585,6 +660,7 @@
   const playingName = document.getElementById('playing-name');
 
   function render() {
+    moving.length = 0;                 // the tiles are about to be replaced
     const tiles = GAMES.map(g => {
       const tile = document.createElement('button');
       tile.type = 'button';
@@ -618,8 +694,12 @@
       return tile;
     });
     list.replaceChildren(...tiles);
+    startThumbs();
   }
   render();
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopThumbs(); else startThumbs();
+  });
 
   let decoder = null;
   function decode(b64) {
@@ -658,6 +738,7 @@
     // launchable — and launching one from there pushes a second history entry
     // that close() never pops.
     shelf.inert = true;
+    stopThumbs();                      // the shelf is covered; stop repainting it
     history.pushState({ hg: id }, '');
     setTimeout(() => { try { frame.contentWindow.focus(); } catch (e) { /* cross document */ } }, 60);
   }
@@ -668,6 +749,7 @@
     player.hidden = true;
     shelf.inert = false;
     document.body.classList.remove('playing');
+    startThumbs();                     // the shelf is visible again
     if (!fromPop && history.state && history.state.hg) history.back();
     // anything that had to wait for the game to end happens now
     if (pendingRender) { pendingRender = false; render(); }
