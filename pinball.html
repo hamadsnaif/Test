@@ -266,9 +266,11 @@ var SLING_R = { a: [SB_R, 838], b: [2 * CX - 246, 912], back: mir(SLING_L.back) 
 var SLINGS = [{ a: SLING_L.a, b: SLING_L.b, lit: 0 }, { a: SLING_R.a, b: SLING_R.b, lit: 0 }];
 wall(SLING_L.back, { k: 'sl', round: 14 }); wall(SLING_R.back, { k: 'sl', round: 14 });
 
-// ---- ممرّات الإطلاق الثلاثة تحت مخرج المِزلق ----
-wall([[94, 314], [100, 356], [114, 394]], { round: 90 });
-wall([[160, 314], [166, 356], [180, 394]], { round: 90 });
+/* ---- ممرّات الإطلاق الثلاثة تحت مخرج المِزلق ----
+   موجّهاها هما المرتدّان ‎v_rebo3‎ و‎v_rebo4‎ في الأصل: يرتدّان بدفعة ويُسجّلان
+   ٥٠٠ كالمصدّين، لا جداراً صامتاً. */
+wall([[94, 314], [100, 356], [114, 394]], { round: 90, k: 'rb' });
+wall([[160, 314], [166, 356], [180, 394]], { round: 90, k: 'rb' });
 // ---- موجّهات ممرّات العودة أعلى الطاولة ----
 wall([[256, 96], [262, 140], [274, 182]], { round: 110 });
 wall([[332, 96], [326, 140], [314, 182]], { round: 110 });
@@ -313,13 +315,19 @@ bank('spot', 'wdest',   [[368, 470]], 0, 'WARP');
 // ---- المجسّات ----
 var ROLLS = [];
 function roll(g, i, x, y, r) { ROLLS.push({ g: g, i: i, x: x, y: y, r: r || 22, on: false, t: 0 }); }
-for (var _i = 0; _i < 6; _i++) { var _p = pol(200 + _i * 28, 244); roll('orbit', _i, _p[0], _p[1], 24); }
+/* بوّابات ضربة المهارة الستّ داخل المِزلق العلوي: ‎s_onewy1‎ ثم ‎s_trip1..5‎.
+   كم بوّابة تقطعها الكرة المقذوفة يحدّد جائزة المهارة، وذروتها عند الثالثة. */
+for (var _i = 0; _i < 6; _i++) { var _p = pol(200 + _i * 28, 244); roll('skill', _i, _p[0], _p[1], 24); }
+/* مجسّات الوقود الستّة ‎a_roll179..184‎: كلٌّ يرفع مقياس الوقود إلى درجته
+   (‏١ و٣ و٥ و٧ و٩ و١١ من اثنتي عشرة) ويُسجّل ٥٠٠. */
+var FUELR = [[105, 249], [133, 188], [182, 139], [406, 139], [464, 202], [487, 266]];
+for (_i = 0; _i < 6; _i++) roll('fuel6', _i, FUELR[_i][0], FUELR[_i][1], 20);
 roll('reentry', 0, 232, 128); roll('reentry', 1, 294, 110); roll('reentry', 2, 356, 128);
 roll('launch', 0, 60, 376);   roll('launch', 1, 133, 376);  roll('launch', 2, 206, 376);
 roll('outL', 0, EDGE_L + W_OUT / 2, 890); roll('outR', 0, EDGE_R - W_OUT / 2, 890);
 roll('inL', 0, DIV_L + W_IN / 2, 890);    roll('inR', 0, DIV_R - W_IN / 2, 890);
 roll('bonus', 0, DIV_L + W_IN / 2, 806);
-roll('warp', 0, 294, 737, 26);                       // قلب الحلقة المضيئة
+roll('warp', 0, 294, 690, 24);                       // مجسّ الانزياح فوق البئر
 
 /* ---- الثقوب والمنحدرات: تبتلع الكرة ثم تقذفها. ما له path تُرى الكرة
    تسير عليه (منحدر سلكي)، وما لا path له تختفي فيه (ثقب). ---- */
@@ -337,11 +345,20 @@ var HOLES = [
   { id: 'ramp',  x: 450, y: 676, r: 24, wait: 1.6, pathT: 0.56,
     out: [528, 240], dir: [-0.24, -0.97], spd: 980, lab: 'LAUNCH RAMP',
     path: [[450, 676], [462, 624], [470, 572], [474, 530]] },
+  /* الثقب الأسود ‎a_kout3‎: يبتلع ويقذف، ‏٢٠٬٠٠٠ في كل مرّة. قلب الدوّامة هو
+     فمه — وهو ما ترسمه الصورة المرجعية هناك بالضبط. */
+  { id: 'black', x: 168, y: 440, r: 26, wait: 1.5, out: [104, 548], dir: [-0.1, 1], spd: 380,
+    lab: 'BLACK HOLE', c: '#b06bff' },
+  /* بئر الجاذبية ‎a_kout1‎: مغلقة طوال الوقت، لا تُفتح إلا حين يُكمل الفضاء
+     الفائق دورته الخامسة، فتومض الحلقة وتبتلع الكرة بخمسين ألفاً ثم تُغلق. */
+  { id: 'gwell', x: 294, y: 737, r: 26, wait: 1.6, out: [294, 610], dir: [0, -1], spd: 880,
+    lab: 'GRAVITY WELL', c: '#7ef0ff', off: true },
   { id: 'chute', x: 378, y: 600, r: 22, wait: 1.2, out: [232, 340], dir: [-0.2, 1], spd: 460, lab: 'CHUTE',
     path: [[378, 600], [352, 524], [318, 448], [278, 386], [244, 352], [232, 340]] }
 ];
 
 // ---- الأعلام الدوّارة ----
+var GWELL = null; for (var _g = 0; _g < HOLES.length; _g++) if (HOLES[_g].id === 'gwell') GWELL = HOLES[_g];
 var FLAGS = [{ x: 110, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }, { x: 478, y: 470, r: 22, spin: 0, v: 0, rolls: 0 }];
 // ---- حارس المصرف وقت تعدّد الكرات ----
 var BLOCKER = { a: [PIV_L, PIV_Y + 62], b: [PIV_R, PIV_Y + 62], on: false };
@@ -553,7 +570,8 @@ var SC = {
   boost: [500, 5000],                  medal: [1500, 10000, 50000],
   mult: [500, 1500],                   fuelT: [750],
   missionT: [1000],                    hazard: [750],
-  wdest: [750],                        warp: [10000]
+  wdest: [750],                        warp: [10000],
+  black: [20000],                      gwell: [50000]
 };
 
 var RANKS = ['مُبتدئ', 'ملازم ثانٍ', 'ملازم أول', 'نقيب', 'مقدّم', 'عقيد', 'عميد', 'أميرال', 'أميرال الأسطول'];
@@ -608,7 +626,9 @@ function selectScore(id) { return id <= 5 ? 10000 : id <= 14 ? 20000 : 30000; }
 var G = {
   state: 'menu', score: 0, best: 0, ball: 1, ballsTotal: 3, extra: 0,
   rank: 0, prog: 0, mult: 0, bonus: 0, bonusFlag: false, jack: 0, jackFlag: false,
-  fuel: 6, fuelT: 0, mission: 0, sel: 0, part: 0, cnt: 0,
+  fuel: 11, fuelMax: 12, fuelT: 0, mission: 0, sel: 0, part: 0, cnt: 0,
+  skillOn: false, skill: [0, 0, 0, 0, 0, 0], skillN: 0,
+  gwell: false, inLit: [false, false], kickT: [0, 0],
   tilt: 0, tiltLock: false, tiltT: 0, nudging: 0, nudgeX: 0,
   msg: '', msgT: 0, info: '', infoT: 0,
   atkLv: 0, lauLv: 0, flagLv: 0, medalLv: 0, boostLv: 0, multLv: 0, hyperLv: 0, chuteLv: 0,
@@ -626,6 +646,8 @@ function missionLine() {
   return 'أصب أهداف المهمّة لاختيارها';
 }
 function info(t, secs) { G.info = t; G.infoT = secs === undefined ? 2.5 : secs; }
+// مقياس الوقود ‎fuel_bargraph‎: اثنتا عشرة درجة، والمجسّ يرفع ولا يخفض
+function fuelTo(n) { if (n > G.fuel) { G.fuel = Math.min(G.fuelMax, n); info('أعيد التزوّد بالوقود', 1.6); } }
 function fmt(t, n) { return t.replace('%d', String(n)); }
 
 function addScore(n) {
@@ -751,7 +773,7 @@ function onTarget(t) {
   }
   sfx('spot');
   if (t.g === 'mission') { addScore(SC.missionT[0]); missionPick(t.i); }
-  else if (t.g === 'fuel') { addScore(SC.fuelT[0]); G.fuel = Math.min(6, G.fuel + 1); }
+  else if (t.g === 'fuel') { addScore(SC.fuelT[0]); fuelTo(G.fuel + 1); }
   else if (t.g === 'hazL' || t.g === 'hazR') {
     addScore(SC.hazard[0]);
     var arr = t.g === 'hazL' ? G.hazL : G.hazR;
@@ -763,23 +785,51 @@ function onTarget(t) {
 function onRoll(r) {
   if (G.tiltLock) return;
   sfx('roll');
-  if (r.g === 'orbit') { addScore(SC.fuelRoll[0]); G.fuel = Math.min(6, G.fuel + 1); }
+  /* مجسّ وقود: يرفع المقياس إلى درجته هو، ولا يخفضه — قاعدة
+     ‎FuelRolloverNControl‎: إن كان المقياس أعلى من درجته فلا شيء. */
+  if (r.g === 'fuel6') { addScore(SC.fuelRoll[0]); fuelTo(2 * r.i + 1); }
+  else if (r.g === 'skill') {
+    if (G.skillOn && !G.skill[r.i]) {
+      G.skill[r.i] = 1; G.skillN++; sfx('roll'); info('بوّابة مهارة ' + G.skillN, 1.2);
+    }
+  }
   else if (r.g === 'reentry') { addScore(SC.reen[0]); missionEv('reen'); missionEv('lane'); }
   else if (r.g === 'launch') { addScore(SC.laneRoll[0]); missionEv('lane'); }
   else if (r.g === 'outL' || r.g === 'outR') {
     addScore(SC.outl[0]); missionEv('outl');
     if (G.extraLit) { G.extraLit = false; G.extra++; info('كرة إضافية!', 3); sfx('extra'); }
   }
-  else if (r.g === 'inL' || r.g === 'inR') { addScore(SC.inl[G.comboT > 0 ? 1 : 0]); G.comboT = 3; missionEv('lane'); }
-  else if (r.g === 'bonus') { addScore(SC.bonusLane[0]); G.bonusFlag = true; }
-  else if (r.g === 'warp') { addScore(SC.warp[0]); missionEv('warp'); }
+  /* ممرّ العودة: ‏٢٥٬٠٠٠ مرّة واحدة إن أضاءه مجسّ الانزياح، ثم يُطفأ —
+     وهذه قاعدة ‎ReturnLaneRolloverControl‎ نفسها. */
+  else if (r.g === 'inL' || r.g === 'inR') {
+    var k = r.g === 'inL' ? 0 : 1;
+    if (G.inLit[k]) { G.inLit[k] = false; G.bonusFlag = false; addScore(SC.inl[1]); info('ممرّ عودة مُضاء', 2); }
+    else addScore(SC.inl[0]);
+    missionEv('lane');
+  }
+  else if (r.g === 'bonus') { addScore(SC.bonusLane[0]); G.bonusFlag = true; fuelTo(11); }
+  // مجسّ الانزياح يُضيء ممرَّي العودة كليهما — ‎SpaceWarpRolloverControl‎
+  else if (r.g === 'warp') { addScore(SC.warp[0]); G.inLit[0] = G.inLit[1] = true; missionEv('warp'); }
 }
 function onHole(b, h) {
   if (G.tiltLock) return;
   sfx('hole');
+  /* الفضاء الفائق ‎HyperspaceKickOutControl‎: خمس مراحل، ولكلٍّ أثرها لا
+     نقاطها فقط — الجائزة الكبرى، ثم حارس المصرف، ثم الكرة الإضافية، ثم
+     فتح بئر الجاذبية. */
   if (h.id === 'hyper') {
-    addScore(SC.hyper[G.hyperLv]); if (G.hyperLv < 4) G.hyperLv++;
+    var lv = G.hyperLv;
+    if (lv === 1) { var jp = special(G.jack || 20000); G.jack = 20000; info('الجائزة الكبرى: ' + jp.toLocaleString('en-US'), 3); }
+    else addScore(SC.hyper[lv]);
+    if (lv === 2) { BLOCKER.on = true; G.blockerT = 20; info('حارس المصرف مفتوح', 3); }
+    if (lv === 3 && !G.extraLit) { G.extraLit = true; info('كرة إضافية مُضاءة', 3); }
+    if (lv === 4) { G.hyperLv = -1; G.gwell = true; info('فُتحت بئر الجاذبية', 3); sfx('up'); }
+    G.hyperLv++;
     if (!G.mission && !G.sel) missionPick(3); else missionEv('hyper');
+  } else if (h.id === 'black') {
+    addScore(SC.black[0]); info('ثقب أسود', 2); missionEv('hyper');
+  } else if (h.id === 'gwell') {
+    addScore(SC.gwell[0]); G.gwell = false; info('بئر الجاذبية', 2.5); sfx('up');
   } else if (h.id.slice(0, 4) === 'worm') {
     var i = +h.id[4];
     addScore(SC.sink[i]);
@@ -792,12 +842,19 @@ function onHole(b, h) {
     sfx('ramp'); addScore(SC.ramp[0]);
     if (G.sel && G.fuel > 0) missionAccept(); else missionEv('ramp');
   } else if (h.id === 'chute') {
-    addScore(SC.chute[G.chuteLv]); G.chuteLv = (G.chuteLv + 1) % 6; missionEv('chute');
+    /* ‎DeploymentChuteToEscapeChuteOneWayControl‎: الجائزة بعدد أضواء المهارة
+       المضاءة لا بدورة — وهذا ما يجعل قوّة القذف تعني شيئاً. */
+    var n = G.skillN || (G.chuteLv + 1);
+    addScore(SC.chute[Math.min(5, n - 1)]);
+    if (G.skillN) { info('مزلق الهروب ×' + n, 2.5); }
+    G.chuteLv = (G.chuteLv + 1) % 6;
+    missionEv('chute');
   }
 }
 function onSling(i) {
   if (G.tiltLock) return;
-  SLINGS[i].lit = 0.16; addScore(SC.rebo[0]); sfx('sling'); missionEv('rebo');
+  if (i >= 0) SLINGS[i].lit = 0.16;
+  addScore(SC.rebo[0]); sfx('sling'); missionEv('rebo');
 }
 function onFlag(f) {
   if (G.tiltLock) return;
@@ -823,6 +880,7 @@ var PLUNGE = { pull: 0 };
 
 function park(b) {
   b.wait = true; b.spd = 0; b.x = LANE_MID; b.y = PLUNGE_REST; b.dx = 0; b.dy = -1; b.ro = {};
+  G.skillOn = false; G.skillN = 0; G.skill = [0, 0, 0, 0, 0, 0];  // عادت للقاذف: تُلغى المهارة
   PLUNGE.pull = 0;
 }
 function newBall() {
@@ -855,7 +913,9 @@ function endOfBall() {
   }
   missionAbort();
   G.tiltLock = false; G.tilt = 0; G.bonus = 0; G.bonusFlag = false; G.jackFlag = false;
-  G.mult = 0; G.fuel = 6; G.atkLv = 0; G.lauLv = 0; G.flagLv = 0;
+  G.mult = 0; G.fuel = 11; G.atkLv = 0; G.lauLv = 0; G.flagLv = 0;
+  G.gwell = false; G.inLit = [false, false]; G.kickT = [0, 0]; G.blockerT = 0;
+  G.skillOn = false; G.skillN = 0; G.skill = [0, 0, 0, 0, 0, 0];
   G.hazL = [false, false, false]; G.hazR = [false, false, false]; G.wormLit = [false, false, false];
   bankReset('mult'); bankReset('medal'); bankReset('boost');
   for (var i = 0; i < BUMPERS.length; i++) BUMPERS[i].lit = false;
@@ -925,6 +985,7 @@ function hit(b, kind, obj, nx, ny, sp) {
   if (kind === 'bump') { kick(b, nx, ny, 540 + 60 * (obj.g ? G.lauLv : G.atkLv)); onBumper(obj); shake(3.5); }
   else if (kind === 'sl0') { kick(b, nx, ny, 560); onSling(0); shake(2.5); }
   else if (kind === 'sl1') { kick(b, nx, ny, 560); onSling(1); shake(2.5); }
+  else if (kind === 'rb') { kick(b, nx, ny, 420); onSling(-1); shake(2); }
   else if (kind === 'post') { if (sp > 300) sfx('post', Math.min(1, sp / 1400)); }
   else if (kind === 'drop') { onTarget(obj); }
   else if (kind === 'flip') { if (sp > 260) sfx('flip'); }
@@ -972,8 +1033,20 @@ function sensors(b, dt) {
     if (d && !b.ro[key]) { b.ro[key] = 1; o.v = 14; onFlag(o); }
     else if (!d && b.ro[key]) b.ro[key] = 0;
   }
+  /* ضربة المهارة: تُصرف لحظة خروج الكرة من المِزلق العلوي، بجدول
+     ‎control_oneway4_score1‎ مفهرساً بعدد البوّابات المقطوعة — فذروته عند
+     الثالثة، ومن قذف بكل قوّته قطع الستّ ونال أقلّها. */
+  if (G.skillOn && G.skillN > 0) {
+    var rr = Math.sqrt((b.x - CX) * (b.x - CX) + (b.y - CY) * (b.y - CY));
+    if (rr > R_OUT + 6 || rr < R_IN - 6 || b.y > CY + 40) {
+      G.skillOn = false;
+      addScore(SC.chute[Math.min(5, G.skillN - 1)]);
+      say('ضربة مهارة ×' + G.skillN, 3); sfx('up');
+    }
+  }
   for (i = 0; i < HOLES.length; i++) {
     o = HOLES[i];
+    if (o.id === 'gwell' && !G.gwell) continue;       // بئر الجاذبية مغلقة
     if ((b.x - o.x) * (b.x - o.x) + (b.y - o.y) * (b.y - o.y) < o.r * o.r) {
       b.hole = o; b.ht = o.wait; b.spd = 0; b.ro = {}; b.vis = !!o.path; onHole(b, o); return;
     }
@@ -982,10 +1055,14 @@ function sensors(b, dt) {
   // كرة هدأت في ممر القاذف: أعدها إلى وضع الانتظار كي تُقذف من جديد
   if (b.x > LANE_IN && b.y > 980 && b.spd < 120) { park(b); return; }
   // الرافعة الجانبية: تُعيد الكرة من ممر الخروج حين تكون مُضاءة
+  /* الرافعة الجانبية ‎a_kick1/a_kick2‎ ببوّابتها ‎v_gate1/v_gate2‎: تُستهلك
+     فتُغلق البوّابة، ويعيد مؤقّتها فتحها بعد اثنتي عشرة ثانية — لا مرّة
+     واحدة في الكرة. */
   for (i = 0; i < KICKS.length; i++) {
     o = KICKS[i];
     if (o.on && b.y > o.y - 30 && Math.abs(b.x - o.x) < 34) {
-      o.on = false; o.flash = 0.3; b.dx = 0; b.dy = -1; b.spd = 1250; sfx('kickback');
+      o.on = false; o.flash = 0.3; G.kickT[i] = 12;
+      b.dx = 0; b.dy = -1; b.spd = 1250; sfx('kickback');
     }
   }
   // كرة عالقة: هزّة خفيفة كما تفعل ‎control::UnstuckBall‎
@@ -1494,7 +1571,7 @@ function buildStatic() {
     c.fillStyle = 'rgba(126,240,255,.9)';
     c.beginPath(); c.moveTo(vx + 62, vy + 90); c.lineTo(vx + 78, vy + 112); c.lineTo(vx + 52, vy + 104); c.closePath(); c.fill();
     c.restore();
-  })(150, 480);
+  })(168, 450);
 
   // ---- السهام الحمراء المرصوفة يمين الوسط، وضوء أخضر أعلى اليسار ----
   c.save();
@@ -1546,8 +1623,11 @@ function buildStatic() {
   label(c, 'DEPLOYMENT CHUTE', CX, 62, 16, '#cfe8ff', 0, 0.8);
   label(c, 'RE-ENTRY', CX, 268, 12, '#9fd0ff', 0, 0.55);
   label(c, 'BOOST', 144, 556, 11, '#ff9ecb');
+  label(c, 'BLACK HOLE', 248, 392, 11, '#3d1466');
+  
+  
   label(c, 'BONUS 2X', 436, 312, 11, '#7ef0ff');
-  label(c, 'LAUNCH LANES', 128, 418, 12, '#ffd98a');
+  label(c, 'LAUNCH LANES', 88, 416, 11, '#43125f');
   label(c, 'WORM HOLE', 66, 440, 10, '#ffd34d');
   label(c, 'HYPERSPACE', 402, 424, 12, '#7ef0ff');
   label(c, 'LAUNCH RAMP', 497, 604, 12, '#7ef0ff', -Math.PI / 2);
@@ -1556,12 +1636,13 @@ function buildStatic() {
   label(c, 'HAZARD BANK', 154, 696, 11, '#9fd0ff');
   label(c, 'HAZARD BANK', 434, 696, 11, '#9fd0ff');
   label(c, 'FUEL', CX, 858, 12, '#8cf0a8');
-  label(c, 'RANK', EMB.x, EMB.y + 36, 12, '#b9a6d8', 0, 0.65);
+  label(c, 'GRAVITY WELL', EMB.x, EMB.y + 40, 10, '#9fd0ff', 0, 0.8);
 
   // ---- أفواه الثقوب: حفرة داكنة في الدهان، طوق معدني، وسهم موجّه ----
   for (i = 0; i < HOLES.length; i++) {
     var h = HOLES[i];
     if (h.id === 'ramp') continue;           // فمه قضبان مبوَّقة لا حفرة
+    if (h.id === 'gwell') continue;          // مغلقة أكثر الوقت: تُرسم حيّة حين تُفتح
     var hc = h.c || (h.id === 'ramp' ? '#7ef0ff' : h.id === 'chute' ? '#ff9ecb' : '#c46bff');
     var hg = c.createRadialGradient(h.x, h.y - h.r * 0.2, 1, h.x, h.y, h.r + 12);
     hg.addColorStop(0, '#000'); hg.addColorStop(0.55, 'rgba(0,0,0,.92)');
@@ -1623,7 +1704,7 @@ function buildStatic() {
   // ---- القضبان: كل جدار في الطاولة يُرسم فولاذاً، والأقواس قطعة واحدة ----
   railArc(c, CX, CY, R_OUT, 180, 360, 7);
   railArc(c, CX, CY, R_IN, 185, 360, 7);
-  var runs = wallPts(function (o) { return o.k === 'w'; });
+  var runs = wallPts(function (o) { return o.k === 'w' || o.k === 'rb'; });
   for (i = 0; i < runs.length; i++) if (runs[i].length > 2 || Math.hypot(runs[i][1][0] - runs[i][0][0], runs[i][1][1] - runs[i][0][1]) > 40) rail(c, runs[i], 7);
   runs = wallPts(function (o) { return o.k === 'sl'; });
   for (i = 0; i < runs.length; i++) rail(c, runs[i], 6);
@@ -1813,6 +1894,17 @@ function draw() {
   for (i = 0; i < 9; i++) { p = pol(-90 + i * 40, EMB.r1, EMB.x, EMB.y); insert(c, p[0], p[1], 6, i <= G.rank, 'rgba(93,225,255,.95)'); }
   for (i = 0; i < OUTER_LIGHTS; i++) { p = pol(-90 + i * (360 / OUTER_LIGHTS), EMB.r2, EMB.x, EMB.y); insert(c, p[0], p[1], 4.6, i < G.prog, 'rgba(255,190,60,.95)'); }
 
+  // ---- بئر الجاذبية: فمٌ أسود ينبض في قلب الحلقة، ولا يظهر إلا مفتوحاً ----
+  if (G.gwell) {
+    var gwp = 0.72 + 0.28 * Math.sin(performance.now() * 0.009), gwh = GWELL;
+    var gg = c.createRadialGradient(gwh.x, gwh.y, 1, gwh.x, gwh.y, gwh.r + 14);
+    gg.addColorStop(0, '#000'); gg.addColorStop(0.6, 'rgba(0,0,0,.95)');
+    gg.addColorStop(0.82, 'rgba(126,240,255,' + gwp + ')'); gg.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = gg; c.beginPath(); c.arc(gwh.x, gwh.y, gwh.r + 14, 0, 6.2832); c.fill();
+    c.fillStyle = '#05030c'; c.beginPath(); c.arc(gwh.x, gwh.y, gwh.r, 0, 6.2832); c.fill();
+    c.strokeStyle = 'rgba(126,240,255,' + gwp + ')'; c.lineWidth = 3;
+    c.beginPath(); c.arc(gwh.x, gwh.y, gwh.r + 2, 0, 6.2832); c.stroke();
+  }
   // ---- المجسّات ----
   for (i = 0; i < ROLLS.length; i++) {
     o = ROLLS[i];
@@ -1967,9 +2059,17 @@ function drawHud() {
   var lx = Math.max(52, OX + 2);
   c.fillStyle = 'rgba(185,166,216,.75)';
   c.fillText('TOP ' + G.best.toLocaleString('en-US'), lx, top + HUD * 0.62);
-  for (var i = 0; i < 6; i++) {
-    c.fillStyle = i < G.fuel ? (G.fuel <= 2 ? '#ff5a6e' : '#5cf08a') : 'rgba(255,255,255,.16)';
-    c.fillRect(lx + i * 9, top + HUD * 0.18, 6, Math.round(HUD * 0.2));
+  var bh = Math.round(HUD * 0.2), i;
+  for (i = 0; i < G.fuelMax; i++) {                       // مقياس الوقود: اثنتا عشرة درجة
+    c.fillStyle = i < G.fuel ? (G.fuel <= 4 ? '#ff5a6e' : '#5cf08a') : 'rgba(255,255,255,.14)';
+    c.fillRect(lx + i * 6, top + HUD * 0.18, 4, bh);
+  }
+  if (G.skillOn || G.skillN) {                            // أضواء ضربة المهارة الستّ
+    var sx = lx + G.fuelMax * 6 + 8;
+    for (i = 0; i < 6; i++) {
+      c.fillStyle = G.skill[i] ? (i === 2 ? '#ffd34d' : '#7ef0ff') : 'rgba(255,255,255,.14)';
+      c.beginPath(); c.arc(sx + i * 8, top + HUD * 0.18 + bh / 2, 2.6, 0, 6.2832); c.fill();
+    }
   }
   var txt = (G.infoT > 0 && G.info) || (G.msgT > 0 && G.msg) || missionLine();
   c.fillStyle = G.tiltLock ? '#ff5a6e' : (G.msgT > 0 && G.msg) ? '#ffd34d' : '#e9dcff';
@@ -2015,7 +2115,9 @@ function show(el) {
 }
 function startGame() {
   G.score = 0; G.ball = 1; G.extra = 0; G.rank = 0; G.prog = 0; G.mult = 0;
-  G.bonus = 0; G.bonusFlag = false; G.jack = 0; G.jackFlag = false; G.fuel = 6; G.fuelT = 0;
+  G.bonus = 0; G.bonusFlag = false; G.jack = 0; G.jackFlag = false; G.fuel = 11; G.fuelT = 0;
+  G.gwell = false; G.inLit = [false, false]; G.kickT = [0, 0]; G.blockerT = 0;
+  G.skillOn = false; G.skillN = 0; G.skill = [0, 0, 0, 0, 0, 0];
   G.mission = 0; G.sel = 0; G.part = 0; G.cnt = 0; G.tilt = 0; G.tiltLock = false; G.tiltT = 0;
   G.atkLv = 0; G.lauLv = 0; G.flagLv = 0; G.medalLv = 0; G.boostLv = 0; G.multLv = 0;
   G.hyperLv = 0; G.chuteLv = 0; G.extraLit = false; G.wdest = 0; G.comboT = 0;
@@ -2114,6 +2216,7 @@ function launch() {
   var pw = PLUNGE.pull;
   if (pw < 0.03) pw = 0.03;
   b.wait = false; b.spd = 620 + 1150 * pw; b.dx = 0; b.dy = -1;
+  G.skillOn = true; G.skillN = 0; G.skill = [0, 0, 0, 0, 0, 0];   // تسليح ضربة المهارة
   PLUNGE.pull = 0;
   sfx('plunge');
 }
@@ -2174,6 +2277,8 @@ function tick(dt) {
   if (G.msgT > 0) { G.msgT -= dt; if (G.msgT <= 0) G.msg = ''; }
   if (G.infoT > 0) G.infoT -= dt;
   if (G.comboT > 0) G.comboT -= dt;
+  for (var _k = 0; _k < 2; _k++) if (G.kickT[_k] > 0) { G.kickT[_k] -= dt; if (G.kickT[_k] <= 0) KICKS[_k].on = true; }
+  if (G.blockerT > 0) G.blockerT -= dt;
   for (i = 0; i < ROLLS.length; i++) if (ROLLS[i].t > 0) ROLLS[i].t -= dt;
   for (i = 0; i < TARGETS.length; i++) if (TARGETS[i].flash > 0) TARGETS[i].flash -= dt;
   for (i = 0; i < BUMPERS.length; i++) if (BUMPERS[i].flash > 0) BUMPERS[i].flash -= dt;
@@ -2203,8 +2308,8 @@ function tick(dt) {
   }
   // الوقود يتناقص مع الوقت؛ نفاده يمنع قبول مهمّة جديدة حتى يُعاد ملؤه
   G.fuelT += dt;
-  if (G.fuelT > 18) { G.fuelT = 0; if (G.fuel > 0) { G.fuel--; if (G.fuel === 1) info('تحذير — الوقود منخفض', 3); } }
-  BLOCKER.on = balls.length > 1;
+  if (G.fuelT > 9) { G.fuelT = 0; if (G.fuel > 0) { G.fuel--; if (G.fuel === 2) info('تحذير — الوقود منخفض', 3); } }
+  BLOCKER.on = balls.length > 1 || G.blockerT > 0;
 
   ACC += dt; if (ACC > 0.25) ACC = 0.25;
   while (ACC >= STEP) { physics(STEP); ACC -= STEP; }
