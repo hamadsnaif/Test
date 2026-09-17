@@ -65,11 +65,33 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
               const b = e.closest('button');
               return b && btns.includes(b) ? b : null;
             };
+            /* مفتاحٌ مقصوصٌ بحاضنٍ ذي `overflow` ليس مفتاحاً على الشاشة: صندوقه
+               قد يقع خلف الجهاز وهو غير قابلٍ للمس هناك، فمساءلةُ ذلك الصندوق
+               تبلاغٌ كاذب. فيُحسب تقاطع صناديق الحواضن القاصّة، وما خرج مركزه
+               عنه يُترك — وهذا لا يُرخي الفحص: العطبان اللذان وجدهما كان
+               مفتاحاهما ظاهرين تماماً ومركزُ كلٍّ داخل كل حاضن. */
+            const clipRect = el => {
+              let r = { l: -1e9, t: -1e9, rt: 1e9, b: 1e9 };
+              for (let a = el.parentElement; a; a = a.parentElement) {
+                const st = getComputedStyle(a);
+                if (st.overflow === 'visible' && st.overflowX === 'visible' && st.overflowY === 'visible') continue;
+                const q = a.getBoundingClientRect();
+                r = { l: Math.max(r.l, q.left), t: Math.max(r.t, q.top),
+                      rt: Math.min(r.rt, q.right), b: Math.min(r.b, q.bottom) };
+              }
+              return r;
+            };
+            const onScreen = b => {
+              const q = b.getBoundingClientRect(), c = clipRect(b);
+              const cx = q.left + q.width / 2, cy = q.top + q.height / 2;
+              return cx >= c.l && cx <= c.rt && cy >= c.t && cy <= c.b;
+            };
             const name = e => e.id || e.className.split(' ')[0];
             const steal = [];
             for (const b of btns) {
               const r = b.getBoundingClientRect();
               if (r.width < 8 || r.height < 8) continue;
+              if (!onScreen(b)) continue;                 // مقصوصٌ: ليس هدفاً هنا
               const thieves = {};
               for (let y = r.top + 3; y <= r.bottom - 3; y += 4) {
                 for (let x = r.left + 3; x <= r.right - 3; x += 4) {

@@ -359,12 +359,19 @@ body {
 canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
 
 /* ---- الطبقات فوق الشاشة ---- */
+/* اللوحة تتوسّط ما وسِعتها الشاشة، وتُمرَّر إن ضاقت: `justify-content:center`
+   وحده يدفع الأعلى خارج القصّ فلا يُدرَك — وقع ذلك في الوضع الأفقي المؤطَّر
+   (شاشةٌ ‎١٥٨‎ بكسلاً) فاختفى منتقي المستوى كلّه. والهامشان التلقائيان على
+   الطرفين يعطيان التوسيط عند السعة والتمرير عند الضيق. */
 .overlay {
   position:absolute; inset:0; z-index:2; direction:rtl;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:7px;
   padding:12px; text-align:center; color:#eaf6ff; background:rgba(9,26,44,.93);
-  font-family:var(--font-ui); overflow:hidden;
+  font-family:var(--font-ui); overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
 }
+.overlay > :first-child { margin-top:auto; }
+.overlay > :last-child { margin-bottom:auto; }
 .overlay.hidden { display:none; }
 .overlay h1 { font:900 20px/1 "Arial Black", Arial, sans-serif; letter-spacing:1.5px; direction:ltr; color:#bfe6ff; }
 .overlay p { font-size:11.5px; line-height:1.55; max-width:100%; }
@@ -383,11 +390,19 @@ canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
   padding:0 12px; cursor:pointer; touch-action:manipulation; direction:rtl;
 }
 .opts.row .go { max-width:100px; }
+.go u { text-decoration:none; font-weight:700; }
 .go i { font-style:normal; font-size:10px; opacity:.55; letter-spacing:.1em; direction:ltr; }
 .go.on i { opacity:1; color:#9fe0ff; }
 .go:active { background:rgba(127,196,238,.28); }
 .levels { direction:ltr; display:flex; justify-content:center; }
 .lvl { direction:ltr; font:700 18px/1 "Courier New", monospace; letter-spacing:2px; border:2px solid #7fc4ee; padding:5px 14px; border-radius:3px; color:#eaf6ff; }
+/* شاشةٌ قصيرة: يختفي نصّ الإسناد الطويل وحده — وإشعار الرخصة باقٍ على شريط
+   الجهاز العلوي (‏GPL v2‏) وفي رأس الملفّ وفي README، فلا يضيع */
+@media (max-height: 620px) {
+  .overlay p.cred { display:none; }
+  .overlay h1 { font-size:17px; }
+  .overlay { gap:5px; }
+}
 @media (max-width: 340px) {
   .overlay { gap:5px; padding:9px; }
   .overlay h1 { font-size:17px; }
@@ -430,6 +445,56 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
 #pauseBtn { width:48px; height:48px; font-size:15px; flex:none; }
 .fnwrap { display:flex; flex-direction:column; align-items:center; gap:6px; flex:none; }
 .fnwrap .engr { font-size:8px; }
+
+/* ==================== الفرّار: خيارٌ بديل من المفاتيح ====================
+   على مثال فرّار الكرة الحمراء نفسه، بمقاساته: الطبق يملأ أسفل الجهاز،
+   والقاعدة تنتقل إلى حيث وقعت الإصبع، والمقبض يتبعها في نصف قطر ٤٤، ومناطق
+   الموت ٩ أفقياً و١٨ رأسياً. والجهات الأربع هي أفعال الأصل الأربعة نفسها:
+   يساراً ويميناً للدوران، وأعلى للقذف، وأسفل لتوسيط القاذف (‏center‏). */
+:root { --fctlh:132px; }
+.stickwrap { display:none; flex-direction:column; gap:7px; width:100%; }
+.pausebar { display:flex; justify-content:flex-end; direction:ltr; }
+#pauseBtn2 { width:78px; height:44px; border-radius:12px; font-size:14px; }
+#stickpad { flex:none; height:var(--fctlh); position:relative; direction:ltr; touch-action:none; }
+#stickzone {
+  position:absolute; inset:0; border-radius:999px; touch-action:none;
+  background:
+    radial-gradient(60% 120% at 50% 50%, rgba(0,0,0,.30), rgba(0,0,0,0) 72%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 4px),
+    linear-gradient(180deg, var(--alu-lo), var(--alu) 60%, var(--alu-hi));
+  box-shadow:
+    inset 0 4px 9px rgba(0,0,0,.85), inset 0 -1px 0 rgba(255,255,255,.14),
+    0 1px 0 rgba(255,255,255,.7), 0 0 0 1px rgba(0,0,0,.45);
+}
+.etch {
+  position:absolute; pointer-events:none; font:700 10px/1 var(--font-ui);
+  color:rgba(255,255,255,.42); letter-spacing:.1em; white-space:nowrap;
+  text-shadow:0 -1px 0 rgba(0,0,0,.7);
+}
+.etch.l { left:14px; top:50%; transform:translateY(-50%); }
+.etch.r { right:14px; top:50%; transform:translateY(-50%); }
+.etch.t { top:8px; left:50%; transform:translateX(-50%); font-size:11px; }
+.etch.b { bottom:8px; left:50%; transform:translateX(-50%); }
+#stickbase {
+  position:absolute; width:112px; height:112px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03);
+  pointer-events:none; opacity:.75;
+}
+#stickbase.active { opacity:1; border-color:var(--acc-ring); }
+#stickknob {
+  position:absolute; left:30px; top:30px; width:52px; height:52px; border-radius:50%;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.85) 0 2px, transparent 2px) 50% 6px / 2px 12px no-repeat,
+    radial-gradient(circle at 38% 30%, #5f6672, #2a2e35 70%);
+  border:1px solid #4a5059;
+  box-shadow: 0 4px 7px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.25), inset 0 -3px 4px rgba(0,0,0,.4);
+}
+#stickbase.active #stickknob { box-shadow: 0 4px 7px rgba(0,0,0,.65), inset 0 0 0 2px var(--acc-ring), inset 0 -3px 4px rgba(0,0,0,.4); }
+/* المفاتيح والفرّار لا يظهران معاً أبداً، فلا يبقى لفعلٍ طريقان على الشاشة */
+body.stick .field { display:none; }
+body.stick .stickwrap { display:flex; }
+@media (max-height: 740px) { :root { --fctlh:112px; } }
+@media (max-height: 640px) { :root { --fctlh:96px; } }
 
 /* الإطار القصير (الأفقي، والشاشات القصيرة): تتنازل الأطراف قبل الملعب */
 @media (max-height: 600px) {
@@ -481,6 +546,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <div class="opts">
           <button class="go" type="button" data-opt="sfx"><span>المؤثّرات</span><i>ON</i></button>
           <button class="go" type="button" data-opt="mus"><span>الموسيقى</span><i>ON</i></button>
+          <button class="go" type="button" data-opt="ctl"><span>التحكّم: <u>المفاتيح</u></span><i>KEYS</i></button>
         </div>
         <!-- كل مقطعٍ لاتيني في عزلٍ ثنائي الاتجاه (bdi)، وإلّا انقلب مدى
              السنوات وهاجرت علامة الحقوق إلى الطرف الخطأ في الصفحة العربية -->
@@ -500,6 +566,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <div class="opts">
           <button class="go" type="button" data-opt="sfx"><span>المؤثّرات</span><i>ON</i></button>
           <button class="go" type="button" data-opt="mus"><span>الموسيقى</span><i>ON</i></button>
+          <button class="go" type="button" data-opt="ctl"><span>التحكّم: <u>المفاتيح</u></span><i>KEYS</i></button>
         </div>
         <div class="opts row">
           <button class="go" id="againBtn" type="button"><span>من جديد</span><i>AGAIN</i></button>
@@ -540,6 +607,21 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <button class="key round acc" id="fireBtn" type="button" aria-label="اقذف / ابدأ">&#x25B2;&#xFE0E;</button>
         <span class="engr ar cap-start">ابدأ</span><span class="engr ar cap-fire">اقذف</span><span class="engr ar cap-resume">متابعة</span>
       </div>
+    </div>
+
+    <!-- الفرّار: بديلٌ يملأ أسفل الجهاز، ومفتاح الإيقاف يصعد فوقه ملاصقاً
+         للشاشة كما في الكرة الحمراء، فلا يقع تحت الإبهام وهو على الطبق -->
+    <div class="stickwrap">
+      <div class="pausebar">
+        <button class="key" id="pauseBtn2" type="button" aria-label="إيقاف مؤقّت" title="إيقاف (Esc)">&#x2016;</button>
+      </div>
+      <div id="stickpad"><div id="stickzone">
+        <span class="etch l">&#x25C0;&#xFE0E;</span>
+        <span class="etch r">&#x25B6;&#xFE0E;</span>
+        <span class="etch t">&#x25B2;&#xFE0E; اقذف</span>
+        <span class="etch b">&#x25BC;&#xFE0E; وسّط</span>
+        <div id="stickbase"><div id="stickknob"></div></div>
+      </div></div>
     </div>
   </div>
 
@@ -993,8 +1075,12 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   /* =================================================================
      الصوت — مؤثّرات الأصل نفسها، وموسيقاه
      ================================================================= */
-  var SFX_KEY = 'fb.sfx', MUS_KEY = 'fb.mus';
-  var sfxOn = true, musOn = true;
+  var SFX_KEY = 'fb.sfx', MUS_KEY = 'fb.mus', CTL_KEY = 'fb.ctl';
+  var sfxOn = true, musOn = true, useStick = false;  /* الافتراضي المفاتيح، كالكرة الحمراء */
+  /* ولا تُسمَّ الراية `stick`: في المحرّك دالّةٌ بهذا الاسم هي التي تُلصق
+     الفقاعة، ورفع `var` يطفئها فتنكسر اللعبة في النظامين كليهما — وقع
+     ذلك فعلاً، وكشفه الفحص برسالة «stick is not a function». */
+  try { useStick = localStorage.getItem(CTL_KEY) === 'stick'; } catch (e) {}
   try { sfxOn = localStorage.getItem(SFX_KEY) !== 'off'; } catch (e) {}
   try { musOn = localStorage.getItem(MUS_KEY) !== 'off'; } catch (e) {}
   var actx = null, BUF = {}, music = null;
@@ -1264,20 +1350,31 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
 
   /* مفاتيح الصوت: صفّان في لوحة القائمة ولوحة الإيقاف، والاختيار يُحفظ */
   function paintOpts() {
-    var on = { sfx: sfxOn, mus: musOn };
+    var on = { sfx: sfxOn, mus: musOn, ctl: useStick };
+    var word = { sfx: ['ON', 'OFF'], mus: ['ON', 'OFF'], ctl: ['STICK', 'KEYS'] };
     [].forEach.call(document.querySelectorAll('[data-opt]'), function (b) {
-      var v = on[b.getAttribute('data-opt')];
-      b.classList.toggle('on', !!v);
-      b.querySelector('i').textContent = v ? 'ON' : 'OFF';
+      var k = b.getAttribute('data-opt'), v = !!on[k];
+      b.classList.toggle('on', v);
+      b.querySelector('i').textContent = word[k][v ? 0 : 1];
+      var sp = b.querySelector('u');
+      if (sp) sp.textContent = v ? 'العصا' : 'المفاتيح';
       b.setAttribute('aria-pressed', v ? 'true' : 'false');
     });
   }
   function toggleOpt(which) {
     if (which === 'sfx') { sfxOn = !sfxOn; try { localStorage.setItem(SFX_KEY, sfxOn ? 'on' : 'off'); } catch (e) {}
       if (sfxOn) { wake(); sfx('stick'); } }
-    else { musOn = !musOn; try { localStorage.setItem(MUS_KEY, musOn ? 'on' : 'off'); } catch (e) {}
+    else if (which === 'mus') { musOn = !musOn; try { localStorage.setItem(MUS_KEY, musOn ? 'on' : 'off'); } catch (e) {}
       if (musOn && S.phase === 'play') { wake(); musicOn(); } else musicOff(); }
+    else { useStick = !useStick; try { localStorage.setItem(CTL_KEY, useStick ? 'stick' : 'keys'); } catch (e) {}
+      applyCtl(); }
     paintOpts();
+  }
+  /* تبديل النظام يُفلت كل ما كان مضغوطاً، وإلّا بقي القاذف يدور بلا يدٍ عليه */
+  function applyCtl() {
+    document.body.classList.toggle('stick', useStick);
+    S.act.left = S.act.right = S.act.centre = false;
+    restStick();
   }
 
   /* الزرّ الأزرق: فعلٌ واحد في كل طور، فلا طريقان ظاهران لفعل واحد */
@@ -1332,7 +1429,9 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   hold(lb, function () { S.act.left = true; step(1); nudge(-1); }, function () { S.act.left = false; });
   hold(rb, function () { S.act.right = true; step(-1); nudge(1); }, function () { S.act.right = false; });
   hold(document.getElementById('fireBtn'), primary, null);
-  document.getElementById('pauseBtn').addEventListener('click', function (e) { e.preventDefault(); togglePause(); });
+  ['pauseBtn', 'pauseBtn2'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function (e) { e.preventDefault(); togglePause(); });
+  });
   [].forEach.call(document.querySelectorAll('[data-opt]'), function (b) {
     b.addEventListener('click', function (e) { e.preventDefault(); toggleOpt(b.getAttribute('data-opt')); });
   });
@@ -1345,6 +1444,67 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   ['pointerdown', 'keydown'].forEach(function (t) {
     document.addEventListener(t, function (ev) { if (ev.isTrusted) wake(); }, true);
   });
+
+  /* ---- الفرّار ----------------------------------------------------------
+     المقاسات مقاسات فرّار الكرة الحمراء نفسها: نصف قطر ٤٤، وموتٌ ٩ أفقياً
+     و١٨ رأسياً. والقاعدة تنتقل إلى موضع الإصبع فلا يُبحث عن هدفٍ صغير.
+     والجهات هي أفعال الأصل الأربعة: يسار، يمين، أعلى (القذف)، أسفل
+     (‏center‏ — إعادة القاذف إلى العمود). والقذف على الحافّة لا بالضغط
+     المستمرّ: دفعةٌ واحدة إلى أعلى فقاعةٌ واحدة، فلا تُفرَغ اللوحة بدفعة. */
+  var R_MAX = 44, DEAD_X = 9, DEAD_Y = 18;
+  var zone = document.getElementById('stickzone');
+  var base = document.getElementById('stickbase');
+  var knobEl = document.getElementById('stickknob');
+  var stickId = null, sx0 = 0, sy0 = 0, upHeld = false;
+
+  function knob(dx, dy) { knobEl.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)'; }
+  function restStick() {
+    var r = zone.getBoundingClientRect();
+    if (!r.width) return;
+    var half = base.offsetWidth / 2;
+    base.style.left = (r.width / 2 - half) + 'px';
+    base.style.top = (r.height / 2 - half) + 'px';
+    knob(0, 0);
+  }
+  function stickSet(dx, dy) {
+    var l = dx < -DEAD_X, r = dx > DEAD_X, up = dy < -DEAD_Y, dn = dy > DEAD_Y;
+    if (l && !S.act.left) step(1);            /* دفعةٌ خفيفة تلتفت خطوةً */
+    if (r && !S.act.right) step(-1);
+    S.act.left = l; S.act.right = r; S.act.centre = dn;
+    if (up && !upHeld) primary();             /* على الحافّة: قذفةٌ واحدة */
+    upHeld = up;
+  }
+  function stickRelease() {
+    stickId = null; upHeld = false;
+    base.classList.remove('active');
+    S.act.left = S.act.right = S.act.centre = false;
+    restStick();
+  }
+  zone.addEventListener('pointerdown', function (ev) {
+    ev.preventDefault(); wake();
+    if (S.phase !== 'play') { primary(); return; }   /* خارج اللعب: الطبق يبدأ ويتابع */
+    stickId = ev.pointerId;
+    try { zone.setPointerCapture(ev.pointerId); } catch (e) {}
+    sx0 = ev.clientX; sy0 = ev.clientY;
+    var r = zone.getBoundingClientRect(), half = base.offsetWidth / 2;
+    base.style.left = Math.max(0, Math.min(r.width - half * 2, ev.clientX - r.left - half)) + 'px';
+    base.style.top = Math.max(0, Math.min(r.height - half * 2, ev.clientY - r.top - half)) + 'px';
+    base.classList.add('active');
+    knob(0, 0);
+  });
+  zone.addEventListener('pointermove', function (ev) {
+    if (ev.pointerId !== stickId) return;
+    ev.preventDefault();
+    var dx = ev.clientX - sx0, dy = ev.clientY - sy0;
+    var d = Math.sqrt(dx * dx + dy * dy);
+    if (d > R_MAX) { dx = dx / d * R_MAX; dy = dy / d * R_MAX; }
+    knob(dx, dy);
+    stickSet(dx, dy);
+  });
+  ['pointerup', 'pointercancel'].forEach(function (t) {
+    zone.addEventListener(t, function (ev) { if (ev.pointerId === stickId) { ev.preventDefault(); stickRelease(); } });
+  });
+  window.addEventListener('resize', restStick);
 
   /* السحب على الملعب: يضع الزاوية مباشرةً، والإفلات يقذف */
   var screen = document.getElementById('screen');
@@ -1425,6 +1585,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
 
   toMenu();
   paintHud();
+  applyCtl();
   paintOpts();
   loadAssets(function () { draw(); run(); });
 })();
