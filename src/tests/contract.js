@@ -1,6 +1,6 @@
 /* العقد الذي تلتزم به كل صفحة لعبة في المجموعة.
  *
- *   node src/tests/contract.js bounce.html snake.html tetris.html pinball.html
+ *   node src/tests/contract.js bounce.html snake.html tetris.html cadet.html
  *   node src/tests/contract.js --port 8611 mygame.html
  *
  * يشغّل خادماً على جذر المستودع ثم يفتح كل صفحة على عشرة مقاسات: خمسة أجهزة،
@@ -17,7 +17,7 @@ const args = process.argv.slice(2);
 let PORT = 8611;
 const pi = args.indexOf('--port');
 if (pi >= 0) { PORT = parseInt(args[pi + 1], 10); args.splice(pi, 2); }
-const PAGES = args.length ? args : ['bounce.html', 'snake.html', 'tetris.html', 'pinball.html', 'cadet.html'];
+const PAGES = args.length ? args : ['bounce.html', 'snake.html', 'tetris.html', 'cadet.html'];
 
 const VIEWS = [
   ['iPhone12', 390, 844, 3], ['SE', 375, 667, 2], ['w320', 320, 568, 2],

@@ -5,7 +5,7 @@
     python3 src/build.py --check    only report whether they are up to date
 
 Writes into the repository root: index.html, sw.js, bounce.html, snake.html,
-tetris.html, pinball.html and manifest.webmanifest. It also writes src/build/, which is
+tetris.html and manifest.webmanifest. It also writes src/build/, which is
 ignored by git and holds a single file copy of the whole collection.
 
 games.json is an INPUT, never an output. Adding a game means editing that file
@@ -124,7 +124,7 @@ DOC_HEAD = ('<!DOCTYPE html>\n<html lang="ar">\n<head>\n<meta charset="UTF-8">\n
 bounce_doc = DOC_HEAD + bounce_frag.replace('</style>\n\n<div id="shell">',
                                             '</style>\n</head>\n<body>\n<div id="shell">') + '</body>\n</html>\n'
 emit(os.path.join(REPO, 'bounce.html'), with_app_head(bounce_doc, 'Bounce'))
-TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'pinball': 'Pinball', 'cadet': 'Space Cadet'}
+TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'cadet': 'Space Cadet'}
 for e in ENTRIES:
     if e['id'] == 'bounce':
         continue                                    # built from source above
@@ -223,10 +223,6 @@ CACHED = ['./', './index.html', './games.json', './manifest.webmanifest',
 # cache. Keeping them would put 140KB on every visitor's first load for a file
 # they never fetch twice.
 CACHED += ['./' + e['file'] for e in ENTRIES if have(os.path.join(REPO, e['file']))]
-# Assets a game page needs beside itself. Only pinball has one: its sky is a
-# real nebula photograph, too big to inline and pointless to inline anyway
-# since the worker keeps it offline just as well next to the page.
-CACHED += ['./' + f for f in ['pinball-sky.jpg'] if have(os.path.join(REPO, f))]
 CACHED = sorted(set(CACHED))
 
 SW_BODY = r"""// Offline cache for Hamad's Games, and the path new versions travel down.

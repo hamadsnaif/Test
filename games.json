@@ -35,17 +35,6 @@
       }
     },
     {
-      "id": "pinball",
-      "file": "pinball.html",
-      "ar": "بينبول الفضاء",
-      "en": "PINBALL",
-      "stripe": "#c46bff",
-      "desc": "طاولة الملاح الفضائي: تسع رتب وسبع عشرة مهمّة، بفيزياء حقيقية ومضربين على نصفَي الشاشة.",
-      "thumb": {
-        "builtin": "pinball"
-      }
-    },
-    {
       "id": "cadet",
       "file": "cadet.html",
       "ar": "سبيس كاديت الأصلية",

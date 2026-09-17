@@ -23,7 +23,6 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 | `bounce/shell.html` + `bounce/engine.js` + `bounce/*.b64` + `bounce/levels.js` | `bounce.html` |
 | `games/snake.html` | `snake.html` |
 | `games/tetris.html` | `tetris.html` |
-| `games/pinball.html` | `pinball.html` |
 | `games/cadet.html` | `cadet.html` |
 | `build.py` نفسه | `sw.js` و`manifest.webmanifest` |
 
@@ -52,21 +51,6 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 
 هذه استُخرجت من ملف اللعبة الأصلي بفكّ كوده وتحليل صوره. الملف الأصلي نفسه ليس هنا ولن يكون: نشره في مستودع عام إعادة توزيع للعبة، أما هذه فمقتطفات لإعادة بناء غير تجارية.
 
-## `sky/`
-
-`make-sky.js` ينزّل صورة سديم من ويكيميديا كومنز (ملك عام، NASA/JPL-Caltech)
-ويعيد تلوينها على لوحة طاولة البينبول، فيكتب `pinball-sky.jpg` في جذر المستودع.
-الناتج محفوظ في المستودع والمصدر المنزَّل متجاهَل من git.
-
-هو خارج `build.py` للسبب نفسه الذي أخرج `icons/`: يحتاج متصفّحاً — وهذا يحتاج
-شبكةً أيضاً — و`build.py` يجب أن يعمل بلا كليهما. وعامل الخدمة يحفظ الصورة
-للعمل بدون إنترنت، فاللعبة تبقى تعمل بلا شبكة كما كانت.
-
-```
-node src/sky/make-sky.js
-SKY_W=700 SKY_H=1140 SKY_Q=0.62 node src/sky/make-sky.js   للموازنة بين الوضوح والحجم
-```
-
 ## `cadet/`
 
 `build.sh` يبني محرّك ‎Space Cadet‎ المفتوح (رخصة MIT) إلى WebAssembly، فيكتب
@@ -77,7 +61,7 @@ SKY_W=700 SKY_H=1140 SKY_Q=0.62 node src/sky/make-sky.js   للموازنة بي
 تُوزَّع من هنا. اللاعب يجلب نسخته فتُحفظ في متصفّحه، ويكتبها الغلاف في
 `/game_resources/` قبل إقلاع المحرّك، ولذلك يُبنى بـ`INVOKE_RUN=0`.
 
-هو خارج `build.py` كـ`icons/` و`sky/`: يحتاج `emsdk` وشبكةً، و`build.py` يجب
+هو خارج `build.py` كـ`icons/`: يحتاج `emsdk` وشبكةً، و`build.py` يجب
 أن يعمل بلا كليهما. والناتج محفوظ في المستودع فلا يحتاجه أحد لتشغيل اللعبة.
 
 ```
