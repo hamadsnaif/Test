@@ -53,6 +53,12 @@ body {
 #canvas { display:block; max-width:100%; max-height:100%; image-rendering:pixelated;
   background:#000; outline:none; }
 #canvas[hidden] { display:none; }
+/* نافذة المحرّك ‎٦٠٠×٤٤٠‎ — أفقيّةٌ بطبعها. في الوضع الرأسي تُقاس بالعرض فتصغر،
+   وفي الأفقي تملأ الشاشة. فتلميحٌ واحد يُغني عن تغيير المحرّك. */
+#turn { position:fixed; z-index:4; left:0; right:0; bottom:calc(env(safe-area-inset-bottom, 0px) + 84px);
+  text-align:center; color:#b9a6d8; font:700 13px/1.6 var(--font-ui); pointer-events:none; padding:0 20px; }
+#turn[hidden] { display:none; }
+@media (orientation: landscape) { #turn { display:none; } }
 
 #rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
   top:calc(env(safe-area-inset-top, 0px) + 2px); left:calc(env(safe-area-inset-left, 0px) + 2px); }
@@ -117,6 +123,7 @@ input[type=file] { display:none; }
 </div>
 
 <button id="plunge" type="button" hidden aria-label="القاذف">اسحب<br>وأفلت</button>
+<div id="turn" hidden>أدِر الجهاز أفقياً — الطاولة تملأ الشاشة حينها</div>
 
 <div class="sheet" id="introSheet">
   <div class="logo">سبيس كاديت</div>
@@ -131,7 +138,7 @@ input[type=file] { display:none; }
   </div>
   <button class="go" id="pickBtn" type="button">اختر مجلّد اللعبة</button>
   <button class="go ghost" id="pickFilesBtn" type="button">أو اختر الملفّات</button>
-  <button class="go ghost" id="importBtn" type="button">أو استورد حزمة جاهزة</button>
+  <button class="go ghost" id="importBtn" type="button">أو استورد حزمة أو ملفّ ZIP</button>
   <div class="files" id="pickMsg"></div>
   <div class="hint">
     الملفّات المطلوبة من تثبيت اللعبة الأصلي: <b>PINBALL.DAT</b> وملفّات
@@ -166,7 +173,7 @@ input[type=file] { display:none; }
 
 <input type="file" id="fileDir" webkitdirectory directory multiple>
 <input type="file" id="fileAny" multiple>
-<input type="file" id="fileBundle" accept=".cadet,application/octet-stream">
+<input type="file" id="fileBundle" accept=".cadet,.zip,application/octet-stream,application/zip">
 
 <script>
 "use strict";
@@ -220,9 +227,11 @@ function takeFiles(fileList) {
   var files = Array.prototype.slice.call(fileList || []);
   if (!files.length) return;
   $('pickMsg').textContent = 'تُقرأ ' + files.length + ' ملفّاً…';
+  /* المحرّك يقرأ ‎PINBALL.DAT‎ وأصواته وموسيقاه فقط. ‎Pinball.exe‎ برنامج
+     ويندوز الذي حلّ هذا المحرّك محلّه، و‎table.bmp‎ لا يُفتح في الشيفرة
+     أصلاً — فلا يُحفظان ولا يشغلان مساحة على الجهاز. */
   var wanted = files.filter(function (f) {
-    var n = f.name.toUpperCase();
-    return /\.(DAT|WAV|MID|BMP|INF)$/.test(n);
+    return /\.(DAT|WAV|MID|INF)$/.test(f.name.toUpperCase());
   });
   if (!wanted.length) wanted = files;
   var hasDat = wanted.some(function (f) { return /PINBALL\.DAT$/i.test(f.name); });
@@ -245,6 +254,51 @@ $('retryBtn').addEventListener('click', function () { show(intro); });
    لا مكتبة ضغط هنا — العقد يمنع أي طلب خارجي، وzip من الصفر لا يستحقّ. فهي
    حاوية بسيطة: توقيع، ثم طول فهرس JSON، ثم الفهرس، ثم البايتات متتابعة.
    والملفّات تُنسخ كما هي، فما يخرج هو ما دخل بالضبط. */
+/* ---------- قارئ ZIP بلا مكتبة ----------
+   مجلّد اللعبة يصل عادةً مضغوطاً، وفكّه على الجوّال عملٌ ثقيل. والمتصفّح يفكّ
+   ‎deflate‎ بنفسه عبر ‎DecompressionStream‎، فلم يبقَ إلا قراءة دليل الأرشيف:
+   نبحث عن سجلّ النهاية من آخر الملفّ، ثم نمرّ على مدخلاته. طريقة ٠ تُنسخ كما
+   هي وطريقة ٨ تُفَكّ. ولا طلب خارجي هنا كما يوجب العقد. */
+function findEOCD(dv, len) {
+  for (var i = len - 22; i >= 0 && i > len - 65558; i--)
+    if (dv.getUint32(i, true) === 0x06054b50) return i;
+  return -1;
+}
+function inflateRaw(bytes) {
+  if (typeof DecompressionStream !== 'function')
+    return Promise.reject(new Error('هذا المتصفّح لا يفكّ ZIP — فُكّ الملفّ واختر المجلّد'));
+  var ds = new DecompressionStream('deflate-raw');
+  return new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer()
+    .then(function (b) { return new Uint8Array(b); });
+}
+function readZip(buf) {
+  var u = new Uint8Array(buf), dv = new DataView(buf);
+  var eo = findEOCD(dv, u.length);
+  if (eo < 0) throw new Error('ملفّ ZIP غير مفهوم');
+  var count = dv.getUint16(eo + 10, true), off = dv.getUint32(eo + 16, true);
+  var jobs = [], i;
+  for (i = 0; i < count && off + 46 <= u.length; i++) {
+    if (dv.getUint32(off, true) !== 0x02014b50) break;
+    var method = dv.getUint16(off + 10, true);
+    var csize = dv.getUint32(off + 20, true), usize = dv.getUint32(off + 24, true);
+    var nlen = dv.getUint16(off + 28, true), elen = dv.getUint16(off + 30, true);
+    var clen = dv.getUint16(off + 32, true), lho = dv.getUint32(off + 42, true);
+    var name = new TextDecoder().decode(u.subarray(off + 46, off + 46 + nlen));
+    off += 46 + nlen + elen + clen;
+    if (/\/$/.test(name) || !usize) continue;                 // مجلّد أو فارغ
+    var base = name.split('/').pop().toUpperCase();
+    if (!/\.(DAT|WAV|MID|INF)$/.test(base)) continue;          // ما لا يقرأه المحرّك يُترك
+    jobs.push({ base: base, method: method, csize: csize, lho: lho });
+  }
+  return Promise.all(jobs.map(function (j) {
+    var lnl = dv.getUint16(j.lho + 26, true), lel = dv.getUint16(j.lho + 28, true);
+    var start = j.lho + 30 + lnl + lel, raw = u.subarray(start, start + j.csize);
+    if (j.method === 0) return { name: j.base, data: raw.slice() };
+    if (j.method !== 8) throw new Error('ضغط غير مدعوم في ' + j.base);
+    return inflateRaw(raw).then(function (d) { return { name: j.base, data: d }; });
+  }));
+}
+
 var MAGIC = 'CADETPK1';
 function packBundle(files) {
   var idx = [], off = 0;
@@ -281,11 +335,15 @@ $('importBtn').addEventListener('click', function () { $('fileBundle').click(); 
 $('fileBundle').addEventListener('change', function (e) {
   var f = e.target.files && e.target.files[0];
   if (!f) return;
-  $('pickMsg').textContent = 'تُقرأ الحزمة…';
+  $('pickMsg').textContent = 'يُقرأ الملفّ…';
   f.arrayBuffer().then(function (buf) {
-    var list = unpackBundle(buf);
+    var u = new Uint8Array(buf);
+    var isZip = u[0] === 0x50 && u[1] === 0x4b;               // "PK"
+    return Promise.resolve(isZip ? readZip(buf) : unpackBundle(buf));
+  }).then(function (list) {
     if (!list.some(function (x) { return /PINBALL\.DAT$/i.test(x.name); }))
-      throw new Error('الحزمة بلا PINBALL.DAT');
+      throw new Error('لا يوجد PINBALL.DAT في هذا الملفّ');
+    $('pickMsg').textContent = 'استُخرج ' + list.length + ' ملفّاً…';
     return writeAll(list).then(function () { boot(); });
   }).catch(function (err) { $('pickMsg').textContent = String(err.message || err); });
 });
@@ -389,7 +447,7 @@ function boot() {
       $('loadMsg').textContent = 'يبدأ المحرّك';
       return CadetModule(cfg).then(function (M) {
         SHEETS.forEach(function (s) { s.hidden = true; });
-        pl.hidden = false;
+        pl.hidden = false; $('turn').hidden = false;
         M.callMain([]);
       });
     });
