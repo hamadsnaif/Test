@@ -37,16 +37,40 @@ body {
     radial-gradient(90% 70% at 88% 24%, rgba(60,170,230,.14), rgba(60,170,230,0) 60%),
     radial-gradient(140% 100% at 50% 108%, #23103f 0%, #140a26 42%, #080413 100%);
 }
-#wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:1; }
-#canvas { display:block; max-width:100%; max-height:100%; image-rendering:pixelated;
-  background:#000; outline:none; }
+/* ---------- قصّ إطار المحرّك ----------
+   المحرّك يرسم إطاراً واحداً ‎٦٠٠×٤٤٠‎: شريط قوائم أعلاه، ثم الطاولة يساراً
+   ولوحة النتيجة يميناً. قيست حدودها من إطارٍ حقيقي: الطاولة ‎x ٤…٣٦٠‎ و
+   ‎y ١٨…٤٢٨‎، واللوحة ‎x ٣٨٦…٥٨٩‎.
+
+   واللوحة تأكل ثلث العرض بلا أن تُلعب، والطاولة وحدها نسبتُها رأسية
+   (‏‎٣٥٧×٤١٠‎‏) — فقصّها يقلب الصفحة: يصير الوضع الرأسي وضعَ اللعبة الطبيعي،
+   ويبقى أسفل الشاشة كلّه للمقابض. ولا يُعاد رسم شيء: الرقعة تُزاح داخل صندوق
+   يقصّ ما حولها، وما يلزم من اللوحة (رقم الكرة والنتيجة) يُنسخ منها بقطعتين
+   إلى شريطٍ أعلى الطاولة. */
+/* الطاولة رأسياً محكومة بالعرض، فيفيض أسفلها فراغ. فالرقع تكبر لتملأه بدل أن
+   يبقى سواداً — الهدف الأكبر أسهل على الإبهام. */
+:root { --padh:112px; }
+@media (orientation: portrait) { :root { --padh:min(152px, 18vh); } }
+#stage { position:fixed; inset:0; z-index:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:6px;
+  padding:calc(env(safe-area-inset-top, 0px) + 4px) 6px
+          calc(env(safe-area-inset-bottom, 0px) + var(--padh) + 70px); }
+#hud { display:block; flex:none; image-rendering:pixelated; border-radius:4px; }
+#hud[hidden] { display:none; }
+#view { flex:1 1 auto; min-height:0; width:100%;
+  display:flex; align-items:center; justify-content:center; }
+#clip { position:relative; overflow:hidden; background:#000; }
+#canvas { position:absolute; display:block; image-rendering:pixelated;
+  background:#000; outline:none; transform-origin:0 0; }
 #canvas[hidden] { display:none; }
-/* نافذة المحرّك ‎٦٠٠×٤٤٠‎ — أفقيّةٌ بطبعها. في الوضع الرأسي تُقاس بالعرض فتصغر،
-   وفي الأفقي تملأ الشاشة. فتلميحٌ واحد يُغني عن تغيير المحرّك. */
-#turn { position:fixed; z-index:4; left:0; right:0; bottom:calc(env(safe-area-inset-bottom, 0px) + 84px);
-  text-align:center; color:#b9a6d8; font:700 13px/1.6 var(--font-ui); pointer-events:none; padding:0 20px; }
-#turn[hidden] { display:none; }
-@media (orientation: landscape) { #turn { display:none; } }
+@media (orientation: landscape) {
+  /* أفقياً لا فراغ رأسي أصلاً، فالشريط يخرج من التدفّق إلى الهامش الأيمن
+     لتأخذ الطاولة كامل الارتفاع. */
+  #stage { padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  #pad { align-items:stretch; }
+  #hud { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 6px);
+         right:calc(env(safe-area-inset-right, 0px) + 6px); z-index:2; }
+}
 
 #rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
   top:calc(env(safe-area-inset-top, 0px) + 2px); left:calc(env(safe-area-inset-left, 0px) + 2px); }
@@ -61,17 +85,47 @@ body {
 #rail button::after { content:""; position:absolute; top:0; bottom:0; left:-6px; right:-2px; }
 #rail button .g { position:relative; z-index:1; font-size:15px; line-height:1; }
 
-/* القاذف: رقعة في الزاوية السفلى اليمنى، خارج نصفَي المضربين بصرياً لكنها
-   تعلوهما في اللمس. ٦٤×٦٤ فهي فوق الحدّ الأدنى بكثير. */
-#plunge { position:fixed; z-index:6; width:64px; height:64px; border:0; padding:0; cursor:pointer;
-  right:calc(env(safe-area-inset-right, 0px) + 10px);
-  bottom:calc(env(safe-area-inset-bottom, 0px) + 10px);
-  border-radius:50%; color:var(--ink); font:800 11px/1.2 var(--font-ui);
-  background:radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%),
-             linear-gradient(165deg, rgba(150,80,220,.55), rgba(24,12,46,.9));
-  box-shadow:inset 0 0 0 1.5px rgba(196,107,255,.5), 0 2px 8px rgba(0,0,0,.55); }
-#plunge.on { background:linear-gradient(165deg, rgba(255,194,77,.8), rgba(120,60,10,.9)); }
-#plunge[hidden] { display:none; }
+/* ---------- المقابض ----------
+   كانت المضارب نصفَي شاشة لا يُريان، والقاذف نقطة في الزاوية. وما لا يُرى لا
+   يُتعلَّم، فصارت رقعاً مكتوبةً أسفل الشاشة. والنصفان باقيان تحتها: من عرفهما
+   لا يخسرهما.
+
+   والدفعات الثلاث (يسار ويمين وأسفل) لم يكن لها زرّ أصلاً، وهي في المحرّك
+   كالمضارب — ‎x‎ و‎.‎ و‎Up‎ في ‎options.cpp‎ — فأُخرجت إلى السطح.
+
+   رأسياً: شريطٌ أسفل الطاولة. وأفقياً: الطاولة رأسية النسبة فتبقى هوامش سوداء
+   واسعة جانبيها، فتسكنها الرقع ولا تقضم من الطاولة شيئاً. */
+#pad { position:fixed; z-index:6; direction:ltr; pointer-events:none;
+  left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; gap:6px;
+  padding:0 calc(env(safe-area-inset-right, 0px) + 6px)
+          calc(env(safe-area-inset-bottom, 0px) + 6px)
+          calc(env(safe-area-inset-left, 0px) + 6px); }
+#row { display:flex; width:100%; align-items:flex-end; gap:8px; }
+#pad[hidden] { display:none; }
+#pad button { pointer-events:auto; border:0; padding:0; cursor:pointer; color:var(--ink);
+  border-radius:16px; font:800 12px/1.15 var(--font-ui); letter-spacing:.2px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  background:radial-gradient(80% 80% at 32% 22%, rgba(255,255,255,.16), rgba(255,255,255,0) 62%),
+             linear-gradient(168deg, rgba(150,80,220,.46), rgba(24,12,46,.88));
+  box-shadow:inset 0 0 0 1.5px rgba(196,107,255,.5), 0 2px 10px rgba(0,0,0,.55); }
+#pad button .ic { font-size:20px; line-height:1; }
+#pad button.on { background:linear-gradient(168deg, rgba(255,194,77,.85), rgba(120,60,10,.92));
+  box-shadow:inset 0 0 0 1.5px rgba(255,194,77,.75), 0 0 16px rgba(255,194,77,.3); }
+.flip { flex:1 1 0; min-width:72px; height:var(--padh); }
+#bumps { pointer-events:none; display:flex; gap:6px; flex:none; }
+#bumps button { width:48px; height:48px; border-radius:14px; font-size:11px; }
+#plungeBtn { flex:0 0 96px; height:var(--padh); }
+@media (orientation: landscape) {
+  /* أفقياً تبقى هوامش سوداء واسعة جانبَي الطاولة، فتُنزَع الدفعات والقاذف من
+     الصفّ وتُثبَّت فيها، ويبقى المضربان وحدهما عند الطرفين. */
+  .flip { flex:none; width:112px; height:150px; }
+  #row { justify-content:space-between; }
+  #bumps { position:absolute; left:calc(env(safe-area-inset-left, 0px) + 6px);
+           bottom:calc(env(safe-area-inset-bottom, 0px) + 164px); }
+  #plungeBtn { position:absolute; right:calc(env(safe-area-inset-right, 0px) + 6px);
+               bottom:calc(env(safe-area-inset-bottom, 0px) + 164px); flex:none;
+               width:112px; height:64px; }
+}
 
 .sheet { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:13px; text-align:center; overflow-y:auto;
@@ -109,16 +163,33 @@ input[type=file] { display:none; }
 </head>
 <body data-layout="fullscreen" data-needs-assets>
 
-<div id="wrap"><canvas id="canvas" hidden tabindex="-1"></canvas></div>
+<div id="stage">
+  <canvas id="hud" hidden aria-hidden="true"></canvas>
+  <div id="view"><div id="clip"><canvas id="canvas" hidden tabindex="-1"></canvas></div></div>
+</div>
 
 <div id="rail">
   <button id="menuBtn" type="button" aria-label="القائمة"><span class="g">&#9776;</span></button>
   <button id="newBtn" type="button" aria-label="جولة جديدة"><span class="g">&#8635;</span></button>
   <button id="filesBtn" type="button" aria-label="ملفّات اللعبة"><span class="g">&#9723;</span></button>
+  <button id="barBtn" type="button" hidden aria-label="شريط قوائم المحرّك"><span class="g">&#8942;</span></button>
 </div>
 
-<button id="plunge" type="button" hidden aria-label="القاذف">اسحب<br>وأفلت</button>
-<div id="turn" hidden>أدِر الجهاز أفقياً — الطاولة تملأ الشاشة حينها</div>
+<div id="pad" hidden>
+  <div id="bumps">
+    <button id="bumpL" type="button" aria-label="دفعة يسار"><span class="ic">&#8676;</span></button>
+    <button id="bumpU" type="button" aria-label="دفعة للأمام"><span class="ic">&#8673;</span></button>
+    <button id="bumpR" type="button" aria-label="دفعة يمين"><span class="ic">&#8677;</span></button>
+  </div>
+  <div id="row">
+    <button class="flip" id="flipL" type="button" aria-label="المضرب الأيسر">
+      <span class="ic">&#9664;</span><span>مضرب</span></button>
+    <button id="plungeBtn" type="button" aria-label="القاذف">
+      <span class="ic">&#9660;</span><span>اسحب<br>وأفلت</span></button>
+    <button class="flip" id="flipR" type="button" aria-label="المضرب الأيمن">
+      <span class="ic">&#9654;</span><span>مضرب</span></button>
+  </div>
+</div>
 
 <div class="sheet" id="introSheet">
   <div class="logo">سبيس كاديت</div>
@@ -178,6 +249,22 @@ input[type=file] { display:none; }
 
 <script>
 "use strict";
+/* ---------- إبقاء الرقعة مقروءة ----------
+   الشريط العلوي ينسخ رقم الكرة والنتيجة من رقعة المحرّك، و‎WebGL‎ يرمي ما رسمه
+   بعد العرض ما لم يُطلب حفظه، فتخرج النسخة سوداء. والمحرّك لا يطلب الحفظ ولا
+   سبيل إلى تعديله من هنا، فيُلتقط ‎getContext‎ قبل إقلاعه وتُضاف الخاصّية إلى
+   ما يطلبه. ولا يمسّ هذا سياقات ‎2d‎. */
+(function () {
+  var orig = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+    if (/webgl/i.test(type)) {
+      attrs = attrs || {};
+      attrs.preserveDrawingBuffer = true;
+    }
+    return orig.call(this, type, attrs);
+  };
+})();
+
 /* ---------- تخزين ملفّات اللاعب في متصفّحه ---------- */
 var DBN = 'cadet-data', STORE = 'files';
 function db() {
@@ -430,12 +517,16 @@ $('filesBtn').addEventListener('click', function () {
 $('menuBtn').addEventListener('click', function () { location.href = './index.html'; });
 
 /* ---------- المفاتيح التي يفهمها المحرّك ----------
-   ‎options.cpp‎: المضرب الأيسر ‎z‎، والأيمن ‎/‎، والقاذف ‎space‎، وجولة جديدة ‎F2‎.
-   اللمس يُترجم إلى هذه المفاتيح نفسها، فلا يحتاج المحرّك أي تعديل. */
+   من ‎options.cpp‎ نفسه، لا من التخمين: المضرب الأيسر ‎z‎ والأيمن ‎/‎، والقاذف
+   ‎space‎، والدفعات ‎x‎ و‎.‎ و‎Up‎ (الدفعة السفلية هي ‎Up‎ لا ‎Down‎)، وجولة
+   جديدة ‎F2‎. واللمس يُترجم إليها، فلا يحتاج المحرّك أي تعديل. */
 var KEYS = {
   left:  { key: 'z', code: 'KeyZ', keyCode: 90 },
   right: { key: '/', code: 'Slash', keyCode: 191 },
   plunge:{ key: ' ', code: 'Space', keyCode: 32 },
+  bumpL: { key: 'x', code: 'KeyX', keyCode: 88 },
+  bumpR: { key: '.', code: 'Period', keyCode: 190 },
+  bumpU: { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
   newg:  { key: 'F2', code: 'F2', keyCode: 113 }
 };
 function sendKey(type, k) {
@@ -449,12 +540,12 @@ function sendKey(type, k) {
 function tap(k) { sendKey('keydown', k); setTimeout(function () { sendKey('keyup', k); }, 60); }
 $('newBtn').addEventListener('click', function () { tap(KEYS.newg); });
 
-/* نصفا الشاشة مضربان، وتعمل الإصبعان معاً */
+/* نصفا الشاشة مضربان أيضاً، وتعمل الإصبعان معاً */
 /* clientX فيزيائي لا منطقي، فنصف الشاشة الأيسر هو المضرب الأيسر مهما كان
    اتجاه الصفحة — وهذا ما يتوقّعه الإبهام لا ما يتوقّعه النصّ. */
 var held = {};
 function down(e) {
-  if (e.target.closest && e.target.closest('#rail, #plunge, .sheet')) return;
+  if (e.target.closest && e.target.closest('#rail, #pad, .sheet')) return;
   var side = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
   held[e.pointerId] = side; sendKey('keydown', KEYS[side]);
 }
@@ -468,18 +559,95 @@ addEventListener('pointerdown', down);
 addEventListener('pointerup', up);
 addEventListener('pointercancel', up);
 
-/* القاذف: امسك لتشحن وأفلت لتقذف — وهو سلوك مفتاح المسافة في المحرّك */
-var pl = $('plunge');
-pl.addEventListener('pointerdown', function (e) {
-  e.preventDefault(); e.stopPropagation(); pl.classList.add('on'); sendKey('keydown', KEYS.plunge);
-});
-function plungeUp(e) {
-  if (!pl.classList.contains('on')) return;
-  if (e) e.stopPropagation();
-  pl.classList.remove('on'); sendKey('keyup', KEYS.plunge);
+/* رقعة تُمسَك: المضربان والقاذف. الالتقاط يضمن وصول الإفلات حتى لو انزلقت
+   الإصبع خارج الرقعة — وإلّا بقي المضرب مرفوعاً إلى الأبد. */
+function holdBtn(el, k) {
+  el.addEventListener('pointerdown', function (e) {
+    e.preventDefault(); e.stopPropagation();
+    if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (x) {} }
+    el.classList.add('on'); sendKey('keydown', k);
+  });
+  function off(e) {
+    if (!el.classList.contains('on')) return;
+    if (e) e.stopPropagation();
+    el.classList.remove('on'); sendKey('keyup', k);
+  }
+  el.addEventListener('pointerup', off);
+  el.addEventListener('pointercancel', off);
+  el.addEventListener('lostpointercapture', off);
 }
-pl.addEventListener('pointerup', plungeUp);
-pl.addEventListener('pointercancel', plungeUp);
+/* الدفعة نقرة لا مسكة: المحرّك يقرأ الضغطة وحدها */
+function tapBtn(el, k) {
+  el.addEventListener('pointerdown', function (e) {
+    e.preventDefault(); e.stopPropagation();
+    el.classList.add('on'); tap(k);
+    setTimeout(function () { el.classList.remove('on'); }, 130);
+  });
+}
+holdBtn($('flipL'), KEYS.left);
+holdBtn($('flipR'), KEYS.right);
+holdBtn($('plungeBtn'), KEYS.plunge);
+tapBtn($('bumpL'), KEYS.bumpL);
+tapBtn($('bumpR'), KEYS.bumpR);
+tapBtn($('bumpU'), KEYS.bumpU);
+
+/* ---------- القصّ والشريط ----------
+   المقاييس نِسَبٌ من الإطار لا بكسلات: إن بدّل المحرّك دقّته بقيت صحيحة، لأن
+   الرسم نفسه يكبر بها. قيست من إطارٍ حقيقي بمسحٍ للأعمدة والصفوف: أعرض فجوة
+   سوداء بين الطاولة واللوحة هي ‎٣٥٩…٣٨٥‎، وشريط القوائم ‎٠…١٧‎. */
+var F = {
+  tx: 4 / 600, ty: 18 / 440, tw: 357 / 600, th: 410 / 440, bar: 18 / 440,
+  ball:  [452 / 600, 150 / 440, 132 / 600, 44 / 440],
+  score: [386 / 600, 194 / 440, 203 / 600, 46 / 440]
+};
+var showBar = false, hudCtx = null, lastSig = '';
+function layout() {
+  var cv = $('canvas'), view = $('view'), clip = $('clip'), hud = $('hud');
+  if (cv.hidden || !cv.width) return;
+  var W = cv.width, H = cv.height;
+  var top = F.ty - (showBar ? F.bar : 0);
+  var th = F.th + (showBar ? F.bar : 0);
+  var vw = view.clientWidth, vh = view.clientHeight;
+  if (vw < 8 || vh < 8) return;
+  var s = Math.min(vw / (F.tw * W), vh / (th * H));
+  clip.style.width = Math.round(F.tw * W * s) + 'px';
+  clip.style.height = Math.round(th * H * s) + 'px';
+  cv.style.width = Math.round(W * s) + 'px';
+  cv.style.height = Math.round(H * s) + 'px';
+  cv.style.left = Math.round(-F.tx * W * s) + 'px';
+  cv.style.top = Math.round(-top * H * s) + 'px';
+  /* رأسياً الشريط بعرض الطاولة ولا يزحف تحت شريط الأزرار يساراً؛ وأفقياً هو في
+     الهامش الأيمن فلا يتعدّى عرضه، وإلّا غطّى زاوية الطاولة. */
+  var tw = F.tw * W * s;
+  hud.style.width = Math.round(innerWidth > innerHeight
+    ? Math.max(120, (innerWidth - tw) / 2 - 14)
+    : Math.max(120, Math.min(tw, innerWidth - 104))) + 'px';
+}
+function hudDraw() {
+  var cv = $('canvas'), hud = $('hud');
+  if (cv.hidden || !cv.width) return;
+  var W = cv.width, H = cv.height;
+  var b = F.ball.map(function (v, i) { return Math.round(v * (i % 2 ? H : W)); });
+  var c = F.score.map(function (v, i) { return Math.round(v * (i % 2 ? H : W)); });
+  var gap = Math.max(4, Math.round(W * 0.013));
+  var w = b[2] + gap + c[2], h = Math.max(b[3], c[3]);
+  if (hud.width !== w || hud.height !== h) { hud.width = w; hud.height = h; hudCtx = null; }
+  if (!hudCtx) hudCtx = hud.getContext('2d');
+  hudCtx.clearRect(0, 0, w, h);
+  hudCtx.drawImage(cv, b[0], b[1], b[2], b[3], 0, Math.round((h - b[3]) / 2), b[2], b[3]);
+  hudCtx.drawImage(cv, c[0], c[1], c[2], c[3], b[2] + gap, Math.round((h - c[3]) / 2), c[2], c[3]);
+}
+function frame() {
+  if (started && !$('canvas').hidden) {
+    var cv = $('canvas'), view = $('view');
+    var sig = cv.width + 'x' + cv.height + '|' + view.clientWidth + 'x' + view.clientHeight +
+              '|' + showBar;
+    if (sig !== lastSig) { lastSig = sig; layout(); }
+    hudDraw();
+  }
+  requestAnimationFrame(frame);
+}
+$('barBtn').addEventListener('click', function () { showBar = !showBar; });
 
 /* ---------- الإقلاع ---------- */
 var started = false;
@@ -512,8 +680,9 @@ function boot() {
       $('loadMsg').textContent = 'يبدأ المحرّك';
       return CadetModule(cfg).then(function (M) {
         SHEETS.forEach(function (s) { s.hidden = true; });
-        pl.hidden = false; $('turn').hidden = false;
+        $('pad').hidden = false; $('hud').hidden = false; $('barBtn').hidden = false;
         M.callMain([]);
+        requestAnimationFrame(frame);
       });
     });
   }).catch(function (e) {
