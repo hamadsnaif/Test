@@ -211,11 +211,15 @@ body {
    بدل أن يعلو معه. صفّ مادي فاتجاهه يسار→يمين دائماً ---- */
 .deck { flex:none; width:100%; display:flex; flex-direction:column; align-items:stretch; gap:10px; padding:10px 6px; direction:ltr; }
 /* صفّ المفتاح: المفتاح إلى اليسار وبجانبه نقشه المحفور، وشبكة تملأ ما تبقّى */
-.side { flex:none; width:100%; display:flex; flex-direction:row; align-items:center; gap:10px; padding:0; }
+/* صفُّ الإيقاف صار فوق اللوحة ملاصقاً للشاشة: مستطيلٌ صغير كزرّ ‎start‎ في
+   ذراع التحكّم — لا يقع تحت الإبهامين وهما على المفاتيح، فلا يُضغط خطأً،
+   ولا يقضم من مساحتهما شيئاً. */
+.side { flex:none; width:100%; display:flex; flex-direction:row; align-items:center;
+  justify-content:center; gap:10px; padding:0; }
 .side .grille { flex:1; height:12px; min-width:0; opacity:.75; background-repeat:round; }
 /* مفتاح الإيقاف: 60 بكسل، رمزه ونقشه يتبدّلان مع حالة اللعبة لا مع التوقّف
    وحده: ❚❚ أثناء اللعب، ▶ في كل حالة أخرى — فلا يكون المفتاح ميّتاً أبداً */
-#softR { width:60px; height:60px; font-size:20px; }
+#softR { width:78px; height:44px; border-radius:12px; font-size:20px; flex:none; }
 #softR .ic.pause { font-size:22px; letter-spacing:-2px; }
 #softR .ic.play { font-size:19px; padding-left:3px; }
 body:not([data-mode="play"]) #softR .ic.pause, body[data-mode="play"] #softR .ic.play { display:none; }
@@ -228,7 +232,10 @@ body:not([data-mode="play"]):not([data-mode="pause"]) .cap-start { display:inlin
    وعليه رموز محفورة تشرح الاتجاهات دون أن تكون أهدافاً ---- */
 /* الطبق يُزاح 2 بكسل إلى الداخل عن حافة الحوض: مفتاح الإيقاف تحته يبدأ عند
    الحافة نفسها، فيبقى يسار الطبق قياساً لا شكلاً فقط (شرط ترتيب الاتجاه) */
-#stickpad { flex:none; height:186px; margin-inline:2px; position:relative; direction:ltr; touch-action:none; }
+/* منطقة التحكّم ارتفاعها واحد في النظامين، فلا يتغيّر حجم الجهاز ولا أبعاده
+   حين يُبدَّل بينهما — كان الفرق ‎١١٤‎ بكسلاً فيقفز الجهاز كلّه. */
+:root { --ctlh:150px; }
+#stickpad { flex:none; height:var(--ctlh); margin-inline:2px; position:relative; direction:ltr; touch-action:none; }
 #stickzone {
   position:absolute; inset:0; border-radius:999px; touch-action:none;
   background:
@@ -271,28 +278,29 @@ body:not([data-mode="play"]):not([data-mode="pause"]) .cap-start { display:inlin
    القفز هو المفتاح الملوّن الوحيد في هذا النظام ---- */
 #keypad {
   display:none; margin-inline:2px;
-  grid-template-columns:1fr 84px 1fr; gap:10px; align-items:center; direction:ltr;
+  grid-template-columns:1fr auto 1fr; gap:10px; align-items:center; direction:ltr;
 }
-.num { width:100%; height:72px; font-size:22px; }
-.num.round { width:72px; height:72px; justify-self:center; }
+/* اليسار واليمين يملآن ارتفاع المنطقة كلّه بعدما صعد مفتاح الإيقاف من تحتهما،
+   والقفز قرصٌ أكبر يتوسّطها رأسياً لا يلتصق بالشاشة. */
+.num { width:100%; height:var(--ctlh); font-size:22px; }
+.num.round { width:min(var(--ctlh), 116px); height:min(var(--ctlh), 116px);
+  justify-self:center; align-self:center; font-size:26px; }
 body.joystick #keypad { display:none; } body.joystick #stickpad { display:block; }
 body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { display:grid; }
 
 /* ---- الطبقات حسب الطول: كل ما يصغر هو الطبق ومفتاح الإيقاف، الشاشة لا تصغر أبداً ---- */
 @media (max-height: 700px) {
+  :root { --ctlh:126px; }
   .unit { gap:8px; padding:8px 7px 10px; }
-  #stickpad { height:140px; }
   .deck { gap:8px; padding:8px 6px 9px; }
-  #softR { width:56px; height:56px; }
+  #softR { width:72px; height:44px; }
 }
 /* عتبة واحدة متّفق عليها للأجهزة الثلاثة: اللوحة المكتوب عليها الاسم تختفي
    عند الطول نفسه في الثلاثة، فتظل الأجهزة تبدو إخوة عند 375 و320 */
 @media (max-height: 620px) and (orientation: portrait) { .cap { display:none; } }
 @media (max-height: 560px) and (orientation: portrait) {
-  #stickpad { height:116px; }
-  #softR { width:48px; height:48px; }
-  .num { height:56px; }
-  .num.round { width:56px; height:56px; }
+  :root { --ctlh:100px; }
+  #softR { width:66px; height:44px; }
 }
 /* نافذة عريضة قصيرة على الحاسوب (مثل 900×650): صفّ المفتاح تحت الطبق يكلّف
    من الطول أكثر مما تبقّى، وإنزال درجة التكبير ممنوع — فيعود المفتاح هنا
@@ -341,16 +349,17 @@ body:not(.joystick) #stickpad { display:none; } body:not(.joystick) #keypad { di
     <div class="cap"><span class="lamp run" aria-hidden="true"></span><span class="name">BOUNCE</span><span class="grille" aria-hidden="true"></span></div>
     <div class="well plate"><div id="stage"><canvas id="game" width="384" height="384"></canvas></div></div>
     <div class="deck">
+      <div class="side">
+        <span class="grille" aria-hidden="true"></span>
+        <button class="key" id="softR" type="button" aria-label="إيقاف / متابعة / ابدأ"><span class="ic pause">&#x2016;</span><span class="ic play">&#x25B6;&#xFE0E;</span></button>
+        <span class="engr ar cap-pause">إيقاف</span><span class="engr ar cap-resume">متابعة</span><span class="engr ar cap-start">ابدأ</span>
+        <span class="grille" aria-hidden="true"></span>
+      </div>
       <div id="stickpad"><div id="stickzone"><span class="etch l">&#x25C0;&#xFE0E;</span><span class="etch r">&#x25B6;&#xFE0E;</span><span class="etch t">&#x25B2;&#xFE0E; قفز</span><div id="stickbase"><div id="stickknob"></div></div></div></div>
       <div id="keypad">
         <button class="key num" data-k="4" type="button" aria-label="يسار">&#x25C0;&#xFE0E;</button>
         <button class="key num round acc" data-k="5" type="button" aria-label="قفز">&#x25B2;&#xFE0E;</button>
         <button class="key num" data-k="6" type="button" aria-label="يمين">&#x25B6;&#xFE0E;</button>
-      </div>
-      <div class="side">
-        <button class="key round" id="softR" type="button" aria-label="إيقاف / متابعة / ابدأ"><span class="ic pause">&#x2016;</span><span class="ic play">&#x25B6;&#xFE0E;</span></button>
-        <span class="engr ar cap-pause">إيقاف</span><span class="engr ar cap-resume">متابعة</span><span class="engr ar cap-start">ابدأ</span>
-        <span class="grille" aria-hidden="true"></span>
       </div>
     </div>
     <div class="foot"><span class="engr">Model B·128</span><span class="grille" aria-hidden="true"></span><span class="engr">1 Player</span></div>

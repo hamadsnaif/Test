@@ -354,7 +354,7 @@
   // The stick is the control this game is played with: one thumb steers and
   // jumps, and there is nothing small to hit. The number pad is the
   // alternative for anyone who wants the keys.
-  let joystick = true;
+  let joystick = false;                      // الافتراضي: المفاتيح لا العصا
   try {
     const saved = localStorage.getItem('bounce_controls');
     if (saved) joystick = saved === 'stick';
