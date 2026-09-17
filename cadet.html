@@ -131,11 +131,25 @@ input[type=file] { display:none; }
   </div>
   <button class="go" id="pickBtn" type="button">اختر مجلّد اللعبة</button>
   <button class="go ghost" id="pickFilesBtn" type="button">أو اختر الملفّات</button>
+  <button class="go ghost" id="importBtn" type="button">أو استورد حزمة جاهزة</button>
   <div class="files" id="pickMsg"></div>
   <div class="hint">
     الملفّات المطلوبة من تثبيت اللعبة الأصلي: <b>PINBALL.DAT</b> وملفّات
     <b>‎.WAV‎</b> المجاورة له. المحرّك مفتوح المصدر برخصة MIT —
     <a href="./cadet-LICENSE.txt" style="color:var(--neon-2)">نصّ الرخصة</a>.
+  </div>
+</div>
+
+<div class="sheet" id="dataSheet" hidden>
+  <div class="logo">ملفّات اللعبة</div>
+  <div class="sub" id="dataMsg"></div>
+  <button class="go" id="exportBtn" type="button">صدّر حزمة لأجهزتك</button>
+  <button class="go ghost" id="forgetBtn" type="button">انسَ الملفّات من هذا الجهاز</button>
+  <button class="go ghost" id="closeDataBtn" type="button">رجوع</button>
+  <div class="hint">
+    الحزمة ملفّ واحد فيه ملفّاتك كما هي. ضعه في تخزينك (iCloud أو Drive أو
+    غيرهما) وافتحه مرّة واحدة على كل جهاز — فلا تعيد اختيار المجلّد على كلٍّ
+    منها. لا يمرّ بهذا الموقع ولا يُرفع إلى أي مكان.
   </div>
 </div>
 
@@ -152,6 +166,7 @@ input[type=file] { display:none; }
 
 <input type="file" id="fileDir" webkitdirectory directory multiple>
 <input type="file" id="fileAny" multiple>
+<input type="file" id="fileBundle" accept=".cadet,application/octet-stream">
 
 <script>
 "use strict";
@@ -195,8 +210,9 @@ function writeAll(list) {
 
 /* ---------- الواجهة ---------- */
 var $ = function (id) { return document.getElementById(id); };
-var intro = $('introSheet'), loadS = $('loadSheet'), errS = $('errSheet');
-function show(el) { [intro, loadS, errS].forEach(function (s) { s.hidden = s !== el; }); }
+var intro = $('introSheet'), loadS = $('loadSheet'), errS = $('errSheet'), dataS = $('dataSheet');
+var SHEETS = [intro, loadS, errS, dataS];
+function show(el) { SHEETS.forEach(function (s) { s.hidden = s !== el; }); }
 function fail(msg) { $('errMsg').textContent = msg; show(errS); }
 
 /* ---------- استقبال الملفّات ---------- */
@@ -224,10 +240,69 @@ $('fileAny').addEventListener('change', function (e) { takeFiles(e.target.files)
 $('pickBtn').addEventListener('click', function () { $('fileDir').click(); });
 $('pickFilesBtn').addEventListener('click', function () { $('fileAny').click(); });
 $('retryBtn').addEventListener('click', function () { show(intro); });
+
+/* ---------- الحزمة: ملفّ واحد ينقل ملفّاتك بين أجهزتك ----------
+   لا مكتبة ضغط هنا — العقد يمنع أي طلب خارجي، وzip من الصفر لا يستحقّ. فهي
+   حاوية بسيطة: توقيع، ثم طول فهرس JSON، ثم الفهرس، ثم البايتات متتابعة.
+   والملفّات تُنسخ كما هي، فما يخرج هو ما دخل بالضبط. */
+var MAGIC = 'CADETPK1';
+function packBundle(files) {
+  var idx = [], off = 0;
+  files.forEach(function (f) { idx.push({ n: f.name, o: off, l: f.data.length }); off += f.data.length; });
+  var json = new TextEncoder().encode(JSON.stringify(idx));
+  var out = new Uint8Array(8 + 4 + json.length + off);
+  out.set(new TextEncoder().encode(MAGIC), 0);
+  new DataView(out.buffer).setUint32(8, json.length, true);
+  out.set(json, 12);
+  var p = 12 + json.length;
+  files.forEach(function (f) { out.set(f.data, p); p += f.data.length; });
+  return out;
+}
+function unpackBundle(buf) {
+  var u = new Uint8Array(buf);
+  if (u.length < 12 || new TextDecoder().decode(u.subarray(0, 8)) !== MAGIC)
+    throw new Error('هذا ليس ملفّ حزمة من هذه اللعبة');
+  var jl = new DataView(buf).getUint32(8, true);
+  var idx = JSON.parse(new TextDecoder().decode(u.subarray(12, 12 + jl))), base = 12 + jl;
+  return idx.map(function (e) { return { name: e.n, data: u.slice(base + e.o, base + e.o + e.l) }; });
+}
+$('exportBtn').addEventListener('click', function () {
+  readAll().then(function (files) {
+    if (!files.length) { $('dataMsg').textContent = 'لا ملفّات محفوظة بعد.'; return; }
+    var blob = new Blob([packBundle(files)], { type: 'application/octet-stream' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'space-cadet.cadet';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    $('dataMsg').textContent = 'صُدِّرت ' + files.length + ' ملفّاً.';
+  });
+});
+$('importBtn').addEventListener('click', function () { $('fileBundle').click(); });
+$('fileBundle').addEventListener('change', function (e) {
+  var f = e.target.files && e.target.files[0];
+  if (!f) return;
+  $('pickMsg').textContent = 'تُقرأ الحزمة…';
+  f.arrayBuffer().then(function (buf) {
+    var list = unpackBundle(buf);
+    if (!list.some(function (x) { return /PINBALL\.DAT$/i.test(x.name); }))
+      throw new Error('الحزمة بلا PINBALL.DAT');
+    return writeAll(list).then(function () { boot(); });
+  }).catch(function (err) { $('pickMsg').textContent = String(err.message || err); });
+});
+$('forgetBtn').addEventListener('click', function () {
+  tx('readwrite', function (s) { s.clear(); }).then(function () { location.reload(); });
+});
+$('closeDataBtn').addEventListener('click', function () {
+  SHEETS.forEach(function (s) { s.hidden = true; });
+  if (!started) show(intro);
+});
 $('filesBtn').addEventListener('click', function () {
-  if (confirm('تُنسى ملفّات اللعبة من هذا الجهاز وتختار غيرها؟')) {
-    tx('readwrite', function (s) { s.clear(); }).then(function () { location.reload(); });
-  }
+  readAll().then(function (files) {
+    $('dataMsg').textContent = files.length
+      ? 'محفوظ على هذا الجهاز: ' + files.length + ' ملفّاً.'
+      : 'لا ملفّات محفوظة على هذا الجهاز.';
+    show(dataS);
+  });
 });
 $('menuBtn').addEventListener('click', function () { location.href = './index.html'; });
 
@@ -313,7 +388,7 @@ function boot() {
       };
       $('loadMsg').textContent = 'يبدأ المحرّك';
       return CadetModule(cfg).then(function (M) {
-        [intro, loadS, errS].forEach(function (s) { s.hidden = true; });
+        SHEETS.forEach(function (s) { s.hidden = true; });
         pl.hidden = false;
         M.callMain([]);
       });
