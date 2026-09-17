@@ -68,8 +68,9 @@ body {
 :root { --padh:min(84px, 12vh); }
 #stage { position:fixed; inset:0; z-index:1; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:6px; padding:0; }
-#info { display:flex; flex:none; direction:ltr; align-items:flex-end;
+#info { display:flex; flex:none; direction:ltr; align-items:center;
   justify-content:center; gap:8px; }
+@media (orientation: portrait) { #info { width:100%; } }
 #info canvas, #hBall { display:block; height:auto; image-rendering:pixelated; border-radius:3px; }
 #info canvas[hidden], #hBall[hidden] { display:none; }
 /* شارة عدد الكرات قصيرة عريضة (‏‎١٢٤×٣٦‎‏) فلا تتوازى مع لوحتين نسبتهما قريبة من
@@ -101,20 +102,25 @@ body {
 }
 
 
-/* رأسياً يصير العمود صفّاً أعلى اليسار، فيخلو للشريط عرضُ الطاولة كلّه؛ وأفقياً
-   يبقى عموداً في الهامش الأيسر حيث لا يزاحم شيئاً. */
-@media (orientation: portrait) { #rail { flex-direction:row !important; } }
-#rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:4px;
+/* عمودٌ في زاوية الطاولة العليا اليسرى رأسياً، وفي زاوية الشاشة أفقياً حيث
+   الهامش متّسع. ووضعُه على الطاولة لا فوقها مقصود: صفٌّ أو عمودٌ يعلوها يقتطع
+   من ارتفاعها — قِيس ذلك فكلّفها ‎٢٤‎ بكسلاً من عرضها على شاشة ‎٣٢٠‎ — وهو
+   هناك لا يزاحم إلا ركناً لا تُلعب فيه.
+
+   والرقعة ‎٤٤×٤٤‎ لا تصغر — هذا حدّ اللمس في العقد — لكنّ المرسوم داخلها
+   ‎٣٢×٣٢‎، فتبدو صغيرةً ويبقى الهدف كاملاً. */
+#rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:0;
   top:env(safe-area-inset-top, 0px); left:env(safe-area-inset-left, 0px); }
 /* الرقعة نفسها هي الشكل المرئي — مستطيلة لا دائرة، وبالقياس نفسه فلا هدفَ
    لمسٍ تحت ٤٤. */
-#rail button { position:relative; width:54px; height:44px; flex:none; padding:0; border:0;
-  border-radius:10px; color:var(--ink); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--btn); box-shadow:inset 0 0 0 1px var(--line); }
-#rail button:active { background:var(--btn-on); }
+#rail button { position:relative; width:44px; height:44px; flex:none; padding:0; border:0;
+  background:transparent; color:var(--ink); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; }
+#rail button::before { content:""; position:absolute; top:6px; left:6px; width:32px; height:32px;
+  border-radius:9px; z-index:-1; background:var(--btn); box-shadow:inset 0 0 0 1px var(--line); }
+#rail button:active::before { background:var(--btn-on); }
 #rail button .g { position:relative; z-index:1; display:flex; line-height:0; }
-#rail button .g svg { width:21px; height:21px; display:block; }
+#rail button .g svg { width:17px; height:17px; display:block; }
 
 /* ---------- المقابض ----------
    كانت المضارب نصفَي شاشة لا يُريان، والقاذف نقطة في الزاوية. وما لا يُرى لا
@@ -735,20 +741,30 @@ function layout() {
     w = Math.min(h / tabRatio, innerWidth - 376);
     h = w * tabRatio;
   } else {
-    /* الشارة نزلت إلى صفّ المقابض، فلم يبقَ أعلى الشاشة إلا صفُّ الأزرار
-       واللوحتان. والترتيب بالأولوية لا بالتقسيم: تأخذ الطاولة عرض الشاشة
-       كاملاً ما دام الباقي يسع اللوحتين؛ فإن ضاق قُلِّصت اللوحتان إلى ‎PMIN‎
-       والطاولة على عرضها؛ فإن لم يكفِ ذلك قُلِّصت الطاولة وحدها بعده. فلا
-       تُترك فجوةٌ يمنةً ويسرةً إلا حين لا يبقى بدٌّ منها. */
-    var railH = 48, padH = $('pad').offsetHeight + 6;
-    stage.style.padding = railH + 'px 0 ' + padH + 'px';
-    var avail = innerHeight - railH - padH - G * 2;
-    var byW = (innerWidth - 8) / (1 / RAT.score + 1 / RAT.msg);   // ما يسمح به العرض
-    var tH = innerWidth * tabRatio;
-    if (tH + byW <= avail) { w = innerWidth; P = byW; }
-    else if (tH + PMIN <= avail) { w = innerWidth; P = avail - tH; }
-    else { P = PMIN; w = Math.min(innerWidth, (avail - PMIN) / tabRatio); }
+    /* أعلى الشاشة عمودُ الأزرار (‏‎١٣٢‎: ثلاث رقعٍ بحدّ اللمس) واللوحتان إلى
+       يمينه، فارتفاع الشريط أكبرهما. والترتيب بالأولوية لا بالتقسيم: تأخذ
+       الطاولة عرض الشاشة كاملاً ما وسع الباقي اللوحتين، فإن ضاق قُلِّصتا إلى
+       ‎PMIN‎، فإن لم يكفِ قُلِّصت الطاولة وحدها بعده.
+
+       وما يفضل بعد ذلك لا يُترك سواداً بين الطاولة والمقابض: يُضاف إلى ارتفاع
+       الرقع فتمتدّ إليه. */
+    var FLIPMIN = 64;
+    var padBase = 48 + G + FLIPMIN + G;                  // الدفعات + المضارب + هامش
+    var room = innerHeight - padBase - G * 2;
+    P = (innerWidth - 8) / (1 / RAT.score + 1 / RAT.msg);
+    var avail = room - P;
+    w = Math.min(innerWidth, avail / tabRatio);
+    if (w < innerWidth) {                                 // تُقايَض اللوحتان بعرض الطاولة
+      var need = innerWidth * tabRatio;
+      if (room - need >= PMIN) { P = room - need; w = innerWidth; }
+      else { P = PMIN; w = Math.min(innerWidth, (room - PMIN) / tabRatio); }
+      avail = room - P;
+    }
     h = w * tabRatio;
+    var slack = Math.max(0, Math.min(avail - h, 150));
+    var flipH = Math.round(FLIPMIN + slack);
+    document.documentElement.style.setProperty('--padh', flipH + 'px');
+    stage.style.padding = '0 0 ' + (padBase + flipH - FLIPMIN) + 'px';
   }
   w = Math.max(80, Math.floor(w)); h = Math.max(80, Math.floor(h));
   var s = w / (F.tw * W);
@@ -762,6 +778,7 @@ function layout() {
     var marg = Math.floor((innerWidth - w) / 2);
     var lw = Math.max(110, marg - 78), rw = Math.max(110, marg - 14);   // ٦٦ للعمود يساراً
     info.style.display = 'contents';
+    $('rail').style.top = ''; $('rail').style.left = '';      // أفقياً: زاوية الشاشة
     sc.style.width = lw + 'px'; sc.style.left = '66px';
     sc.style.right = 'auto'; sc.style.top = '6px';
     ms.style.width = rw + 'px'; ms.style.right = '6px';
@@ -776,6 +793,10 @@ function layout() {
     sc.style.left = ms.style.left = sc.style.top = ms.style.top = '';
     // الشارة تعود إلى تدفّق صفّ المقابض، فيتولّى العرضَ ‎flex‎ لا الحساب
     bl.style.width = ''; bl.style.left = ''; bl.style.right = ''; bl.style.top = '';
+    // والعمود ينزل إلى زاوية الطاولة، فلا يقتطع من ارتفاعها شيئاً
+    var box = clip.getBoundingClientRect();
+    $('rail').style.top = Math.round(box.top + 4) + 'px';
+    $('rail').style.left = Math.round(box.left + 4) + 'px';
   }
 }
 /* كلّ قطعة رقعةٌ مستقلّة تُنسخ إليها منطقتها من إطار المحرّك */
