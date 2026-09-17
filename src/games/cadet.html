@@ -361,9 +361,11 @@ $('fileBundle').addEventListener('change', function (e) {
    بضغطة صاحب الجهاز على رابطٍ لصقه هو، فلا يبقى في الصفحة أي تبعية خارجية.
 
    والمتصفّح لا يقرأ من مضيف لا يرسل ترويسة ‎Access-Control-Allow-Origin‎.
-   مقيسة لا مظنونة: دروب‌بوكس على ‎dl.dropboxusercontent.com‎ يرسل ‎*‎، وواجهة
-   وَن‌درايف ترسل أصلنا، وقوقل درايف لا يرسلها على ‎uc?export=download‎ ولا على
-   ‎drive.usercontent‎ — وإنّما على واجهته البرمجية وحدها، وهي تطلب مفتاحاً.
+   مقيسة لا مظنونة: دروب‌بوكس على ‎dl.dropboxusercontent.com‎ يرسل ‎*‎، وقوقل
+   درايف لا يرسلها على ‎uc?export=download‎ ولا على ‎drive.usercontent‎ — وإنّما
+   على واجهته البرمجية وحدها، وهي تطلب مفتاحاً. ووَن‌درايف الشخصي نُقل إلى
+   ‎SharePoint‎ (‏‎migratedtospo=true‎ في تحويلة ‎1drv.ms‎)، فواجهته القديمة تردّ
+   ‎401‎، ولا ترويسة في سلسلة التحويلات كلّها — فلا سبيل إليه من صفحة ساكنة.
    فاملأ ‎DRIVE_KEY‎ بمفتاح ‎Drive API‎ (مجّاني، ويُقيَّد بنطاق هذا الموقع) إن
    أردت روابط قوقل درايف؛ وإلا فالمفتاح فارغ والرسالة تدلّ على البديل. */
 var DRIVE_KEY = '';
@@ -393,8 +395,13 @@ function fromLink() {
   try { url = directUrl(raw); }
   catch (e) { $('pickMsg').textContent = e.message; return; }
   $('pickMsg').textContent = 'يُجلَب الملفّ…';
+  var od = /api\.onedrive\.com/.test(url);
   fetch(url, { mode: 'cors', redirect: 'follow' }).then(function (r) {
-    if (!r.ok) throw new Error('المضيف ردّ بالرمز ' + r.status + ' — تأكّد أن الرابط مفتوح لمن يملكه');
+    if (!r.ok) {
+      if (od && (r.status === 401 || r.status === 403))
+        throw new Error('وَن‌درايف لم يعد يسمح بالقراءة من روابط المشاركة. استعمل رابط دروب‌بوكس، أو نزّل الملفّ ثم استورده بالزرّ أعلاه.');
+      throw new Error('المضيف ردّ بالرمز ' + r.status + ' — تأكّد أن الرابط مفتوح لمن يملكه');
+    }
     return r.arrayBuffer();
   }).then(intake).catch(function (err) {
     // فشل الشبكة يصل بلا تفصيل لأن المتصفّح يخفيه، وأغلبه منعُ CORS
