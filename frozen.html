@@ -1130,6 +1130,17 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
       writeAll();
     } else if (S.phase === 'paused') setPhase('play');
   }
+  /* الضغطة تلتفت خطوةً واحدة على الأقل — وهي خطوة نبضةٍ واحدة بسرعة الأصل
+     نفسها. وهذا لأن الدوران في الأصل يقع أثناء الضغط وحده، فاللمسة السريعة
+     على الجوّال تنقضي قبل أن تمرّ نبضة فلا يتحرّك القاذف شيئاً — قِيس ذلك
+     على الموقع الحيّ بلمسةٍ حقيقية فجاءت ‎٩٠° → ٩٠°‎. والضغط المطوّل يبقى
+     على سرعة الأصل، وهذه خطوةٌ واحدة في أوّله لا تغيير في المعدّل. */
+  function step(dir) {
+    if (S.phase !== 'play') return;
+    S.angle += dir * TURN;
+    if (S.angle < A_MIN) S.angle = A_MIN;
+    if (S.angle > A_MAX) S.angle = A_MAX;
+  }
   function nudge(d) {
     if (S.phase === 'menu') {
       S.pick = Math.min(Math.max(S.pick + d, 1), LEVELS.length);
@@ -1152,8 +1163,8 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     });
   }
   var lb = document.getElementById('leftBtn'), rb = document.getElementById('rightBtn');
-  hold(lb, function () { S.act.left = true; nudge(-1); }, function () { S.act.left = false; });
-  hold(rb, function () { S.act.right = true; nudge(1); }, function () { S.act.right = false; });
+  hold(lb, function () { S.act.left = true; step(1); nudge(-1); }, function () { S.act.left = false; });
+  hold(rb, function () { S.act.right = true; step(-1); nudge(1); }, function () { S.act.right = false; });
   hold(document.getElementById('fireBtn'), primary, null);
   document.getElementById('pauseBtn').addEventListener('click', function (e) { e.preventDefault(); togglePause(); });
 
@@ -1195,8 +1206,8 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     var k = ev.key;
     /* تكرار المفتاح المضغوط لا يقذف: الأصل يقرأ ضغطةً واحدة لا سيلاً منها */
     if (ev.repeat && (k === 'ArrowUp' || k === ' ' || k === 'Spacebar')) { ev.preventDefault(); return; }
-    if (k === 'ArrowLeft') { S.act.left = true; nudge(-1); }
-    else if (k === 'ArrowRight') { S.act.right = true; nudge(1); }
+    if (k === 'ArrowLeft') { if (!ev.repeat) step(1); S.act.left = true; nudge(-1); }
+    else if (k === 'ArrowRight') { if (!ev.repeat) step(-1); S.act.right = true; nudge(1); }
     else if (k === 'ArrowDown') { S.act.centre = true; }          /* مفتاح الأصل: يعيد القاذف إلى الوسط */
     else if (k === 'ArrowUp' || k === ' ' || k === 'Spacebar') { primary(); }   /* الأصل يقذف بـ↑، والمسافة معه */
     else if (k === 'Escape' || k === 'p' || k === 'P') { togglePause(); }
