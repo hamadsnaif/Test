@@ -78,19 +78,18 @@ body {
 /* رأسياً يصير العمود صفّاً أعلى اليسار، فيخلو للشريط عرضُ الطاولة كلّه؛ وأفقياً
    يبقى عموداً في الهامش الأيسر حيث لا يزاحم شيئاً. */
 @media (orientation: portrait) { #rail { flex-direction:row !important; } }
-#rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
-  top:calc(env(safe-area-inset-top, 0px) + 2px); left:calc(env(safe-area-inset-left, 0px) + 2px); }
-#rail button { position:relative; width:44px; height:44px; flex:none; padding:0; border:0;
-  background:transparent; color:var(--ink); display:flex; align-items:center; justify-content:center;
-  font:600 13px/1 var(--font-ui); cursor:pointer; }
-#rail button::before { content:""; position:absolute; top:7px; left:7px; width:30px; height:30px;
-  border-radius:50%; z-index:-1;
-  background:radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
-             linear-gradient(165deg, rgba(90,50,140,.9), rgba(24,12,46,.92));
-  box-shadow:inset 0 0 0 1px rgba(196,107,255,.45), 0 2px 6px rgba(0,0,0,.55); }
-#rail button::after { content:""; position:absolute; top:0; bottom:0; left:-6px; right:-2px; }
+#rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:4px;
+  top:calc(env(safe-area-inset-top, 0px) + 4px); left:calc(env(safe-area-inset-left, 0px) + 6px); }
+/* الرقعة نفسها هي الشكل المرئي — مستطيلة لا دائرة، وبالقياس نفسه فلا هدفَ
+   لمسٍ تحت ٤٤. */
+#rail button { position:relative; width:54px; height:44px; flex:none; padding:0; border:0;
+  border-radius:11px; color:var(--ink); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(80% 80% at 32% 22%, rgba(255,255,255,.16), rgba(255,255,255,0) 62%),
+             linear-gradient(168deg, rgba(90,50,140,.9), rgba(24,12,46,.92));
+  box-shadow:inset 0 0 0 1.5px rgba(196,107,255,.45), 0 2px 8px rgba(0,0,0,.55); }
 #rail button .g { position:relative; z-index:1; display:flex; line-height:0; }
-#rail button .g svg { width:19px; height:19px; display:block; }
+#rail button .g svg { width:21px; height:21px; display:block; }
 
 /* ---------- المقابض ----------
    كانت المضارب نصفَي شاشة لا يُريان، والقاذف نقطة في الزاوية. وما لا يُرى لا
@@ -182,7 +181,6 @@ input[type=file] { display:none; }
 <canvas id="hBall" hidden aria-hidden="true"></canvas>
 
 <div id="rail">
-  <button id="menuBtn" type="button" aria-label="القائمة"><span class="g"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 L12 3.5 L21 11"/><path d="M5.5 9.2 V20 H18.5 V9.2"/></svg></span></button>
   <button id="newBtn" type="button" aria-label="جولة جديدة"><span class="g"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 A8 8 0 1 1 17.3 6.1"/><path d="M20 3.6 V7.2 H16.4"/></svg></span></button>
   <button id="filesBtn" type="button" aria-label="ملفّات اللعبة"><span class="g"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 A1.5 1.5 0 0 1 4.5 6 H9.4 L11.4 8.6 H19.5 A1.5 1.5 0 0 1 21 10.1 V18 A1.5 1.5 0 0 1 19.5 19.5 H4.5 A1.5 1.5 0 0 1 3 18 Z"/></svg></span></button>
   <button id="barBtn" type="button" hidden aria-label="شريط قوائم المحرّك"><span class="g"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9.2 H21 M6.3 6.9 H9.6"/></svg></span></button>
@@ -527,7 +525,6 @@ $('filesBtn').addEventListener('click', function () {
     show(dataS);
   });
 });
-$('menuBtn').addEventListener('click', function () { location.href = './index.html'; });
 
 /* ---------- المفاتيح التي يفهمها المحرّك ----------
    من ‎options.cpp‎ نفسه، لا من التخمين: المضرب الأيسر ‎z‎ والأيمن ‎/‎، والقاذف
@@ -638,9 +635,12 @@ function layout() {
 
   if (land) {
     stage.style.padding = '4px 0';
-    // الارتفاع هو الحدّ؛ ويُترك للهامشين ما يكفي المضربين واللوحتين
+    /* الارتفاع هو الحدّ، ما لم يضق الهامشان عن ساكنيهما. والهامش الأيسر يحمل
+       عمود الأزرار (‏٦٦‏) ولوحةً لا تقلّ عن ‎١١٠‎ وفاصلاً (‏١٢‏)، والطاولة في
+       الوسط فالهامشان سواء — فالمحجوز ‎٣٧٦‎. ولولا ذلك لزحفت اللوحة على
+       الطاولة متى قصُرت الشاشة واتّسعت. */
     h = innerHeight - 8;
-    w = Math.min(h / tabRatio, innerWidth - 300);
+    w = Math.min(h / tabRatio, innerWidth - 376);
     h = w * tabRatio;
   } else {
     // صفّ الأزرار وشارة الكرات أعلى الشاشة، ورقع التحكّم أسفلها
@@ -662,13 +662,13 @@ function layout() {
 
   if (land) {
     var marg = Math.floor((innerWidth - w) / 2);
-    var lw = Math.max(110, marg - 66), rw = Math.max(110, marg - 14);   // ٥٤ للعمود يساراً
+    var lw = Math.max(110, marg - 78), rw = Math.max(110, marg - 14);   // ٦٦ للعمود يساراً
     info.style.display = 'contents';
-    sc.style.width = lw + 'px'; sc.style.left = '54px';
+    sc.style.width = lw + 'px'; sc.style.left = '66px';
     sc.style.right = 'auto'; sc.style.top = '6px';
     ms.style.width = rw + 'px'; ms.style.right = '6px';
     ms.style.left = 'auto'; ms.style.top = '6px';
-    bl.style.width = lw + 'px'; bl.style.left = '54px';
+    bl.style.width = lw + 'px'; bl.style.left = '66px';
     bl.style.right = 'auto'; bl.style.top = Math.round(12 + lw * RAT.score) + 'px';
   } else {
     var half = Math.floor((w - 8) / 2);
@@ -705,6 +705,17 @@ function frame() {
 }
 $('barBtn').addEventListener('click', function () { showBar = !showBar; });
 
+/* ---------- بلا موسيقى ----------
+   لا يُركَّب مقطع الموسيقى، فلا يجده المحرّك. وهذا مسلكه هو لا التفافٌ عليه:
+   ‎winmain.cpp‎ يقول ‎if (!midi::music_init(...)) Options.Music = false;‎ — فيطفئ
+   الخيار بنفسه بلا خطأ ولا حوار. والمؤثّرات (‏‎.WAV‎‏) تبقى كما هي.
+
+   والمقطع وحده يُستثنى لا كل ‎‎.MID‎‎: ‏‎PINBALL.MID‎ هو موسيقى ‎3DPB‎ و‎TABA1‎
+   و‎TABA2‎ و‎TABA3‎ و‎DEMO‎ مقاطع ‎Full Tilt‎ (‏‎midi.cpp‎‏)، أمّا ‎PINBALL2.MID‎
+   فليس صوتاً أصلاً بل خطٌّ نقطي — فيبقى. والملفّات كلّها محفوظة كما هي على
+   الجهاز، فإعادة الموسيقى سطرٌ واحد لا اختيارُ ملفّات من جديد. */
+var MUSIC = /^(PINBALL|TABA[123]|DEMO)\.MID$/i;
+
 /* ---------- الإقلاع ---------- */
 var started = false;
 function loadScript(src) {
@@ -730,7 +741,10 @@ function boot() {
         preRun: [function () {
           var F = cfg.FS;
           try { F.mkdir('/game_resources'); } catch (e) {}
-          files.forEach(function (f) { F.writeFile('/game_resources/' + f.name, f.data); });
+          files.forEach(function (f) {
+            if (MUSIC.test(f.name)) return;          // الموسيقى لا تُركَّب
+            F.writeFile('/game_resources/' + f.name, f.data);
+          });
         }]
       };
       $('loadMsg').textContent = 'يبدأ المحرّك';
