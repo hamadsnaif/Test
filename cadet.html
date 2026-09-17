@@ -246,6 +246,7 @@ input[type=file] { display:none; }
   <div class="logo">ملفّات اللعبة</div>
   <div class="sub" id="dataMsg"></div>
   <button class="go" id="exportBtn" type="button">صدّر حزمة لأجهزتك</button>
+  <button class="go ghost" id="testBtn" type="button">اختبر الصوت</button>
   <button class="go ghost" id="forgetBtn" type="button">انسَ الملفّات من هذا الجهاز</button>
   <button class="go ghost" id="closeDataBtn" type="button">رجوع</button>
   <div class="hint">
@@ -557,6 +558,29 @@ function fromLink() {
 }
 $('linkBtn').addEventListener('click', fromLink);
 $('linkUrl').addEventListener('keydown', function (e) { if (e.key === 'Enter') fromLink(); });
+/* اختبار الصوت: يشغّل ملفّاً من ملفّاتك أنت خارج المحرّك تماماً. فإن سُمع فالجهاز
+   يُخرج الصوت والعطب داخل المحرّك، وإن لم يُسمع فالمتصفّح أو الجهاز يمنعه —
+   وهذا يفصل بين الاحتمالين بضغطة واحدة بدل التخمين. */
+$('testBtn').addEventListener('click', function () {
+  var msg = $('dataMsg');
+  readAll().then(function (files) {
+    var w = files.filter(function (f) { return /\.WAV$/i.test(f.name); })
+                 .sort(function (a, b) { return b.data.length - a.data.length; })[0];
+    if (!w) { msg.textContent = 'لا ملفّات صوت محفوظة على هذا الجهاز.'; return; }
+    var C = window.AudioContext || window.webkitAudioContext;
+    if (!C) { msg.textContent = 'هذا المتصفّح بلا Web Audio.'; return; }
+    var ctx = new C();
+    var bytes = w.data.buffer.slice(w.data.byteOffset, w.data.byteOffset + w.data.byteLength);
+    return Promise.resolve(ctx.resume && ctx.resume()).catch(function () {}).then(function () {
+      return ctx.decodeAudioData(bytes);
+    }).then(function (buf) {
+      var src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start();
+      msg.textContent = 'شُغِّل ' + w.name + ' — ' + Math.round(buf.duration * 1000) +
+        ' ملّي ثانية، والسياق ' + ctx.state + '. سمعتَه؟';
+    });
+  }).catch(function (e) { msg.textContent = 'تعذّر التشغيل: ' + (e.message || e); });
+});
 $('forgetBtn').addEventListener('click', function () {
   tx('readwrite', function (s) { s.clear(); }).then(function () { location.reload(); });
 });
@@ -752,16 +776,29 @@ function frame() {
 }
 $('barBtn').addEventListener('click', function () { showBar = !showBar; });
 
-/* ---------- بلا موسيقى ----------
-   لا يُركَّب مقطع الموسيقى، فلا يجده المحرّك. وهذا مسلكه هو لا التفافٌ عليه:
-   ‎winmain.cpp‎ يقول ‎if (!midi::music_init(...)) Options.Music = false;‎ — فيطفئ
-   الخيار بنفسه بلا خطأ ولا حوار. والمؤثّرات (‏‎.WAV‎‏) تبقى كما هي.
+/* ---------- موسيقى صامتة لا موسيقى محذوفة ----------
+   أوّل محاولةٍ لإسكاتها كانت بحجب ملفّها، فيفشل ‎music_init‎ ويطفئ المحرّك
+   الخيار بنفسه. وهو سليم في الشيفرة — ‎Sound::Init‎ مستقلّ عن ‎midi‎، ومسار
+   الفشل في ‎midi.cpp‎ لا يمسّ قنوات المؤثّرات — لكنّ المؤثّرات سكتت على جهازٍ
+   حقيقي، ولم أستطع إعادة إنتاج ذلك هنا.
 
-   والمقطع وحده يُستثنى لا كل ‎‎.MID‎‎: ‏‎PINBALL.MID‎ هو موسيقى ‎3DPB‎ و‎TABA1‎
-   و‎TABA2‎ و‎TABA3‎ و‎DEMO‎ مقاطع ‎Full Tilt‎ (‏‎midi.cpp‎‏)، أمّا ‎PINBALL2.MID‎
-   فليس صوتاً أصلاً بل خطٌّ نقطي — فيبقى. والملفّات كلّها محفوظة كما هي على
-   الجهاز، فإعادة الموسيقى سطرٌ واحد لا اختيارُ ملفّات من جديد. */
+   وما يفرّق بين الحالتين ليس الشيفرة بل ما يجري في رسم الصوت: الموسيقى كانت
+   تُطعم ‎ScriptProcessor‎ بلا انقطاع، فيبقى السياق حيّاً. وبانقطاعها يبقى الرسم
+   صامتاً دقائق، والمتصفّحات توقف السياق الخامل — فتضيع المؤثّرة حين تأتي.
+
+   فالمقطع لا يُحجب الآن بل يُستبدل بملفّ ‎MIDI‎ صحيح لا صوت فيه: نغمةٌ واحدة
+   للسرعة ثم نهاية المقطع. فيُحمَّل كما كان، وتبقى حالة المحرّك كما كانت يوم
+   كان كلّ شيء يعمل، ويبقى الرسم مُطعَماً — ولا يُسمع منه شيء.
+   والأصل محفوظ على الجهاز كما هو؛ لا يُحذف ولا يُغيَّر. */
 var MUSIC = /^(PINBALL|TABA[123]|DEMO)\.MID$/i;
+function silentMidi() {
+  return new Uint8Array([
+    0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 0, 96,   // MThd: صيغة ٠، مقطع واحد
+    0x4D, 0x54, 0x72, 0x6B, 0, 0, 0, 12,                     // MTrk: طوله ١٢
+    0x00, 0xFF, 0x51, 0x03, 0x07, 0xA1, 0x20,                // السرعة: نصف ثانية للنبضة
+    0x98, 0x00, 0xFF, 0x2F, 0x00                             // بعد ٣٠٧٢ نبضة: نهاية المقطع
+  ]);
+}
 
 /* ---------- الإقلاع ---------- */
 var started = false;
@@ -789,8 +826,8 @@ function boot() {
           var F = cfg.FS;
           try { F.mkdir('/game_resources'); } catch (e) {}
           files.forEach(function (f) {
-            if (MUSIC.test(f.name)) return;          // الموسيقى لا تُركَّب
-            F.writeFile('/game_resources/' + f.name, f.data);
+            F.writeFile('/game_resources/' + f.name,
+              MUSIC.test(f.name) ? silentMidi() : f.data);
           });
         }]
       };
