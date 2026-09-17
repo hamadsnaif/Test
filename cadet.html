@@ -59,18 +59,19 @@ body {
    ويبقى أسفل الشاشة كلّه للمقابض. ولا يُعاد رسم شيء: الرقعة تُزاح داخل صندوق
    يقصّ ما حولها، وما يلزم من اللوحة (رقم الكرة والنتيجة) يُنسخ منها بقطعتين
    إلى شريطٍ أعلى الطاولة. */
-/* الطاولة رأسياً محكومة بالعرض، فيفيض أسفلها فراغ. فالرقع تكبر لتملأه بدل أن
-   يبقى سواداً — الهدف الأكبر أسهل على الإبهام. */
-:root { --padh:112px; }
-@media (orientation: portrait) { :root { --padh:min(152px, 18vh); } }
+/* الطاولة تأخذ أكبر ما تسمح به نسبتها: رأسياً يحدّها عرضُ الشاشة فتملؤه، وأفقياً
+   يحدّها الارتفاع فتملؤه. والباقي حولها يسكنه ما عداها، ولا هوامش تُهدر.
+   والمقاسات تُحسب في ‎layout()‎ من ‎innerWidth/innerHeight‎ مباشرةً لا من قياس
+   عنصرٍ يعتمد عليها، وإلّا دار الحساب على نفسه. */
+:root { --padh:min(84px, 12vh); }
 #stage { position:fixed; inset:0; z-index:1; display:flex; flex-direction:column;
-  align-items:center; justify-content:center; gap:6px;
-  padding:calc(env(safe-area-inset-top, 0px) + 4px) 6px
-          calc(env(safe-area-inset-bottom, 0px) + var(--padh) + 70px); }
-#hud { display:block; flex:none; height:auto; image-rendering:pixelated; border-radius:4px; }
-#hud[hidden] { display:none; }
-/* رأسياً يعلو الشريطُ الطاولةَ، وعمود الأزرار يسارَه — فيبدأ بعده لا تحته */
-@media (orientation: portrait) { #hud { align-self:flex-start; margin-left:52px; } }
+  align-items:center; justify-content:center; gap:6px; padding:0; }
+#info { display:flex; flex:none; direction:ltr; align-items:flex-end;
+  justify-content:center; gap:8px; }
+#info canvas, #hBall { display:block; height:auto; image-rendering:pixelated; border-radius:3px; }
+#info canvas[hidden], #hBall[hidden] { display:none; }
+/* شارة عدد الكرات قصيرة عريضة، فلا تتوازى مع اللوحتين — مكانها زاوية الشاشة */
+#hBall { position:fixed; z-index:6; }
 #view { flex:1 1 auto; min-height:0; width:100%;
   display:flex; align-items:center; justify-content:center; }
 #clip { position:relative; overflow:hidden; background:#000; }
@@ -78,14 +79,17 @@ body {
   background:#000; outline:none; transform-origin:0 0; }
 #canvas[hidden] { display:none; }
 @media (orientation: landscape) {
-  /* أفقياً لا فراغ رأسي أصلاً، فالشريط يخرج من التدفّق إلى الهامش الأيمن
-     لتأخذ الطاولة كامل الارتفاع. */
-  #stage { padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  /* أفقياً لا فراغ فوق الطاولة ولا تحتها، والهوامش الجانبية وحدها متّسعة —
+     فتخرج اللوحتان من التدفّق إلى الهامشين، واحدةٌ لكلٍّ منهما. */
+  #info { display:contents; }
+  #hScore, #hMsg { position:fixed; z-index:6; }
   #pad { align-items:stretch; }
-  #hud { position:absolute; top:calc(env(safe-area-inset-top, 0px) + 6px);
-         right:calc(env(safe-area-inset-right, 0px) + 6px); z-index:2; }
 }
 
+
+/* رأسياً يصير العمود صفّاً أعلى اليسار، فيخلو للشريط عرضُ الطاولة كلّه؛ وأفقياً
+   يبقى عموداً في الهامش الأيسر حيث لا يزاحم شيئاً. */
+@media (orientation: portrait) { #rail { flex-direction:row !important; } }
 #rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
   top:calc(env(safe-area-inset-top, 0px) + 2px); left:calc(env(safe-area-inset-left, 0px) + 2px); }
 #rail button { position:relative; width:44px; height:44px; flex:none; padding:0; border:0;
@@ -128,7 +132,7 @@ body {
 #bumps button .ic svg { width:24px; height:24px; }
 #pad button.on { background:linear-gradient(168deg, rgba(255,194,77,.85), rgba(120,60,10,.92));
   box-shadow:inset 0 0 0 1.5px rgba(255,194,77,.75), 0 0 16px rgba(255,194,77,.3); }
-.flip { flex:1 1 0; min-width:72px; height:var(--padh); }
+.flip { flex:1 1 0; min-width:72px; height:var(--padh); border-radius:14px; }
 #bumps { pointer-events:none; display:flex; gap:6px; flex:none; }
 #bumps button { width:48px; height:48px; border-radius:14px; font-size:11px; }
 #plungeBtn { flex:0 0 96px; height:var(--padh); }
@@ -181,9 +185,13 @@ input[type=file] { display:none; }
 <body data-layout="fullscreen" data-needs-assets>
 
 <div id="stage">
-  <canvas id="hud" hidden aria-hidden="true"></canvas>
+  <div id="info">
+    <canvas id="hScore" hidden aria-hidden="true"></canvas>
+    <canvas id="hMsg" hidden aria-hidden="true"></canvas>
+  </div>
   <div id="view"><div id="clip"><canvas id="canvas" hidden tabindex="-1"></canvas></div></div>
 </div>
+<canvas id="hBall" hidden aria-hidden="true"></canvas>
 
 <div id="rail">
   <button id="menuBtn" type="button" aria-label="القائمة"><span class="g"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 L12 3.5 L21 11"/><path d="M5.5 9.2 V20 H18.5 V9.2"/></svg></span></button>
@@ -623,66 +631,85 @@ var P = {
   score: [386 / 600, 196 / 440, 203 / 600, 104 / 440],
   msg:   [386 / 600, 300 / 440, 203 / 600, 120 / 440]
 };
-var showBar = false, hudCtx = null, lastSig = '';
+var showBar = false, lastSig = '';
+var RAT = { score: 104 / 203, msg: 120 / 203, ball: 36 / 124 };   // ارتفاع/عرض لكل قطعة
+var TAB = F.th / F.tw * (440 / 600) / (410 / 600);                // نسبة الطاولة: ارتفاع/عرض
+
+/* ---------- المقاسات ----------
+   المجهول الوحيد هو عرض الطاولة، وكلّ ما عداه دالّةٌ فيه: اللوحتان تقتسمان
+   عرضها فارتفاعهما ‎w/2‎ في نسبتهما، والطاولة ارتفاعها ‎w‎ في نسبتها. فتُحلّ
+   المتراجحة مرّةً واحدة بدل أن تُجرَّب المقاسات. */
 function layout() {
-  var cv = $('canvas'), view = $('view'), clip = $('clip'), hud = $('hud');
+  var cv = $('canvas'), clip = $('clip'), stage = $('stage'), info = $('info');
+  var sc = $('hScore'), ms = $('hMsg'), bl = $('hBall');
   if (cv.hidden || !cv.width) return;
   var W = cv.width, H = cv.height;
-  var top = F.ty - (showBar ? F.bar : 0);
-  var th = F.th + (showBar ? F.bar : 0);
-  var vw = view.clientWidth, vh = view.clientHeight;
-  if (vw < 8 || vh < 8) return;
-  var s = Math.min(vw / (F.tw * W), vh / (th * H));
-  clip.style.width = Math.round(F.tw * W * s) + 'px';
-  clip.style.height = Math.round(th * H * s) + 'px';
+  var top = F.ty - (showBar ? F.bar : 0), th = F.th + (showBar ? F.bar : 0);
+  var tabRatio = (th * H) / (F.tw * W);                 // ارتفاع الطاولة لكل وحدة عرض
+  var land = innerWidth > innerHeight, G = 6, w, h;
+
+  if (land) {
+    stage.style.padding = '4px 0';
+    // الارتفاع هو الحدّ؛ ويُترك للهامشين ما يكفي المضربين واللوحتين
+    h = innerHeight - 8;
+    w = Math.min(h / tabRatio, innerWidth - 300);
+    h = w * tabRatio;
+  } else {
+    // صفّ الأزرار وشارة الكرات أعلى الشاشة، ورقع التحكّم أسفلها
+    var topBar = 52, padH = $('pad').offsetHeight + 6;
+    stage.style.padding = topBar + 'px 0 ' + padH + 'px';
+    var availH = innerHeight - topBar - padH - G * 2;
+    // ‎w*tabRatio + ((w-8)/2)*RAT.msg <= availH‎
+    var k = tabRatio + RAT.msg / 2;
+    w = Math.min(innerWidth, (availH + 4 * RAT.msg) / k);
+    h = w * tabRatio;
+  }
+  w = Math.max(80, Math.floor(w)); h = Math.max(80, Math.floor(h));
+  var s = w / (F.tw * W);
+  clip.style.width = w + 'px'; clip.style.height = h + 'px';
   cv.style.width = Math.round(W * s) + 'px';
   cv.style.height = Math.round(H * s) + 'px';
   cv.style.left = Math.round(-F.tx * W * s) + 'px';
   cv.style.top = Math.round(-top * H * s) + 'px';
-  /* رأسياً الشريط بعرض الطاولة ولا يزحف تحت شريط الأزرار يساراً؛ وأفقياً هو في
-     الهامش الأيمن فلا يتعدّى عرضه، وإلّا غطّى زاوية الطاولة. */
-  var tw = F.tw * W * s;
-  hud.style.width = Math.round(innerWidth > innerHeight
-    ? Math.max(150, (innerWidth - tw) / 2 - 14)
-    : Math.max(170, Math.min(tw, innerWidth - 58))) + 'px';
-}
-/* الشريط يُركَّب تركيبين: رأسياً هو فوق الطاولة فيتّسع عرضاً — الشارة فوق كتلة
-   النتيجة، ولوحة الرسائل إلى جانبها. وأفقياً هو في الهامش الأيمن وهو ضيّق
-   طويل، فتنتظم القطع عموداً كما كانت في اللوحة الأصل. */
-function hudDraw() {
-  var cv = $('canvas'), hud = $('hud');
-  if (cv.hidden || !cv.width) return;
-  var W = cv.width, H = cv.height;
-  function r(q) { return [Math.round(q[0] * W), Math.round(q[1] * H),
-                          Math.round(q[2] * W), Math.round(q[3] * H)]; }
-  var b = r(P.ball), c = r(P.score), m = r(P.msg);
-  var g = Math.max(4, Math.round(W * 0.012));
-  var cw, chh, put;
-  if (innerHeight >= innerWidth) {
-    cw = c[2] + g + m[2];
-    chh = b[3] + g + Math.max(c[3], m[3]);
-    put = [[b, Math.round((c[2] - b[2]) / 2), 0],
-           [c, 0, chh - c[3]],
-           [m, c[2] + g, chh - m[3]]];
+
+  if (land) {
+    var marg = Math.floor((innerWidth - w) / 2);
+    var lw = Math.max(110, marg - 66), rw = Math.max(110, marg - 14);   // ٥٤ للعمود يساراً
+    info.style.display = 'contents';
+    sc.style.width = lw + 'px'; sc.style.left = '54px';
+    sc.style.right = 'auto'; sc.style.top = '6px';
+    ms.style.width = rw + 'px'; ms.style.right = '6px';
+    ms.style.left = 'auto'; ms.style.top = '6px';
+    bl.style.width = lw + 'px'; bl.style.left = '54px';
+    bl.style.right = 'auto'; bl.style.top = Math.round(12 + lw * RAT.score) + 'px';
   } else {
-    cw = c[2];
-    chh = b[3] + g + c[3] + g + m[3];
-    put = [[b, Math.round((c[2] - b[2]) / 2), 0],
-           [c, 0, b[3] + g],
-           [m, 0, b[3] + g + c[3] + g]];
+    var half = Math.floor((w - 8) / 2);
+    info.style.display = 'flex';
+    sc.style.width = half + 'px'; ms.style.width = half + 'px';
+    sc.style.left = ms.style.left = sc.style.top = ms.style.top = '';
+    bl.style.width = Math.round(Math.min(132, innerWidth * 0.33)) + 'px';
+    bl.style.left = 'auto'; bl.style.right = '6px'; bl.style.top = '5px';
   }
-  if (hud.width !== cw || hud.height !== chh) { hud.width = cw; hud.height = chh; hudCtx = null; }
-  if (!hudCtx) hudCtx = hud.getContext('2d');
-  hudCtx.clearRect(0, 0, cw, chh);
-  put.forEach(function (q) {
-    hudCtx.drawImage(cv, q[0][0], q[0][1], q[0][2], q[0][3], q[1], q[2], q[0][2], q[0][3]);
-  });
+}
+/* كلّ قطعة رقعةٌ مستقلّة تُنسخ إليها منطقتها من إطار المحرّك */
+function paint(el, q, W, H) {
+  var x = Math.round(q[0] * W), y = Math.round(q[1] * H);
+  var w = Math.round(q[2] * W), h = Math.round(q[3] * H);
+  if (el.width !== w || el.height !== h) { el.width = w; el.height = h; el._c = null; }
+  if (!el._c) el._c = el.getContext('2d');
+  el._c.drawImage($('canvas'), x, y, w, h, 0, 0, w, h);
+}
+function hudDraw() {
+  var cv = $('canvas');
+  if (cv.hidden || !cv.width) return;
+  paint($('hScore'), P.score, cv.width, cv.height);
+  paint($('hMsg'), P.msg, cv.width, cv.height);
+  paint($('hBall'), P.ball, cv.width, cv.height);
 }
 function frame() {
   if (started && !$('canvas').hidden) {
-    var cv = $('canvas'), view = $('view');
-    var sig = cv.width + 'x' + cv.height + '|' + view.clientWidth + 'x' + view.clientHeight +
-              '|' + showBar;
+    var cv = $('canvas');
+    var sig = cv.width + 'x' + cv.height + '|' + innerWidth + 'x' + innerHeight + '|' + showBar;
     if (sig !== lastSig) { lastSig = sig; layout(); }
     hudDraw();
   }
@@ -721,7 +748,8 @@ function boot() {
       $('loadMsg').textContent = 'يبدأ المحرّك';
       return CadetModule(cfg).then(function (M) {
         SHEETS.forEach(function (s) { s.hidden = true; });
-        $('pad').hidden = false; $('hud').hidden = false; $('barBtn').hidden = false;
+        $('pad').hidden = false; $('barBtn').hidden = false;
+        $('hScore').hidden = $('hMsg').hidden = $('hBall').hidden = false;
         M.callMain([]);
         requestAnimationFrame(frame);
       });
