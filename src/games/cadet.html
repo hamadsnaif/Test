@@ -215,11 +215,14 @@ function takeFiles(fileList) {
   var files = Array.prototype.slice.call(fileList || []);
   if (!files.length) return;
   $('pickMsg').textContent = 'تُقرأ ' + files.length + ' ملفّاً…';
-  /* المحرّك يقرأ ‎PINBALL.DAT‎ وأصواته وموسيقاه فقط. ‎Pinball.exe‎ برنامج
-     ويندوز الذي حلّ هذا المحرّك محلّه، و‎table.bmp‎ لا يُفتح في الشيفرة
-     أصلاً — فلا يُحفظان ولا يشغلان مساحة على الجهاز. */
+  /* المحرّك يفتح ثلاثة أنواع لا غير: ‎PINBALL.DAT‎ (partman.cpp و pb.cpp)،
+     وملفّات ‎.WAV‎ (Sound.cpp)، و‎PINBALL.MID‎ (midi.cpp). وما عداها في مجلّد
+     التثبيت لا يُقرأ: ‎Pinball.exe‎ برنامج ويندوز الذي حلّ هذا المحرّك محلّه،
+     و‎table.bmp‎ لا يرد في الشيفرة أصلاً، و‎wavemix.inf‎ إعدادات مكتبة الخلط
+     القديمة WaveMix التي استُبدل بها SDL_mixer — ولم يبقَ منها إلا نصّ رسالة
+     خطأ في جدول الموارد. فلا يُحفظ منها شيء. */
   var wanted = files.filter(function (f) {
-    return /\.(DAT|WAV|MID|INF)$/.test(f.name.toUpperCase());
+    return /\.(DAT|WAV|MID)$/.test(f.name.toUpperCase());
   });
   if (!wanted.length) wanted = files;
   var hasDat = wanted.some(function (f) { return /PINBALL\.DAT$/i.test(f.name); });
@@ -275,7 +278,7 @@ function readZip(buf) {
     off += 46 + nlen + elen + clen;
     if (/\/$/.test(name) || !usize) continue;                 // مجلّد أو فارغ
     var base = name.split('/').pop().toUpperCase();
-    if (!/\.(DAT|WAV|MID|INF)$/.test(base)) continue;          // ما لا يقرأه المحرّك يُترك
+    if (!/\.(DAT|WAV|MID)$/.test(base)) continue;              // ما لا يقرأه المحرّك يُترك
     jobs.push({ base: base, method: method, csize: csize, lho: lho });
   }
   return Promise.all(jobs.map(function (j) {
