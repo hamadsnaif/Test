@@ -75,6 +75,16 @@ body {
 #view { flex:1 1 auto; min-height:0; width:100%;
   display:flex; align-items:center; justify-content:center; }
 #clip { position:relative; overflow:hidden; background:#000; }
+/* ---------- درع الرقعة ----------
+   المحرّك يربط زرّ الفأرة الأيسر بالمضرب الأيسر (‏‎options.cpp‎: ‎SDL_BUTTON_LEFT‎‏)،
+   واللمسة على الرقعة تصل إليه زرّاً أيسر. فكانت اللمسة على النصف الأيمن ترفع
+   المضربين معاً: الأيمن من مفتاحنا المُصطنع، والأيسر من الرقعة نفسها. واليسرى
+   تبدو سليمة لأن الاثنين يقولان الشيء نفسه.
+
+   فطبقةٌ شفّافة تعلو الرقعة تبتلع المؤشّر، فلا يصل المحرّكَ منه شيء ويبقى
+   المفتاح وحده. وتُرفع حين يُظهَر شريط القوائم، وإلّا تعذّر الضغط على القوائم. */
+#shield { position:absolute; inset:0; z-index:2; }
+#shield.pass { pointer-events:none; }
 #canvas { position:absolute; display:block; image-rendering:pixelated;
   background:#000; outline:none; transform-origin:0 0; }
 #canvas[hidden] { display:none; }
@@ -188,7 +198,8 @@ input[type=file] { display:none; }
     <canvas id="hScore" hidden aria-hidden="true"></canvas>
     <canvas id="hMsg" hidden aria-hidden="true"></canvas>
   </div>
-  <div id="view"><div id="clip"><canvas id="canvas" hidden tabindex="-1"></canvas></div></div>
+  <div id="view"><div id="clip"><canvas id="canvas" hidden tabindex="-1"></canvas>
+    <div id="shield"></div></div></div>
 </div>
 <canvas id="hBall" hidden aria-hidden="true"></canvas>
 
@@ -774,7 +785,10 @@ function frame() {
   }
   requestAnimationFrame(frame);
 }
-$('barBtn').addEventListener('click', function () { showBar = !showBar; });
+$('barBtn').addEventListener('click', function () {
+  showBar = !showBar;
+  $('shield').classList.toggle('pass', showBar);
+});
 
 /* ---------- موسيقى صامتة لا موسيقى محذوفة ----------
    أوّل محاولةٍ لإسكاتها كانت بحجب ملفّها، فيفشل ‎music_init‎ ويطفئ المحرّك
