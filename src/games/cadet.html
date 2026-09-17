@@ -97,6 +97,13 @@ body {
 .warn { color:#ffb0b0; font:700 13px/1.6 var(--font-ui); max-width:34ch; }
 .files { font:600 12px/1.7 var(--font-ui); color:#8cf0a8; }
 input[type=file] { display:none; }
+.linkbox { display:flex; flex-direction:column; align-items:center; gap:9px; width:min(420px, 100%);
+  border-top:1px solid rgba(196,107,255,.2); padding-top:14px; }
+#linkUrl { width:100%; min-height:46px; padding:0 14px; border-radius:14px; box-sizing:border-box;
+  border:1.5px solid rgba(196,107,255,.35); background:rgba(255,255,255,.05);
+  color:var(--ink); font:600 13px/1 var(--font-ui); }
+#linkUrl::placeholder { color:#7a6a96; }
+#linkUrl:focus-visible { outline:2px solid var(--neon-2); outline-offset:2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 </style>
 </head>
@@ -128,6 +135,12 @@ input[type=file] { display:none; }
   <button class="go ghost" id="pickFilesBtn" type="button">أو اختر الملفّات</button>
   <button class="go ghost" id="importBtn" type="button">أو استورد حزمة أو ملفّ ZIP</button>
   <div class="files" id="pickMsg"></div>
+  <div class="linkbox">
+    <div class="sub">تواصل مع حمد ليشارك معك رابط اللعبة ثم الصقه هنا</div>
+    <input type="url" id="linkUrl" dir="ltr" spellcheck="false" autocomplete="off"
+           inputmode="url" placeholder="https://…" aria-label="رابط ملفّ اللعبة">
+    <button class="go ghost" id="linkBtn" type="button">اجلب من الرابط</button>
+  </div>
   <div class="hint">
     الملفّات المطلوبة من تثبيت اللعبة الأصلي: <b>PINBALL.DAT</b> وملفّات
     <b>‎.WAV‎</b> المجاورة له. المحرّك مفتوح المصدر برخصة MIT —
@@ -322,22 +335,76 @@ $('exportBtn').addEventListener('click', function () {
     $('dataMsg').textContent = 'صُدِّرت ' + files.length + ' ملفّاً.';
   });
 });
-$('importBtn').addEventListener('click', function () { $('fileBundle').click(); });
-$('fileBundle').addEventListener('change', function (e) {
-  var f = e.target.files && e.target.files[0];
-  if (!f) return;
-  $('pickMsg').textContent = 'يُقرأ الملفّ…';
-  f.arrayBuffer().then(function (buf) {
+/* بايتات واصلة — من ملفّ اخترته أو من رابط — تصير ملفّات محفوظة */
+function intake(buf) {
+  return Promise.resolve().then(function () {
     var u = new Uint8Array(buf);
-    var isZip = u[0] === 0x50 && u[1] === 0x4b;               // "PK"
-    return Promise.resolve(isZip ? readZip(buf) : unpackBundle(buf));
+    return (u[0] === 0x50 && u[1] === 0x4b) ? readZip(buf) : unpackBundle(buf);  // "PK"
   }).then(function (list) {
     if (!list.some(function (x) { return /PINBALL\.DAT$/i.test(x.name); }))
       throw new Error('لا يوجد PINBALL.DAT في هذا الملفّ');
     $('pickMsg').textContent = 'استُخرج ' + list.length + ' ملفّاً…';
     return writeAll(list).then(function () { boot(); });
-  }).catch(function (err) { $('pickMsg').textContent = String(err.message || err); });
+  });
+}
+$('importBtn').addEventListener('click', function () { $('fileBundle').click(); });
+$('fileBundle').addEventListener('change', function (e) {
+  var f = e.target.files && e.target.files[0];
+  if (!f) return;
+  $('pickMsg').textContent = 'يُقرأ الملفّ…';
+  f.arrayBuffer().then(intake)
+   .catch(function (err) { $('pickMsg').textContent = String(err.message || err); });
 });
+
+/* ---------- الجلب من رابط ----------
+   الصفحة لا تطلب شيئاً من خارجها من تلقاء نفسها — هذا الطلب الوحيد لا يقع إلا
+   بضغطة صاحب الجهاز على رابطٍ لصقه هو، فلا يبقى في الصفحة أي تبعية خارجية.
+
+   والمتصفّح لا يقرأ من مضيف لا يرسل ترويسة ‎Access-Control-Allow-Origin‎.
+   مقيسة لا مظنونة: دروب‌بوكس على ‎dl.dropboxusercontent.com‎ يرسل ‎*‎، وواجهة
+   وَن‌درايف ترسل أصلنا، وقوقل درايف لا يرسلها على ‎uc?export=download‎ ولا على
+   ‎drive.usercontent‎ — وإنّما على واجهته البرمجية وحدها، وهي تطلب مفتاحاً.
+   فاملأ ‎DRIVE_KEY‎ بمفتاح ‎Drive API‎ (مجّاني، ويُقيَّد بنطاق هذا الموقع) إن
+   أردت روابط قوقل درايف؛ وإلا فالمفتاح فارغ والرسالة تدلّ على البديل. */
+var DRIVE_KEY = '';
+function driveId(u) {
+  var m = u.match(/\/file\/d\/([\w-]{10,})/) || u.match(/[?&]id=([\w-]{10,})/);
+  return m ? m[1] : '';
+}
+function directUrl(raw) {
+  var u = raw.trim().replace(/^@+/, '');
+  if (!/^https:\/\//i.test(u)) throw new Error('الرابط يجب أن يبدأ بـ ‎https://‎');
+  if (/\.google\.com\//.test(u)) {
+    var id = driveId(u);
+    if (!id) throw new Error('لم أجد معرّف الملفّ في رابط قوقل درايف');
+    if (!DRIVE_KEY) throw new Error('قوقل درايف يمنع المتصفّح من القراءة مباشرة. استعمل رابط دروب‌بوكس أو وَن‌درايف، أو نزّل الملفّ ثم استورده.');
+    return 'https://www.googleapis.com/drive/v3/files/' + id + '?alt=media&key=' + DRIVE_KEY;
+  }
+  if (/\/\/(www\.)?dropbox\.com\//.test(u))
+    return u.replace(/\/\/(www\.)?dropbox\.com\//, '//dl.dropboxusercontent.com/');
+  if (/\/\/(1drv\.ms|onedrive\.live\.com)\//.test(u))
+    return 'https://api.onedrive.com/v1.0/shares/u!' +
+      btoa(u).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_') + '/root/content';
+  return u;                                   // أي مضيف آخر يسمح بالقراءة
+}
+function fromLink() {
+  var raw = $('linkUrl').value, url;
+  if (!raw.trim()) { $('pickMsg').textContent = 'الصق الرابط أوّلاً'; return; }
+  try { url = directUrl(raw); }
+  catch (e) { $('pickMsg').textContent = e.message; return; }
+  $('pickMsg').textContent = 'يُجلَب الملفّ…';
+  fetch(url, { mode: 'cors', redirect: 'follow' }).then(function (r) {
+    if (!r.ok) throw new Error('المضيف ردّ بالرمز ' + r.status + ' — تأكّد أن الرابط مفتوح لمن يملكه');
+    return r.arrayBuffer();
+  }).then(intake).catch(function (err) {
+    // فشل الشبكة يصل بلا تفصيل لأن المتصفّح يخفيه، وأغلبه منعُ CORS
+    $('pickMsg').textContent = (err instanceof TypeError)
+      ? 'هذا المضيف لا يسمح للمتصفّح بالقراءة منه. نزّل الملفّ ثم استورده بالزرّ أعلاه.'
+      : String(err.message || err);
+  });
+}
+$('linkBtn').addEventListener('click', fromLink);
+$('linkUrl').addEventListener('keydown', function (e) { if (e.key === 'Enter') fromLink(); });
 $('forgetBtn').addEventListener('click', function () {
   tx('readwrite', function (s) { s.clear(); }).then(function () { location.reload(); });
 });
