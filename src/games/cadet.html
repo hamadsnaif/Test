@@ -276,6 +276,41 @@ input[type=file] { display:none; }
   };
 })();
 
+/* ---------- إبقاء الصوت حيّاً ----------
+   المتصفّح يبدأ سياق الصوت موقوفاً حتى تقع إيماءةُ مستخدم. والمحرّك يعالج ذلك
+   بمستمعٍ **يعمل مرّةً واحدة** (‏`{once:true}`‏) على ‎keydown‎ و‎mousedown‎
+   و‎touchstart‎ — وفي ذلك عطبان:
+
+   الأوّل أن هذه الصفحة ترسل إلى المحرّك مفاتيح مُصطنعة من الرقع، والمُصطنع ليس
+   إيماءةَ مستخدم: فقد يبتلع المستمعَ الوحيد ثم لا يُستأنف السياق.
+   والثاني أن السياق قد يعود موقوفاً بعد قفل الشاشة أو تغييب التطبيق، والمستمع
+   قد استُهلك — فيصمت كلّ شيء إلى أن تُعاد الصفحة.
+
+   فتُجمع السياقات عند إنشائها، ويُوقَظ الموقوف منها عند كل إيماءة حقيقية وعند
+   عودة الصفحة. وهذا لا يمسّ المؤثّرات ولا يغيّر خيارات المحرّك. */
+(function () {
+  var ctxs = [];
+  ['AudioContext', 'webkitAudioContext'].forEach(function (n) {
+    var C = window[n];
+    if (typeof C !== 'function') return;
+    function W() { var c = Reflect.construct(C, arguments, W); ctxs.push(c); return c; }
+    W.prototype = C.prototype;
+    window[n] = W;
+  });
+  function wake(e) {
+    if (e && e.isTrusted === false) return;         // المُصطنع لا يفكّ القفل
+    ctxs.forEach(function (c) {
+      if (c.state === 'suspended') { try { c.resume(); } catch (x) {} }
+    });
+  }
+  ['pointerdown', 'mousedown', 'touchstart', 'keydown'].forEach(function (t) {
+    addEventListener(t, wake, true);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) wake(null);
+  });
+})();
+
 /* ---------- تخزين ملفّات اللاعب في متصفّحه ---------- */
 var DBN = 'cadet-data', STORE = 'files';
 function db() {
