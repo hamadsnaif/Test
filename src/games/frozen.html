@@ -121,12 +121,34 @@
 
     Nothing.  The drawing is the original's own artwork now -- see below.
 
-    No sound.  The original's effects are GPL wav assets, not numbers to be
-    read out of the source; a synthesised stand-in would be invention, not
-    fidelity, so the page is silent.
+    The audio format.  The sounds are the original's own, but its files are
+    Ogg Vorbis and Safari will not play those -- and this collection is aimed
+    at the iPhone.  So src/frozen/pack.py decodes them and re-encodes MP3:
+    the nine effects the one-player game plays, mono at 64 kbps, into the
+    page; and frozen-mainzik-1p.ogg, stereo at 80 kbps, as
+    frozen-mainzik.mp3 in the repository root -- 3.2 MB is not baked into a
+    page, so it is fetched when the first round starts and the service worker
+    leaves it alone, exactly as cadet.wasm is handled.
+
+    Which effect plays where, from the original's own play_sound calls:
+      launch        on firing
+      rebound       on a wall bounce
+      stick         when a bubble lands without popping
+      destroy_group when a group pops
+      newroot_solo  when the ceiling drops (the solo variant is the 1P one)
+      hurry         each time the HURRY warning flashes on
+      lose          on losing
+      applause      on clearing a level
+      pause         on pausing
 
     The deck.  Aim keys on the left, fire on the right, as the repository
-    owner asked for: one thumb aims, the other fires.
+    owner asked for: one thumb aims, the other fires.  A press turns one
+    tick's worth up front so an instant tap is never ignored.
+
+    Restarting.  The original restarts from its own menu.  Here the paused
+    panel offers "again" and "menu", and after a loss the blue key replays
+    the same level while the panel's key goes back to the picker -- there was
+    no way out of a round before, which is a fault, not fidelity.
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -338,6 +360,20 @@ canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
 .overlay p.hint { font-size:11px; opacity:.8; }
 .overlay p.cred { font-size:10.5px; opacity:.75; line-height:1.5; }
 .overlay .big { font-size:30px; font-weight:900; line-height:1.1; color:#fff; }
+/* صفوف الإعداد والخروج: ارتفاعها ٤٤ دائماً — حدّ اللمس في العقد — وعرضها
+   لا يتجاوز الشاشة. تظهر في القائمة والإيقاف والنهاية لا أثناء اللعب. */
+.opts { display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; }
+.opts.row { flex-direction:row; justify-content:center; }
+.go {
+  appearance:none; -webkit-appearance:none; width:100%; max-width:210px; min-width:104px; height:44px; flex:none;
+  border-radius:6px; border:1.5px solid #7fc4ee; background:rgba(12,32,52,.55); color:#eaf6ff;
+  font:700 12px/1 var(--font-ui); display:flex; align-items:center; justify-content:space-between;
+  padding:0 12px; cursor:pointer; touch-action:manipulation; direction:rtl;
+}
+.opts.row .go { max-width:100px; }
+.go i { font-style:normal; font-size:10px; opacity:.55; letter-spacing:.1em; direction:ltr; }
+.go.on i { opacity:1; color:#9fe0ff; }
+.go:active { background:rgba(127,196,238,.28); }
 .levels { direction:ltr; display:flex; justify-content:center; }
 .lvl { direction:ltr; font:700 18px/1 "Courier New", monospace; letter-spacing:2px; border:2px solid #7fc4ee; padding:5px 14px; border-radius:3px; color:#eaf6ff; }
 @media (max-width: 340px) {
@@ -345,6 +381,7 @@ canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
   .overlay h1 { font-size:17px; }
   .overlay p { font-size:10.5px; line-height:1.45; }
   .overlay p.hint, .overlay p.cred { font-size:10px; }
+  .go { height:44px; font-size:11px; max-width:190px; padding:0 10px; }
   .overlay .big { font-size:24px; }
   .lvl { font-size:16px; padding:4px 11px; }
 }
@@ -429,6 +466,10 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <p class="lbl">المستوى</p>
         <div id="levels" class="levels"><span class="lvl" id="lvlPick">LEVEL 1</span></div>
         <p class="hint">غيّر المستوى بـ <bdi dir="ltr">&#x25C0;&#xFE0E; &#x25B6;&#xFE0E;</bdi> واضغط الزرّ الأزرق للبدء.</p>
+        <div class="opts">
+          <button class="go" type="button" data-opt="sfx"><span>المؤثّرات</span><i>ON</i></button>
+          <button class="go" type="button" data-opt="mus"><span>الموسيقى</span><i>ON</i></button>
+        </div>
         <!-- كل مقطعٍ لاتيني في عزلٍ ثنائي الاتجاه (bdi)، وإلّا انقلب مدى
              السنوات وهاجرت علامة الحقوق إلى الطرف الخطأ في الصفحة العربية -->
         <p class="cred"><bdi dir="ltr">© 2000–2012 The Frozen-Bubble Team</bdi>:
@@ -444,6 +485,14 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <h1>PAUSE</h1>
         <p>اضغط الزرّ الأزرق للمتابعة</p>
         <p class="hint">مستوى <span id="pLevel">1</span> — النتيجة <span id="pScore">0</span></p>
+        <div class="opts">
+          <button class="go" type="button" data-opt="sfx"><span>المؤثّرات</span><i>ON</i></button>
+          <button class="go" type="button" data-opt="mus"><span>الموسيقى</span><i>ON</i></button>
+        </div>
+        <div class="opts row">
+          <button class="go" id="againBtn" type="button"><span>من جديد</span><i>AGAIN</i></button>
+          <button class="go" id="menuBtn" type="button"><span>القائمة</span><i>MENU</i></button>
+        </div>
       </div>
 
       <div id="cleared" class="overlay hidden">
@@ -457,7 +506,10 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <h1 id="overTitle">GAME OVER</h1>
         <p class="big" id="finalScore">0</p>
         <p id="recordMsg"></p>
-        <p class="hint">الزرّ الأزرق: من جديد</p>
+        <p class="hint">الزرّ الأزرق: أعِد المستوى نفسه</p>
+        <div class="opts">
+          <button class="go" id="menuBtn2" type="button"><span>القائمة</span><i>MENU</i></button>
+        </div>
       </div>
     </div>
   </div>
@@ -711,7 +763,9 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     if (g.length - 1 <= 1) {             // @will_destroy <= 1 → التصاق
       S.grid.set(key(cx, cy), { cx: cx, cy: cy, c: c, root: cy === S.rootlevel });
       S.stick = { x: cellX(cx, cy), y: cellY(cy), step: 0, slow: 0 };
+      sfx('stick');
     } else {
+      sfx('destroy_group');
       var popped = [], i;
       for (i = 0; i < g.length; i++) {
         var b = S.grid.get(key(g[i][0], g[i][1]));
@@ -731,6 +785,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     if (S.shots === DROP_AT - 1 || S.shots === DROP_AT) S.flash = 1;
     if (S.shots > DROP_AT) {
       S.shots = 0; S.flash = 0;
+      sfx('newroot_solo');        // الأصل يشغّل النسخة الفردية في طور اللاعب الواحد
       S.swap = S.swap ? 0 : 1;
       var moved = [], it = S.grid.values(), v;
       while (!(v = it.next()).done) moved.push(v.value);
@@ -760,6 +815,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     S.cur = S.next;
     S.next = pickColour();      // validate_nextcolor يُقاس على اللوح الآن
     S.hurry = 0;
+    sfx('launch');
   }
 
   function tick() {
@@ -797,6 +853,9 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     if (S.angle > A_MAX) S.angle = A_MAX;
 
     S.hurry++;
+    /* الأصل يشغّل «hurry» كلّما أضاء الوميض: عدّاده يقلب كل نصف ثانية بعد
+       الحدّ (‏‎500/TARGET_ANIM_SPEED‎ = ٢٥ نبضة) */
+    if (S.hurry > HURRY_WARN && (S.hurry - HURRY_WARN) % 50 === 1) sfx('hurry');
     /* القذف التلقائي في الأصل مساواةٌ صارمة (‎== $TIME_HURRY_MAX‎) ويشترط ألّا
        تكون فقاعةٌ في الجوّ. فإن بلغ العدّاد حدَّه وفي الجوّ فقاعة فات الشرط
        ولم يعد — وهذه طبيعة الأصل، بقيت كما هي. */
@@ -808,8 +867,8 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
       b.ox = b.x; b.oy = b.y;
       b.x += SPEED * Math.cos(b.dir);
       b.y -= SPEED * Math.sin(b.dir);
-      if (b.x < LEFT) { b.x = 2 * LEFT - b.x; b.dir -= 2 * (b.dir - Math.PI / 2); }
-      if (b.x > RIGHT - BS) { b.x = 2 * (RIGHT - BS) - b.x; b.dir += 2 * (Math.PI / 2 - b.dir); }
+      if (b.x < LEFT) { b.x = 2 * LEFT - b.x; b.dir -= 2 * (b.dir - Math.PI / 2); sfx('rebound'); }
+      if (b.x > RIGHT - BS) { b.x = 2 * (RIGHT - BS) - b.x; b.dir += 2 * (Math.PI / 2 - b.dir); sfx('rebound'); }
 
       if (b.y <= TOP + S.rootlevel * ROW) {          // التصاق بالسقف
         var p = closestPos(b.x, b.y);
@@ -848,6 +907,64 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
       IMG[k] = im;
     });
   }
+
+  /* =================================================================
+     الصوت — مؤثّرات الأصل نفسها، وموسيقاه
+     ================================================================= */
+  var SFX_KEY = 'fb.sfx', MUS_KEY = 'fb.mus';
+  var sfxOn = true, musOn = true;
+  try { sfxOn = localStorage.getItem(SFX_KEY) !== 'off'; } catch (e) {}
+  try { musOn = localStorage.getItem(MUS_KEY) !== 'off'; } catch (e) {}
+  var actx = null, BUF = {}, music = null;
+
+  /* من data: URI إلى بايتات، بـ`atob` لا بـ`fetch`: الأخير يُحسب طلباً في
+     بعض الأدوات، والعقد يمنع الطلبات — وهذا لا يطلب شيئاً أصلاً */
+  function bytesOf(uri) {
+    var b = atob(uri.slice(uri.indexOf(',') + 1)), n = b.length, u = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u[i] = b.charCodeAt(i);
+    return u.buffer;
+  }
+  /* السياق لا يُنشأ إلا عند إيماءةٍ حقيقية، والمتصفّح يوقفه بعد تغييب الصفحة
+     فيُستأنف عند كل إيماءة وعند العودة — لا مرّةً واحدة */
+  function wake() {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!actx) {
+      try { actx = new AC(); } catch (e) { actx = null; return; }
+      (A.meta.sfx || []).forEach(function (n) {
+        var uri = A.snd && A.snd[n];
+        if (!uri) return;
+        try {
+          actx.decodeAudioData(bytesOf(uri), function (buf) { BUF[n] = buf; }, function () {});
+        } catch (e) {}
+      });
+    }
+    if (actx.state === 'suspended' && actx.resume) actx.resume();
+  }
+  function sfx(n) {
+    if (!sfxOn || !actx || !BUF[n]) return;
+    try {
+      var src = actx.createBufferSource(), g = actx.createGain();
+      src.buffer = BUF[n]; g.gain.value = 0.85;
+      src.connect(g); g.connect(actx.destination); src.start(0);
+    } catch (e) {}
+  }
+  /* الموسيقى ملفٌّ مجاور ٣٫٢ ميغابايت، فلا تُجلب إلا عند أوّل جولة: من يقرأ
+     الرفّ وحده لا يدفع بايتاً. وتُبثّ عبر `Audio` لا تُفكّ في الذاكرة —
+     ‎٣٢٢‎ ثانية مفكوكةً مئةٌ وعشرة ميغابايت لا يحملها جوّال. */
+  function musicOn() {
+    if (!musOn) return;
+    if (!music) {
+      try {
+        music = new Audio();
+        music.loop = true; music.preload = 'none'; music.volume = 0.5;
+        music.src = A.meta.music;
+      } catch (e) { music = null; return; }
+    }
+    var pr = music.play();
+    if (pr && pr.catch) pr.catch(function () {});
+  }
+  function musicOff() { if (music) { try { music.pause(); } catch (e) {} } }
 
   /* فقاعةٌ من شريط الأصل: الثمانية في صورةٍ واحدة، كلٌّ ٣٢×٣٢ */
   function bubble(x, y, ci) {
@@ -1025,9 +1142,11 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     S.level = n; S.score = 0;
     loadLevel(n);
     setPhase('play');
+    wake(); musicOn();          // أوّل جولةٍ هي أوّل ما يُجلب فيه الصوت
     writeAll();
   }
   function clear() {
+    sfx('applause');
     S.score += PT_LEVEL;
     if (S.score > S.best) { S.best = S.score; }
     if (S.level >= LEVELS.length) {
@@ -1043,6 +1162,8 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     writeAll();
   }
   function lose() {
+    sfx('lose');
+    musicOff();
     document.getElementById('overTitle').textContent = 'GAME OVER';
     document.getElementById('finalScore').textContent = String(S.score);
     document.getElementById('recordMsg').textContent =
@@ -1055,6 +1176,27 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     start(S.level + 1);
     S.score = keep;
   }
+  /* الإعادة: المستوى نفسه من أوّله. لم يكن لها سبيلٌ من داخل الجولة أصلاً */
+  function restart() { start(S.level); }
+  function toMenuFrom() { musicOff(); toMenu(); }
+
+  /* مفاتيح الصوت: صفّان في لوحة القائمة ولوحة الإيقاف، والاختيار يُحفظ */
+  function paintOpts() {
+    var on = { sfx: sfxOn, mus: musOn };
+    [].forEach.call(document.querySelectorAll('[data-opt]'), function (b) {
+      var v = on[b.getAttribute('data-opt')];
+      b.classList.toggle('on', !!v);
+      b.querySelector('i').textContent = v ? 'ON' : 'OFF';
+      b.setAttribute('aria-pressed', v ? 'true' : 'false');
+    });
+  }
+  function toggleOpt(which) {
+    if (which === 'sfx') { sfxOn = !sfxOn; try { localStorage.setItem(SFX_KEY, sfxOn ? 'on' : 'off'); } catch (e) {}
+      if (sfxOn) { wake(); sfx('stick'); } }
+    else { musOn = !musOn; try { localStorage.setItem(MUS_KEY, musOn ? 'on' : 'off'); } catch (e) {}
+      if (musOn && S.phase === 'play') { wake(); musicOn(); } else musicOff(); }
+    paintOpts();
+  }
 
   /* الزرّ الأزرق: فعلٌ واحد في كل طور، فلا طريقان ظاهران لفعل واحد */
   function primary() {
@@ -1062,14 +1204,15 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     else if (S.phase === 'play') S.act.fire = true;
     else if (S.phase === 'paused') setPhase('play');
     else if (S.phase === 'clear') nextLevel();
-    else toMenu();
+    else restart();             // بعد الخسارة: المستوى نفسه من جديد بضغطةٍ واحدة
   }
   function togglePause() {
     if (S.phase === 'play') { setPhase('paused');
+      sfx('pause'); musicOff();
       document.getElementById('pLevel').textContent = String(S.level);
       document.getElementById('pScore').textContent = String(S.score);
       writeAll();
-    } else if (S.phase === 'paused') setPhase('play');
+    } else if (S.phase === 'paused') { setPhase('play'); wake(); musicOn(); }
   }
   /* الضغطة تلتفت خطوةً واحدة على الأقل — وهي خطوة نبضةٍ واحدة بسرعة الأصل
      نفسها. وهذا لأن الدوران في الأصل يقع أثناء الضغط وحده، فاللمسة السريعة
@@ -1108,6 +1251,18 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   hold(rb, function () { S.act.right = true; step(-1); nudge(1); }, function () { S.act.right = false; });
   hold(document.getElementById('fireBtn'), primary, null);
   document.getElementById('pauseBtn').addEventListener('click', function (e) { e.preventDefault(); togglePause(); });
+  [].forEach.call(document.querySelectorAll('[data-opt]'), function (b) {
+    b.addEventListener('click', function (e) { e.preventDefault(); toggleOpt(b.getAttribute('data-opt')); });
+  });
+  document.getElementById('againBtn').addEventListener('click', function (e) { e.preventDefault(); restart(); });
+  ['menuBtn', 'menuBtn2'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function (e) { e.preventDefault(); toMenuFrom(); });
+  });
+  /* أيّ إيماءةٍ حقيقية تُوقظ سياق الصوت: المتصفّح يبدأه موقوفاً ويوقفه بعد
+     تغييب الصفحة، فلا يكفي مرّةً واحدة */
+  ['pointerdown', 'keydown'].forEach(function (t) {
+    document.addEventListener(t, function (ev) { if (ev.isTrusted) wake(); }, true);
+  });
 
   /* السحب على الملعب: يضع الزاوية مباشرةً، والإفلات يقذف */
   var screen = document.getElementById('screen');
@@ -1181,13 +1336,14 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   function halt() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
 
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { if (S.phase === 'play') togglePause(); writeAll(); halt(); }
-    else run();
+    if (document.hidden) { if (S.phase === 'play') togglePause(); writeAll(); halt(); musicOff(); }
+    else { run(); wake(); }
   });
-  window.addEventListener('pagehide', function () { writeAll(); halt(); });
+  window.addEventListener('pagehide', function () { writeAll(); halt(); musicOff(); });
 
   toMenu();
   paintHud();
+  paintOpts();
   loadAssets(function () { draw(); run(); });
 })();
 </script>

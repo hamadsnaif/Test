@@ -5,7 +5,7 @@
 // deliberately does not change when a game or games.json changes, because those
 // are read from the network first and need no new worker to arrive. Editing a
 // game therefore costs nobody a re-download of the other 400KB.
-const BUILD = '98f051581fae';
+const BUILD = '1e013cf9f1cb';
 const CACHE = 'hamads-games';
 const ASSETS = ["./", "./apple-touch-icon.png", "./bounce.html", "./cadet.html", "./frozen.html", "./games.json", "./icon-120.png", "./icon-152.png", "./icon-167.png", "./icon-180.png", "./icon-192.png", "./index.html", "./manifest.webmanifest", "./snake.html", "./tetris.html"];
 const NET_TIMEOUT = 4000;
@@ -187,6 +187,12 @@ self.addEventListener('fetch', e => {
   // Cross origin (the web font) is left entirely alone, so a font that fails can
   // never be answered out of this cache, let alone with HTML.
   if (url.origin !== self.location.origin) return;
+
+  // Streamed audio is left alone: an <audio> element range-requests it, and a
+  // cache-first worker would either cache a 206 or answer a range request out
+  // of a full response. Frozen Bubble's soundtrack is 3.2MB and is fetched on
+  // the first round, the same hands-off arrangement cadet.wasm gets.
+  if (req.headers.get('range') || /\.(mp3|ogg|m4a)$/.test(url.pathname)) return;
 
   if (url.pathname.endsWith('/games.json')) return e.respondWith(networkFirst(req, REGISTRY_TIMEOUT));
   const isPage = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');

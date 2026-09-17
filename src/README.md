@@ -25,6 +25,7 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 | `games/tetris.html` | `tetris.html` |
 | `games/cadet.html` | `cadet.html` |
 | `games/frozen.html` + `frozen/assets.b64.json` | `frozen.html` |
+| `frozen/pack.py` (خارج البناء) | `frozen-mainzik.mp3` |
 | `build.py` نفسه | `sw.js` و`manifest.webmanifest` |
 
 ألعاب `games/` تمرّ بـ`with_app_head` التي تضيف روابط الأيقونات ووسوم تطبيق الويب إلى رأس الصفحة فقط، دون أن تمسّ طريقة اللعب. لهذا `games/snake.html` و`snake.html` متشابهان عدا الرأس.
@@ -71,16 +72,26 @@ bash src/cadet/build.sh     ثم: python3 src/build.py
 
 ## `frozen/`
 
-`pack.py` يحزم رسوم Frozen Bubble الأصلية من `share/gfx` في مستودع اللعبة إلى
-ملفٍّ واحد من `data:` URIs هو `assets.b64.json`، و`build.py` يضعه في
-`games/frozen.html` مكان `__FROZEN_ASSETS__`. وهو عرف `bounce/sheet.b64`
-نفسه: العقد يمنع أي طلبٍ خارجي، فكل بكسلٍ ترسمه الصفحة يجب أن يكون فيها.
+`pack.py` يحزم رسوم Frozen Bubble الأصلية وأصواتها من `share/gfx` و
+`share/snd` في مستودع اللعبة:
 
-هو خارج `build.py` كـ`icons/` و`cadet/`: يحتاج نسخةً من مستودع اللعبة
-و Pillow، و`build.py` يجب أن يعمل بلا كليهما. والناتج محفوظ في المستودع فلا
-يحتاجه أحد لتشغيل اللعبة.
+- **الرسوم والمؤثّرات** إلى ملفٍّ واحد من `data:` URIs هو `assets.b64.json`،
+  و`build.py` يضعه في `games/frozen.html` مكان `__FROZEN_ASSETS__`. وهو عرف
+  `bounce/sheet.b64` نفسه: العقد يمنع أي طلبٍ خارجي، فكل بكسلٍ ترسمه الصفحة
+  وكل صوتٍ تشغّله يجب أن يكون فيها.
+- **الموسيقى** إلى `frozen-mainzik.mp3` في جذر المستودع: ‏٣٫٢ ميغابايت‏ لا
+  تُخبَز في صفحة، تُجلب عند أوّل جولة ولا يخزّنها عامل الخدمة — عرف
+  `cadet.wasm` نفسه.
+
+والصيغة تتغيّر لا المضمون: ملفّات الأصل ‎`.ogg`‎ وسفاري لا تشغّلها، فتُفكّ
+وتُرمَّز MP3. والتفصيل في `README.md`.
+
+هو خارج `build.py` كـ`icons/` و`cadet/`: يحتاج نسخةً من مستودع اللعبة، و
+Pillow، و`soundfile` و`lameenc` للصوت — و`build.py` يجب أن يعمل بلا ذلك
+كلّه. والناتج محفوظ في المستودع فلا يحتاجه أحد لتشغيل اللعبة.
 
 ```
+pip install Pillow soundfile lameenc
 python3 src/frozen/pack.py /path/to/frozen-bubble     ثم: python3 src/build.py
 ```
 

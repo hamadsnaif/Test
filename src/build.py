@@ -432,6 +432,12 @@ self.addEventListener('fetch', e => {
   // never be answered out of this cache, let alone with HTML.
   if (url.origin !== self.location.origin) return;
 
+  // Streamed audio is left alone: an <audio> element range-requests it, and a
+  // cache-first worker would either cache a 206 or answer a range request out
+  // of a full response. Frozen Bubble's soundtrack is 3.2MB and is fetched on
+  // the first round, the same hands-off arrangement cadet.wasm gets.
+  if (req.headers.get('range') || /\.(mp3|ogg|m4a)$/.test(url.pathname)) return;
+
   if (url.pathname.endsWith('/games.json')) return e.respondWith(networkFirst(req, REGISTRY_TIMEOUT));
   const isPage = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   e.respondWith(isPage ? networkFirst(req, NET_TIMEOUT) : cacheFirst(req));
