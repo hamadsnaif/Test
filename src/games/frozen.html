@@ -65,6 +65,45 @@
                                            DOWN centres the launcher
     share/gfx/balls/bubble-1..8.gif        8 colours, sampled from the art
 
+  THE ARTWORK IS THE ORIGINAL'S OWN
+
+    Every pixel drawn on the board comes from share/gfx of the same upstream
+    checkout, packed by src/frozen/pack.py into one file of data: URIs that
+    src/build.py drops into this page -- so the page still fetches nothing,
+    exactly as bounce.html carries the Nokia spritesheet.  The art is GPL v2
+    like the code (Alexis Younes and Amaury Amblard-Ladurantie), and this
+    page is GPL v2, so copying it here is what the licence is for.
+
+    back_one_player.png   the 1P screen, cropped to its playfield column
+                          (x 176..460): the ice frame, the frosted field with
+                          the two penguins behind it, the wooden beam that is
+                          the death line, the lamp post and the igloo
+    balls/bubble-1..8.gif the eight bubbles, 32x32, as a strip
+    balls/bubble_prelight the pale bubble the ceiling flashes before it drops
+    balls/stick_effect_0-6  the squash that plays where a bubble lands
+    on_top_next.png       the ring around the next bubble
+    shooter.png           the cannon.  One image: the original rotates it at
+                          load time into 201 frames (rotate_bicubic), and the
+                          frame it picks for an angle is num*(PI/2)/100 with
+                          num = int(angle*100/(PI/2)+0.5)-100, i.e. exactly
+                          angle-PI/2 off vertical.  Here the canvas rotates
+                          the one image by PI/2-angle, which is the same turn.
+    pinguins/anime-shooter_p1_*  the penguin that leans where you aim.  The
+                          original has 71 frames driven by keypresses; eleven
+                          are packed here (1 hard left, 20 centre, 71 hard
+                          right -- 21..50 are the firing animation, not the
+                          lean) and chosen by the aim angle instead.
+    compressor_main/_ext  the ceiling and its shaft
+    hurry_p1.png          the HURRY graphic, at %POS_1P's hurry offset
+    dot_red/dot_green     the nine-dot column counting shots until the drop
+
+    Left out: win_panel_1player.png and lose_panel.png are 329px and 345px
+    wide, sized for the whole 640px screen, and cannot fit a 284px column;
+    the page's own Arabic panels stand in.  The score and level sit in an HTML
+    row above the canvas rather than on the original's left-hand plaque
+    (screen x 74, outside this crop) -- the plaque bitmap itself is used as
+    that row's LEVEL chip.
+
   CHOSEN HERE, NOT MEASURED (the original has no such thing)
 
     Points.  Single-player Frozen Bubble keeps no score at all: print_scores
@@ -80,13 +119,14 @@
     tick.  The arrow keys here do exactly that; a drag sets the angle
     outright, because there is no other honest way to aim with a thumb.
 
-    The drawing.  The original draws bitmaps.  The collection's contract bans
-    external files, so the bubbles, the penguin, the ice and the sign are
-    drawn in code.
+    Nothing.  The drawing is the original's own artwork now -- see below.
 
     No sound.  The original's effects are GPL wav assets, not numbers to be
     read out of the source; a synthesised stand-in would be invention, not
     fidelity, so the page is silent.
+
+    The deck.  Aim keys on the left, fire on the right, as the repository
+    owner asked for: one thumb aims, the other fires.
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -250,6 +290,27 @@ body {
 }
 /* بئر الشاشة: يأخذ الفراغ كله، والشاشة تتوسّطه بنسبتها */
 .well { flex:1 1 auto; min-height:0; padding:8px; border-radius:12px; display:flex; justify-content:center; align-items:center; overflow:hidden; }
+/* ---- صفّ النتيجة فوق الشاشة: لوحتان ولافتةٌ بينهما، وكلٌّ ٣٤ بكسلاً ----
+   الصفّ مادي فيُقرأ من اليسار، وأرقامه لاتينية فلا تنقلب مع اتجاه الصفحة. */
+.top { flex:none; direction:ltr; display:flex; align-items:stretch; gap:6px; height:34px; padding:0 2px; }
+.gauge {
+  flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:5px; overflow:hidden;
+  background:linear-gradient(180deg, #e8f6fd, #a9d3e8 52%, #6d9fba);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85), 0 0 0 1px rgba(26,62,88,.65), 0 1px 0 rgba(255,255,255,.5);
+}
+.gauge b { font:700 7.5px/1 var(--font-ui); letter-spacing:.12em; color:rgba(20,52,76,.85); }
+.gauge i { font:700 13px/1.15 "Courier New", Courier, monospace; font-style:normal; color:#0f2f47; }
+/* اللافتة: صورةُ اللوحة الخشبية من خلفية الأصل، يضعها السكربت من الحزمة */
+.sign {
+  flex:0 0 96px; display:flex; align-items:center; justify-content:center;
+  font:800 12px/1 Georgia, "Times New Roman", serif; letter-spacing:.04em;
+  color:#ffe6ae; text-shadow:0 1px 2px rgba(40,20,4,.85);
+  border-radius:5px; background:#8a5320 center/100% 100% no-repeat;
+  box-shadow:0 0 0 1px rgba(40,22,6,.8), inset 0 1px 0 rgba(255,220,170,.25);
+}
+@media (max-width: 340px) { .sign { flex-basis:84px; font-size:11px; } .gauge i { font-size:12px; } }
+
 /* الشاشة تملأ البئر، والقماش يُحتوى فيها بنسبته هو (‎object-fit:contain‎).
    والسبب أن `aspect-ratio` مع ارتفاعٍ صريح يمطّ الرسم حين يعلو البئر عن
    نسبته: قِيس ذلك على ‎390×844‎ فجاءت الشاشة ‎338×610‎ أي ‎0.554‎ بدل
@@ -321,6 +382,9 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
 @media (max-height: 600px) {
   .unit { gap:6px; padding:8px 8px 9px; border-radius:20px; }
   .cap { height:20px; }
+  .top { height:28px; }
+  .gauge i { font-size:11px; }
+  .sign { flex-basis:78px; font-size:10.5px; }
   .well { padding:6px; }
   .deck { padding:7px 6px 8px; }
   .aim .key { width:54px; height:54px; font-size:17px; }
@@ -342,9 +406,18 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     <span class="engr">GPL v2</span>
   </div>
 
+  <!-- صفّ النتيجة: لافتةُ المستوى صورةُ اللوحة الخشبية من خلفية الأصل نفسها،
+       ومكانها في الأصل لوحةٌ يسرى خارج عمود الملعب المقصوص — فرُفعت هنا فوق
+       الشاشة كي يبقى القماش رسومَ الأصل وحدها. -->
+  <div class="top">
+    <span class="gauge"><b>SCORE</b><i id="score">0</i></span>
+    <span class="sign" id="levelSign">LEVEL 1</span>
+    <span class="gauge"><b>TOP</b><i id="best">0</i></span>
+  </div>
+
   <div class="well plate">
     <div class="screen" id="screen">
-      <canvas id="game" width="288" height="500"></canvas>
+      <canvas id="game" width="284" height="480"></canvas>
 
       <div id="menu" class="overlay">
         <h1>FROZEN BUBBLE</h1>
@@ -391,13 +464,13 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
         <button class="key left"  id="leftBtn"  type="button" aria-label="صوّب يساراً">&#x25C0;&#xFE0E;</button>
         <button class="key right" id="rightBtn" type="button" aria-label="صوّب يميناً">&#x25B6;&#xFE0E;</button>
       </div>
-      <div class="fire">
-        <button class="key round acc" id="fireBtn" type="button" aria-label="اقذف / ابدأ">&#x25B2;&#xFE0E;</button>
-        <span class="engr ar cap-start">ابدأ</span><span class="engr ar cap-fire">اقذف</span><span class="engr ar cap-resume">متابعة</span>
-      </div>
       <div class="fnwrap">
         <button class="key round" id="pauseBtn" type="button" aria-label="إيقاف مؤقّت" title="إيقاف (Esc)">&#x2016;</button>
         <span class="engr ar">إيقاف</span>
+      </div>
+      <div class="fire">
+        <button class="key round acc" id="fireBtn" type="button" aria-label="اقذف / ابدأ">&#x25B2;&#xFE0E;</button>
+        <span class="engr ar cap-start">ابدأ</span><span class="engr ar cap-fire">اقذف</span><span class="engr ar cap-resume">متابعة</span>
       </div>
     </div>
   </div>
@@ -420,16 +493,32 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   var ROW = 28;                // $ROW_SIZE = BS*7/8
   var COLS = 8;                // iter_rowscols: 8 في الصفّ الزوجي و7 في الفردي
   var ROWS = 12;               // الصفوف 0..11، وما زاد عن 11 خسارة
-  var W = 288, H = 500;
-  var HUD = 40;                // شريط النتيجة واللافتة
-  var TOP = 48;                // top_limit الأصلي 44، وهنا 48 بعد شريط النتيجة
-  var LEFT = 16;               // left_limit، وسماكة الجدار الجليدي 16
-  var RIGHT = LEFT + COLS * BS;        // 272 = left_limit + 8*32
-  var PIVOT_X = (LEFT + RIGHT) / 2;    // 144، وسط الملعب
-  var LAUNCH_TOP = TOP + 346;          // initial_bubble_y 390 - top_limit 44
-  var PIVOT_Y = LAUNCH_TOP + BS / 2;   // 410، مركز الفقاعة على القاذف
-  var NEXT_Y = TOP + 396 + BS / 2;     // next_bubble y 440 - top_limit 44
-  var DANGER_Y = TOP + ROWS * ROW;     // 384، أسفل الصفّ ١١: ما نزل عنه خسارة
+
+  /* القماش هو شاشة اللاعب الواحد الأصلية مقصوصةً على عمود ملعبها:
+     `x` من ١٧٦ إلى ٤٦٠ من أصلٍ ٦٤٠، والطول كما هو ٤٨٠. فكل إحداثيٍّ رأسيٍّ
+     هو إحداثيّ الأصل نفسه بلا تحويل، وكل إحداثيٍّ أفقيٍّ هو إحداثيّ الأصل
+     ناقص ١٧٦ — ولا رقم هنا مُختار. */
+  var CROP_X = 176;
+  var W = 284, H = 480;
+  var TOP = 44;                        // top_limit
+  var LEFT = 190 - CROP_X;             // 14  ← left_limit 190
+  var RIGHT = 446 - CROP_X;            // 270 ← right_limit 446، والفرق 256 = 8×32
+  var PIVOT_X = (LEFT + RIGHT) / 2;    // 142، وهو 318 في الأصل
+  var LAUNCH_TOP = 390;                // initial_bubble_y
+  var PIVOT_Y = LAUNCH_TOP + BS / 2;   // 406، مركز الفقاعة على القاذف
+  var NEXT_X = LEFT + 112;             // next_bubble.x، وهو 302 في الأصل
+  var NEXT_Y = 440;                    // next_bubble.y
+  var CANON_X = 268 - CROP_X;          // 92، والصورة ١٠٠×١٠٠ فمركزها هو المحور
+  var CANON_Y = 356;
+  var PENG_X = 214 - CROP_X;           // 38  ← pinguin.x
+  var PENG_Y = 420;                    // pinguin.y
+  var PROG_X = 447 - CROP_X;           // 271 ← progress.x
+  var PROG_Y = 28;                     // progress.y
+  var HURRY_X = LEFT + 10, HURRY_Y = 265;   // hurry offset من left_limit
+  var COMP_CX = 318 - CROP_X;          // 142 ← compressor_xpos
+  /* خطّ الخطر ليس من عندي: عارضةٌ خشبية في خلفية الأصل تقع على
+     ‎top_limit + 12×ROW_SIZE‎ = ٣٨٠ بالضبط، وهي حدّ الخسارة نفسه. */
+  var DANGER_Y = TOP + ROWS * ROW;     // 380
   var SPEED = 10;              // $BUBBLE_SPEED
   var TURN = 0.03;             // $LAUNCHER_SPEED
   var A_MIN = 0.1, A_MAX = Math.PI - 0.1;
@@ -443,18 +532,10 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   /* النقاط: ليست في الأصل — انظر «CHOSEN HERE» في رأس الملف */
   var PT_POP = 10, PT_DROP = 20, PT_LEVEL = 1000;
 
-  /* الألوان الثمانية، مأخوذة عيّنةً من رسوم الأصل share/gfx/balls/bubble-N.gif.
-     الرقم في ملفّ المستويات هو الفهرس نفسه: 0 → bubble-1 وهكذا. */
-  var COLORS = [
-    { base:'#6e5f60', hi:'#b9afae', lo:'#302629', name:'رمادي'   },  /* bubble-1 */
-    { base:'#dcdcdc', hi:'#ffffff', lo:'#8a8a8a', name:'أبيض'    },  /* bubble-2 */
-    { base:'#252ada', hi:'#7d80e9', lo:'#12166d', name:'أزرق'    },  /* bubble-3 */
-    { base:'#1ce454', hi:'#86f1a4', lo:'#0b4e1f', name:'أخضر'    },  /* bubble-4 */
-    { base:'#f3d70c', hi:'#faee96', lo:'#76690a', name:'أصفر'    },  /* bubble-5 */
-    { base:'#bd19e5', hi:'#de8bf2', lo:'#570e6a', name:'بنفسجي'  },  /* bubble-6 */
-    { base:'#db2433', hi:'#ef9ea5', lo:'#64131a', name:'أحمر'    },  /* bubble-7 */
-    { base:'#f3690a', hi:'#fab484', lo:'#853a06', name:'برتقالي' }   /* bubble-8 */
-  ];
+  /* الفقاعات صورُ الأصل نفسها في شريطٍ واحد، والرقم في ملفّ المستويات هو
+     الفهرس نفسه: 0 هو bubble-1.gif وهكذا إلى 7 = bubble-8.gif. */
+  var A = __FROZEN_ASSETS__;          /* يملؤه build.py من src/frozen/assets.b64.json */
+  var IMG = {}, ready = false;
 
   /* مئة المستوى كما هي في share/data/levels: عشرة صفوف لكل مستوى، الصفّ
      الزوجي ثمان خانات والفردي سبع، '.' فراغ ورقمٌ لوناً. حُذفت الفراغات
@@ -501,7 +582,8 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     hurry: 0,
     act: { left: false, right: false, centre: false, fire: false },
     drag: false,
-    flash: 0             // وميض السقف قبل نزوله
+    flash: 0,            // وميض السقف قبل نزوله
+    stick: null          // أثر الالتصاق: {x,y,step,slow} — سبعة أطوار في الأصل
   };
 
   function rnd(n) { return Math.floor(Math.random() * n); }
@@ -524,7 +606,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     S.grid.clear();
     S.swap = 0; S.rootlevel = 0; S.shots = 0; S.flash = 0;
     S.angle = Math.PI / 2; S.hurry = 0;
-    S.fly = null; S.falling = []; S.popping = [];
+    S.fly = null; S.falling = []; S.popping = []; S.stick = null;
     var rows = LEVELS[n - 1] || '';
     var i = 0;
     for (var cy = 0; cy < 10; cy++) {
@@ -624,6 +706,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     var g = group(cx, cy, c);            // فيها الفقاعة الجديدة
     if (g.length - 1 <= 1) {             // @will_destroy <= 1 → التصاق
       S.grid.set(key(cx, cy), { cx: cx, cy: cy, c: c, root: cy === S.rootlevel });
+      S.stick = { x: cellX(cx, cy), y: cellY(cy), step: 0, slow: 0 };
     } else {
       var popped = [], i;
       for (i = 0; i < g.length; i++) {
@@ -691,6 +774,12 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
       if (f.y > H) S.falling.splice(i, 1);
     }
 
+    /* أثر الالتصاق: طورٌ كل نبضتين (sticking_step_slowdown في الأصل) */
+    if (S.stick) {
+      if (S.stick.slow) { S.stick.step++; S.stick.slow = 0; } else S.stick.slow = 1;
+      if (S.stick.step >= 7) S.stick = null;
+    }
+
     if (S.phase !== 'play') return;
 
     /* دوران القاذف بسرعة الأصل، والمفاتيح وحدها تدور — السحب يضع الزاوية */
@@ -738,225 +827,128 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   }
 
   /* =================================================================
-     الرسم — كل شيء بالكود، ولا ملفّ خارجياً في الصفحة
+     الرسم — رسوم الأصل نفسها، موضوعةً بإحداثيات الأصل نفسها
      ================================================================= */
   var cv = document.getElementById('game');
   var g2 = cv.getContext('2d');
 
-  function bubble(x, y, ci, r) {
-    var C = COLORS[ci];
-    var gr = g2.createRadialGradient(x - r * 0.34, y - r * 0.38, r * 0.12, x, y, r);
-    gr.addColorStop(0, C.hi); gr.addColorStop(0.5, C.base); gr.addColorStop(1, C.lo);
-    g2.beginPath(); g2.arc(x, y, r, 0, 6.2832); g2.fillStyle = gr; g2.fill();
-    g2.lineWidth = Math.max(1, r * 0.09); g2.strokeStyle = 'rgba(8,14,22,.55)'; g2.stroke();
-    /* بريق الجليد: نقطة عالية وقوس سفلي خفيف، كما في رسوم الأصل */
-    g2.beginPath(); g2.ellipse(x - r * 0.33, y - r * 0.40, r * 0.26, r * 0.17, -0.7, 0, 6.2832);
-    g2.fillStyle = 'rgba(255,255,255,.85)'; g2.fill();
-    g2.beginPath(); g2.arc(x, y, r * 0.72, 0.5, 1.9);
-    g2.lineWidth = Math.max(1, r * 0.1); g2.strokeStyle = 'rgba(255,255,255,.22)'; g2.stroke();
+  /* الصور تُفكّ من data: URIs، وذلك غير متزامن ولو لم تكن هناك شبكة.
+     فلا يبدأ الرسم قبل أن تجهز كلّها. */
+  function loadAssets(done) {
+    var keys = Object.keys(A.img), left = keys.length;
+    if (!left) { done(); return; }
+    keys.forEach(function (k) {
+      var im = new Image();
+      im.onload = im.onerror = function () { if (--left === 0) { ready = true; done(); } };
+      im.src = A.img[k];
+      IMG[k] = im;
+    });
   }
 
-  function iceWall() {
-    /* جداران من كتل جليد: تدرّج بارد، وأوجه مشطوفة، وخطوط فواصل */
-    for (var side = 0; side < 2; side++) {
-      var x0 = side ? RIGHT : 0;
-      var lg = g2.createLinearGradient(x0, 0, x0 + LEFT, 0);
-      if (side) { lg.addColorStop(0, '#9fd8ef'); lg.addColorStop(0.45, '#cbeaf8'); lg.addColorStop(1, '#5c93b5'); }
-      else { lg.addColorStop(0, '#5c93b5'); lg.addColorStop(0.55, '#cbeaf8'); lg.addColorStop(1, '#9fd8ef'); }
-      g2.fillStyle = lg; g2.fillRect(x0, HUD, LEFT, H - HUD);
-      g2.strokeStyle = 'rgba(255,255,255,.55)'; g2.lineWidth = 1;
-      for (var y = HUD + 10; y < H; y += 26) {
-        g2.beginPath(); g2.moveTo(x0 + 1.5, y); g2.lineTo(x0 + LEFT - 1.5, y + (side ? -4 : 4)); g2.stroke();
-      }
-      g2.strokeStyle = 'rgba(30,70,100,.45)';
-      g2.beginPath(); g2.moveTo(side ? x0 + 0.5 : x0 + LEFT - 0.5, HUD); g2.lineTo(side ? x0 + 0.5 : x0 + LEFT - 0.5, H); g2.stroke();
-    }
-  }
-
-  function panel(x, y, w, h, label, value) {
-    var lg = g2.createLinearGradient(x, y, x, y + h);
-    lg.addColorStop(0, '#e8f6fd'); lg.addColorStop(0.5, '#a9d3e8'); lg.addColorStop(1, '#6d9fba');
-    g2.beginPath(); g2.roundRect ? g2.roundRect(x, y, w, h, 5) : g2.rect(x, y, w, h);
-    g2.fillStyle = lg; g2.fill();
-    g2.lineWidth = 1.2; g2.strokeStyle = 'rgba(26,62,88,.7)'; g2.stroke();
-    g2.textAlign = 'center'; g2.textBaseline = 'middle';
-    g2.fillStyle = 'rgba(20,52,76,.8)'; g2.font = '700 8px Helvetica, Arial, sans-serif';
-    g2.fillText(label, x + w / 2, y + 9);
-    g2.fillStyle = '#0f2f47'; g2.font = '700 13px "Courier New", Courier, monospace';
-    g2.fillText(value, x + w / 2, y + h - 11);
-  }
-
-  function woodSign(x, y, w, h, text) {
-    var lg = g2.createLinearGradient(x, y, x, y + h);
-    lg.addColorStop(0, '#a9702f'); lg.addColorStop(0.45, '#8a5320'); lg.addColorStop(1, '#5f3712');
-    g2.beginPath(); g2.roundRect ? g2.roundRect(x, y, w, h, 4) : g2.rect(x, y, w, h);
-    g2.fillStyle = lg; g2.fill();
-    g2.lineWidth = 2; g2.strokeStyle = '#3d2209'; g2.stroke();
-    g2.save();
-    g2.beginPath(); g2.roundRect ? g2.roundRect(x, y, w, h, 4) : g2.rect(x, y, w, h); g2.clip();
-    g2.strokeStyle = 'rgba(60,32,8,.30)'; g2.lineWidth = 1;
-    for (var i = 1; i < 5; i++) {
-      g2.beginPath(); g2.moveTo(x, y + i * h / 5 + 1.5); g2.lineTo(x + w, y + i * h / 5 - 1); g2.stroke();
-    }
-    g2.restore();
-    /* مسمارٌ في كل زاوية */
-    g2.fillStyle = 'rgba(232,222,198,.85)';
-    for (var c = 0; c < 4; c++) {
-      g2.beginPath(); g2.arc(x + (c % 2 ? w - 5 : 5), y + (c > 1 ? h - 5 : 5), 1.6, 0, 6.2832); g2.fill();
-    }
-    g2.textAlign = 'center'; g2.textBaseline = 'middle';
-    g2.font = '800 13px Georgia, "Times New Roman", serif';
-    g2.fillStyle = 'rgba(40,20,4,.55)'; g2.fillText(text, x + w / 2 + 0.8, y + h / 2 + 1.4);
-    g2.fillStyle = '#ffe6ae'; g2.fillText(text, x + w / 2, y + h / 2 + 0.6);
+  /* فقاعةٌ من شريط الأصل: الثمانية في صورةٍ واحدة، كلٌّ ٣٢×٣٢ */
+  function bubble(x, y, ci) {
+    g2.drawImage(IMG.balls, ci * BS, 0, BS, BS, Math.round(x), Math.round(y), BS, BS);
   }
 
   function ceiling() {
+    /* print_compressor: النصل على ‎top_limit + newrootlevel×ROW_SIZE‎، وفوقه
+       يتكرّر عمود الكبس إلى أعلى الشاشة — كما يفعل الأصل حرفاً بحرف. */
     var y = TOP + S.rootlevel * ROW;
-    /* العمود المسنّن فوق السقف: يقصر كلما نزل، فيُرى أنه يُكبس */
-    var lg = g2.createLinearGradient(0, HUD, 0, y);
-    lg.addColorStop(0, '#20364a'); lg.addColorStop(1, '#385877');
-    g2.fillStyle = lg; g2.fillRect(LEFT, HUD, RIGHT - LEFT, Math.max(0, y - HUD));
-    g2.strokeStyle = 'rgba(150,200,230,.18)'; g2.lineWidth = 1;
-    for (var t = HUD + 5; t < y; t += 7) {
-      g2.beginPath(); g2.moveTo(LEFT + 2, t); g2.lineTo(RIGHT - 2, t); g2.stroke();
-    }
-    /* حافّة السقف: نصلٌ معدني بأسنان، ويضيء قبل النزول بقذفتين */
-    var lit = S.flash && (!reduce) && (Math.floor(clock / 8) % 2 === 0);
-    var bg = g2.createLinearGradient(0, y - 9, 0, y);
-    bg.addColorStop(0, lit ? '#ffd28a' : '#9fb6c9'); bg.addColorStop(1, lit ? '#c2661f' : '#4a6478');
-    g2.fillStyle = bg; g2.fillRect(LEFT, y - 9, RIGHT - LEFT, 9);
-    g2.fillStyle = lit ? '#ffeccb' : '#cfe2ee';
-    for (var x = LEFT; x < RIGHT; x += 8) {
-      g2.beginPath(); g2.moveTo(x, y); g2.lineTo(x + 4, y + 4); g2.lineTo(x + 8, y); g2.closePath(); g2.fill();
-    }
+    var main = IMG.comp_main, ext = IMG.comp_ext;
+    var t = y - main.height;
+    g2.drawImage(main, COMP_CX - main.width / 2, t);
+    var e = t + 3;
+    while (e > 0) { e -= ext.height; g2.drawImage(ext, COMP_CX - ext.width / 2, e); }
   }
 
-  function dangerLine() {
+  /* عمود النقاط: تسعة، واحدةٌ لكل قذفة حتى نزول السقف، والحمراء موضع العدّاد.
+     (‏handle_progress‏: ‏i = 0..TIME_APPEARS_NEW_ROOT‏ والخطوة ارتفاعُ النقطة+١) */
+  function progress() {
+    var step = IMG.dot_r.height + 1;
+    for (var i = 0; i <= DROP_AT; i++)
+      g2.drawImage(i === S.shots ? IMG.dot_r : IMG.dot_g, PROG_X, PROG_Y + i * step);
+  }
+
+  function shooter() {
+    /* الأصل يدير shooter.png بمقدار ‎angle − PI/2‎ عن العمود، فهنا الدوران
+       ‎PI/2 − angle‎ لأن القماش يدور باتّجاه عقارب الساعة. */
+    var im = IMG.shooter;
     g2.save();
-    g2.strokeStyle = 'rgba(226,64,58,.85)'; g2.lineWidth = 2; g2.setLineDash([6, 5]);
-    g2.beginPath(); g2.moveTo(LEFT, DANGER_Y); g2.lineTo(RIGHT, DANGER_Y); g2.stroke();
+    g2.translate(CANON_X + im.width / 2, CANON_Y + im.height / 2);
+    g2.rotate(Math.PI / 2 - S.angle);
+    g2.drawImage(im, -im.width / 2, -im.height / 2);
     g2.restore();
   }
 
   function penguin() {
-    var a = S.angle;
-    /* القاعدة الجليدية، وفيها نافذة الفقاعة التالية */
-    var bg = g2.createLinearGradient(0, 444, 0, 476);
-    bg.addColorStop(0, '#cfe9f6'); bg.addColorStop(1, '#6d9cbb');
-    g2.beginPath(); g2.roundRect ? g2.roundRect(92, 444, 104, 32, 9) : g2.rect(92, 444, 104, 32);
-    g2.fillStyle = bg; g2.fill();
-    g2.lineWidth = 1.5; g2.strokeStyle = 'rgba(26,62,88,.65)'; g2.stroke();
-
-    /* الماسورة: تدور بالزاوية، وتخرج من تحت الفقاعة فتُرى جهةُ التصويب */
-    g2.save();
-    g2.translate(PIVOT_X, PIVOT_Y); g2.rotate(-a);
-    var tg = g2.createLinearGradient(0, -7, 0, 7);
-    tg.addColorStop(0, '#d7e7f2'); tg.addColorStop(0.5, '#7d97ab'); tg.addColorStop(1, '#3d5567');
-    g2.beginPath(); g2.roundRect ? g2.roundRect(-6, -7, 34, 14, 7) : g2.rect(-6, -7, 34, 14);
-    g2.fillStyle = tg; g2.fill();
-    g2.lineWidth = 1.5; g2.strokeStyle = 'rgba(20,40,58,.75)'; g2.stroke();
-    g2.beginPath(); g2.arc(26, 0, 4, 0, 6.2832); g2.fillStyle = '#2b4355'; g2.fill();
-    g2.restore();
-
-    /* البطريق: بدنٌ داكن، بطن أبيض، منقار وقدمان برتقاليتان، وعينان تتبعان التصويب */
-    var bx = PIVOT_X, by = 428;
-    g2.fillStyle = '#e8862a';
-    g2.beginPath(); g2.ellipse(bx - 10, 450, 8, 4, -0.15, 0, 6.2832); g2.fill();
-    g2.beginPath(); g2.ellipse(bx + 10, 450, 8, 4, 0.15, 0, 6.2832); g2.fill();
-    var pg = g2.createLinearGradient(bx - 20, by - 20, bx + 16, by + 20);
-    pg.addColorStop(0, '#46586d'); pg.addColorStop(0.55, '#26333f'); pg.addColorStop(1, '#141c25');
-    g2.beginPath(); g2.ellipse(bx, by, 21, 22, 0, 0, 6.2832); g2.fillStyle = pg; g2.fill();
-    g2.lineWidth = 1.5; g2.strokeStyle = 'rgba(8,12,18,.8)'; g2.stroke();
-    /* الزعنفتان ترتفعان مع الماسورة قليلاً */
-    g2.save(); g2.translate(bx, by);
-    g2.fillStyle = '#1b242e';
-    var lift = (a - Math.PI / 2) * 0.5;
-    g2.save(); g2.rotate(-0.5 - lift); g2.beginPath(); g2.ellipse(-20, 0, 6, 12, 0, 0, 6.2832); g2.fill(); g2.restore();
-    g2.save(); g2.rotate(0.5 - lift); g2.beginPath(); g2.ellipse(20, 0, 6, 12, 0, 0, 6.2832); g2.fill(); g2.restore();
-    g2.restore();
-    /* البطن */
-    var wg = g2.createLinearGradient(bx, by - 8, bx, by + 20);
-    wg.addColorStop(0, '#ffffff'); wg.addColorStop(1, '#d3dde6');
-    g2.beginPath(); g2.ellipse(bx, by + 6, 13, 14, 0, 0, 6.2832); g2.fillStyle = wg; g2.fill();
-    /* الوجه: تحت الفقاعة فيبقى مرئياً */
-    var look = Math.cos(a) * 2.2;
-    for (var s = -1; s <= 1; s += 2) {
-      g2.beginPath(); g2.arc(bx + s * 6, by + 1, 4.2, 0, 6.2832); g2.fillStyle = '#fff'; g2.fill();
-      g2.beginPath(); g2.arc(bx + s * 6 + look, by + 1.6, 2.1, 0, 6.2832); g2.fillStyle = '#10161d'; g2.fill();
-    }
-    g2.beginPath(); g2.moveTo(bx - 5, by + 8); g2.lineTo(bx + 5, by + 8); g2.lineTo(bx, by + 15); g2.closePath();
-    g2.fillStyle = '#e8862a'; g2.fill();
-    g2.lineWidth = 1; g2.strokeStyle = 'rgba(120,62,8,.7)'; g2.stroke();
-
-    /* نافذة الفقاعة التالية في القاعدة */
-    g2.beginPath(); g2.arc(PIVOT_X, NEXT_Y, 14, 0, 6.2832);
-    g2.fillStyle = 'rgba(16,40,60,.75)'; g2.fill();
-    g2.lineWidth = 2; g2.strokeStyle = 'rgba(232,245,252,.8)'; g2.stroke();
-    if (S.phase === 'play' || S.phase === 'paused') bubble(PIVOT_X, NEXT_Y, S.next, 11);
-
-    /* خطّ التصويب: طوله ٦٠ كـ‎simpleshooter diameter‎، يبدأ من حافّة الفقاعة */
-    if (S.phase === 'play' && !S.fly) {
-      g2.save();
-      g2.strokeStyle = 'rgba(255,255,255,.75)'; g2.lineWidth = 2; g2.setLineDash([3, 5]);
-      g2.beginPath();
-      g2.moveTo(PIVOT_X + Math.cos(a) * 18, PIVOT_Y - Math.sin(a) * 18);
-      g2.lineTo(PIVOT_X + Math.cos(a) * 78, PIVOT_Y - Math.sin(a) * 78);
-      g2.stroke(); g2.restore();
-    }
-
-    /* الفقاعة الحالية على القاذف */
-    if (S.phase === 'play' || S.phase === 'paused') bubble(PIVOT_X, PIVOT_Y, S.cur, BS / 2);
+    /* أحد عشر إطاراً من إطارات الأصل: أقصى اليسار عند ‎PI−0.1‎ وأقصى اليمين
+       عند ‎0.1‎، والوسط عند ‎PI/2‎. الأصل يحرّكها بالمفاتيح، وهنا بالزاوية. */
+    var n = A.meta.peng_frames.length;
+    var u = (A_MAX - S.angle) / (A_MAX - A_MIN);        // 0 يساراً .. 1 يميناً
+    var i = Math.round(u * (n - 1));
+    if (i < 0) i = 0; else if (i > n - 1) i = n - 1;
+    var w = A.meta.peng[0], h = A.meta.peng[1];
+    g2.drawImage(IMG.peng, i * w, 0, w, h, PENG_X, PENG_Y, w, h);
   }
 
   function draw() {
-    /* أرضية الملعب: عمقٌ بارد لا لون واحد مسطّح */
-    var sky = g2.createLinearGradient(0, HUD, 0, H);
-    sky.addColorStop(0, '#0d2136'); sky.addColorStop(0.55, '#123049'); sky.addColorStop(1, '#1b4363');
-    g2.fillStyle = sky; g2.fillRect(0, 0, W, H);
-    g2.save();
-    g2.beginPath(); g2.rect(LEFT, HUD, RIGHT - LEFT, H - HUD); g2.clip();
-    g2.fillStyle = 'rgba(255,255,255,.05)';
-    for (var s = 0; s < 22; s++) {
-      var sx = (s * 53 % (RIGHT - LEFT)) + LEFT, sy = HUD + (s * 91 % (H - HUD));
-      g2.fillRect(sx, sy, 1, 1);
-    }
-    g2.restore();
+    if (!ready) return;
+    g2.drawImage(IMG.bg, 0, 0);                         // خلفية الأصل كما هي
 
     ceiling();
-    dangerLine();
+    progress();
 
     var it = S.grid.values(), v;
     while (!(v = it.next()).done) {
       var b = v.value;
-      bubble(cellX(b.cx, b.cy) + BS / 2, cellY(b.cy) + BS / 2, b.c, BS / 2);
+      /* وميضٌ قبل نزول السقف بقذفتين: الأصل يستعمل bubble_prelight */
+      if (S.flash && !reduce && Math.floor(clock / 8) % 2 === 0 && b.cy === S.rootlevel)
+        g2.drawImage(IMG.prelight, cellX(b.cx, b.cy), cellY(b.cy));
+      else bubble(cellX(b.cx, b.cy), cellY(b.cy), b.c);
     }
+
     var i;
-    for (i = 0; i < S.falling.length; i++)
-      bubble(S.falling[i].x + BS / 2, S.falling[i].y + BS / 2, S.falling[i].c, BS / 2);
-    for (i = 0; i < S.popping.length; i++)
-      bubble(S.popping[i].x + BS / 2, S.popping[i].y + BS / 2, S.popping[i].c, BS / 2 - 2);
-    if (S.fly) bubble(S.fly.x + BS / 2, S.fly.y + BS / 2, S.fly.c, BS / 2);
+    for (i = 0; i < S.falling.length; i++) bubble(S.falling[i].x, S.falling[i].y, S.falling[i].c);
+    for (i = 0; i < S.popping.length; i++) bubble(S.popping[i].x, S.popping[i].y, S.popping[i].c);
+    if (S.fly) bubble(S.fly.x, S.fly.y, S.fly.c);
 
+    /* أثر الالتصاق: سبعة أطوار، كلٌّ نبضتان (sticking_step_slowdown في الأصل) */
+    if (S.stick && S.stick.step < 7) {
+      g2.drawImage(IMG.stick, S.stick.step * BS, 0, BS, BS, S.stick.x, S.stick.y, BS, BS);
+    }
+
+    shooter();
     penguin();
-    iceWall();
 
-    /* الشريط العلوي: لوحتا نتيجة ولافتة خشبية بينهما */
-    var hg = g2.createLinearGradient(0, 0, 0, HUD);
-    hg.addColorStop(0, '#20364a'); hg.addColorStop(1, '#0e1d2c');
-    g2.fillStyle = hg; g2.fillRect(0, 0, W, HUD);
-    panel(4, 3, 88, 34, 'SCORE', String(S.score));
-    panel(196, 3, 88, 34, 'TOP', String(S.best));
-    woodSign(98, 2, 92, 36, 'LEVEL ' + (S.phase === 'menu' ? S.pick : S.level));
+    /* الفقاعة التالية وحلقتها، ثم الفقاعة على القاذف */
+    if (S.phase === 'play' || S.phase === 'paused') {
+      bubble(NEXT_X, NEXT_Y, S.next);
+      g2.drawImage(IMG.ring, NEXT_X - 3, NEXT_Y - 3);   // on_top_next_relpos
+      bubble(PIVOT_X - BS / 2, LAUNCH_TOP, S.cur);
+    }
 
-    /* HURRY: نصّ الأصل نفسه، وميضه يسكن عند تقليل الحركة */
-    if (S.phase === 'play' && S.hurry > HURRY_WARN && (reduce || Math.floor(clock / 12) % 2 === 0)) {
+    /* خطّ التصويب — إضافةٌ منّي لا من الأصل: الأصل يدلّ على الجهة بدوران
+       المدفع وحده، وليس فيه خطّ (و‎simpleshooter‎ نقطةٌ ٢×٢ في وضع الرسوم
+       المنخفض لا خطّاً). طوله ٦٠ كـ‎simpleshooter.diameter‎.
+       ويُرسم بقلبٍ داكن وهالةٍ فاتحة: خلفية الأصل ثلجٌ أبيض في أسفل الملعب
+       وزجاجٌ شاحب في أعلاه، فالخطّ الأبيض وحده يذوب فيهما — قِيس ذلك على
+       الشاشة فلم يكد يُرى. */
+    if (S.phase === 'play' && !S.fly) {
+      var a = S.angle, x1 = PIVOT_X + Math.cos(a) * 20, y1 = PIVOT_Y - Math.sin(a) * 20;
+      var x2 = PIVOT_X + Math.cos(a) * 80, y2 = PIVOT_Y - Math.sin(a) * 80;
       g2.save();
-      g2.textAlign = 'center'; g2.textBaseline = 'middle';
-      g2.font = '900 26px "Arial Black", Arial, sans-serif';
-      g2.lineWidth = 4; g2.strokeStyle = 'rgba(10,20,30,.8)';
-      g2.strokeText('HURRY!', W / 2, HUD + 130); g2.fillStyle = '#ffd34a';
-      g2.fillText('HURRY!', W / 2, HUD + 130);
+      g2.setLineDash([3, 5]); g2.lineCap = 'round';
+      g2.beginPath(); g2.moveTo(x1, y1); g2.lineTo(x2, y2);
+      g2.strokeStyle = 'rgba(255,255,255,.9)'; g2.lineWidth = 4.5; g2.stroke();
+      g2.strokeStyle = 'rgba(14,22,38,.9)'; g2.lineWidth = 2; g2.stroke();
       g2.restore();
+    }
+
+    /* HURRY: صورة الأصل في موضع الأصل — وقُصّ هامشها الشفّاف في الحزمة،
+       فيُعاد بإزاحته المحفوظة معها كي لا يزحف الرسم */
+    if (S.phase === 'play' && S.hurry > HURRY_WARN && (reduce || Math.floor(clock / 12) % 2 === 0)) {
+      var off = A.meta.hurry_off || [0, 0];
+      g2.drawImage(IMG.hurry, HURRY_X + off[0], HURRY_Y + off[1]);
     }
   }
 
@@ -971,6 +963,17 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     over: document.getElementById('gameover')
   };
   var lvlPick = document.getElementById('lvlPick');
+  var elScore = document.getElementById('score');
+  var elBest = document.getElementById('best');
+  var elSign = document.getElementById('levelSign');
+  /* لوحة المستوى الخشبية: صورةٌ من خلفية الأصل، وتُوضع من الحزمة لا من CSS
+     لأن الحزمة كلّها داخل السكربت */
+  if (A.img.sign) elSign.style.backgroundImage = 'url(' + A.img.sign + ')';
+  function paintHud() {
+    elScore.textContent = String(S.score);
+    elBest.textContent = String(S.best);
+    elSign.textContent = 'LEVEL ' + (S.phase === 'menu' ? S.pick : S.level);
+  }
   var reduce = false, clock = 0;
   try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
@@ -1157,6 +1160,7 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
     while (acc >= TICK && n < 12) { tick(); acc -= TICK; n++; clock++; }
     if (acc > TICK * 12) acc = 0;
     draw();
+    paintHud();
   }
   function run() { if (!raf) { last = 0; raf = requestAnimationFrame(frame); } }
   function halt() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
@@ -1168,8 +1172,8 @@ body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { di
   window.addEventListener('pagehide', function () { writeAll(); halt(); });
 
   toMenu();
-  draw();
-  run();
+  paintHud();
+  loadAssets(function () { draw(); run(); });
 })();
 </script>
 </body>

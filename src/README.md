@@ -24,7 +24,7 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 | `games/snake.html` | `snake.html` |
 | `games/tetris.html` | `tetris.html` |
 | `games/cadet.html` | `cadet.html` |
-| `games/frozen.html` | `frozen.html` |
+| `games/frozen.html` + `frozen/assets.b64.json` | `frozen.html` |
 | `build.py` نفسه | `sw.js` و`manifest.webmanifest` |
 
 ألعاب `games/` تمرّ بـ`with_app_head` التي تضيف روابط الأيقونات ووسوم تطبيق الويب إلى رأس الصفحة فقط، دون أن تمسّ طريقة اللعب. لهذا `games/snake.html` و`snake.html` متشابهان عدا الرأس.
@@ -68,6 +68,24 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 ```
 bash src/cadet/build.sh     ثم: python3 src/build.py
 ```
+
+## `frozen/`
+
+`pack.py` يحزم رسوم Frozen Bubble الأصلية من `share/gfx` في مستودع اللعبة إلى
+ملفٍّ واحد من `data:` URIs هو `assets.b64.json`، و`build.py` يضعه في
+`games/frozen.html` مكان `__FROZEN_ASSETS__`. وهو عرف `bounce/sheet.b64`
+نفسه: العقد يمنع أي طلبٍ خارجي، فكل بكسلٍ ترسمه الصفحة يجب أن يكون فيها.
+
+هو خارج `build.py` كـ`icons/` و`cadet/`: يحتاج نسخةً من مستودع اللعبة
+و Pillow، و`build.py` يجب أن يعمل بلا كليهما. والناتج محفوظ في المستودع فلا
+يحتاجه أحد لتشغيل اللعبة.
+
+```
+python3 src/frozen/pack.py /path/to/frozen-bubble     ثم: python3 src/build.py
+```
+
+الرسوم برخصة GPL v2 كشيفرة اللعبة، وصفحة الفقاعات بهذه الرخصة — والتفصيل في
+`README.md` وفي رأس `games/frozen.html`.
 
 ## لماذا `--check`
 

@@ -124,7 +124,23 @@ DOC_HEAD = ('<!DOCTYPE html>\n<html lang="ar">\n<head>\n<meta charset="UTF-8">\n
 bounce_doc = DOC_HEAD + bounce_frag.replace('</style>\n\n<div id="shell">',
                                             '</style>\n</head>\n<body>\n<div id="shell">') + '</body>\n</html>\n'
 emit(os.path.join(REPO, 'bounce.html'), with_app_head(bounce_doc, 'Bounce'))
-TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'cadet': 'Space Cadet'}
+TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'cadet': 'Space Cadet',
+          'frozen': 'Frozen Bubble'}
+
+# Frozen Bubble carries the original game's own artwork, packed by
+# src/frozen/pack.py into one file of data: URIs and dropped in here — the
+# same arrangement bounce/sheet.b64 uses, and for the same reason: the page
+# must hold every pixel it draws, since the contract forbids fetching a file.
+FROZEN_ASSETS = os.path.join(HERE, 'frozen', 'assets.b64.json')
+
+
+def fill_game(html, entry):
+    if entry['id'] == 'frozen' and '__FROZEN_ASSETS__' in html:
+        blob = open(FROZEN_ASSETS).read().strip()
+        html = html.replace('__FROZEN_ASSETS__', blob)
+    return html
+
+
 for e in ENTRIES:
     if e['id'] == 'bounce':
         continue                                    # built from source above
@@ -132,7 +148,8 @@ for e in ENTRIES:
     if not os.path.exists(src):
         continue                                    # a page added straight to the repo
     emit(os.path.join(REPO, e['file']),
-         with_app_head(open(src).read(), TITLES.get(e['id'], e.get('en') or e['id'])))
+         with_app_head(fill_game(open(src).read(), e),
+                       TITLES.get(e['id'], e.get('en') or e['id'])))
 
 # ---------- 2. the launcher
 hub = open(os.path.join(HERE, 'launcher.html')).read()
