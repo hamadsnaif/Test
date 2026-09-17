@@ -44,6 +44,17 @@
       "thumb": {
         "builtin": "cadet"
       }
+    },
+    {
+      "id": "frozen",
+      "file": "frozen.html",
+      "ar": "الفقاعات المتجمّدة",
+      "en": "FROZEN BUBBLE",
+      "stripe": "#3f93d8",
+      "desc": "مئة مستوى من اللعبة الأصلية بشبكتها السداسية وفيزيائها، وبطريقٌ قاذف أسفل الملعب. حرّة برخصة GPL v2.",
+      "thumb": {
+        "builtin": "frozen"
+      }
     }
   ]
 }

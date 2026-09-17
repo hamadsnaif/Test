@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<!--
+  Frozen Bubble — a browser rebuild of the original game.
+
+  Copyright (C) 2000-2012 The Frozen-Bubble Team
+  Copyright (C) 2026 this rebuild
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License version 2, as published
+  by the Free Software Foundation.
+
+  This program is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
+  Public License for more details.  The full text ships with this
+  repository as frozen-LICENSE.txt.
+
+  This page is the only GPL-licensed game in the collection; the other games
+  are separate works that merely live in the same repository (what the GPL
+  calls an aggregate).
+
+  Original authors, from the AUTHORS file of kthakore/frozen-bubble:
+    design & programming  Guillaume Cottenceau
+    artwork               Alexis Younes, Amaury Amblard-Ladurantie
+    soundtrack            Matthias Le Bidan
+    level editor          Kim Joham, David Joham
+    CPAN port             FROGGS, daxim, kthakore, kmx
+
+  WHERE EVERY NUMBER CAME FROM  (upstream commit d6a0291, read, not recalled)
+
+    share/data/levels               100 levels, 10 rows each, rows of 8 and 7
+                                    cells alternating; '-' empty, digits 0-7
+                                    colours.  All 100 are embedded below.
+    Stuff.pm  $BUBBLE_SIZE          32
+    Stuff.pm  $ROW_SIZE             32*7/8 = 28
+    Stuff.pm  %POS_1P               left_limit 190, right_limit 446 -> the
+                                    field is 8*32 = 256 wide; top_limit 44;
+                                    initial_bubble_y 390 -> the launcher sits
+                                    346 below the ceiling; simpleshooter
+                                    diameter 60 -> the aim line is 60 long
+    bin/frozen-bubble  $TARGET_ANIM_SPEED  20 ms  -> the sim runs at 50 Hz
+    bin/frozen-bubble  $BUBBLE_SPEED       10 px per tick
+    bin/frozen-bubble  $LAUNCHER_SPEED     0.03 rad per tick
+    bin/frozen-bubble  angle clamp         0.1 .. PI-0.1
+    bin/frozen-bubble  is_collision        (0.82*32)^2
+    bin/frozen-bubble  iter_rowscols       rows 0..11, cols 0..7 (even rows)
+                                           and 0..6 (odd rows)
+    bin/frozen-bubble  verify_if_end       a bubble at cy > 11 loses
+    bin/frozen-bubble  new_game (1P)       $TIME_APPEARS_NEW_ROOT = 8, so the
+                                           ceiling drops on the 9th shot, and
+                                           it does NOT change with the level;
+                                           $TIME_HURRY_WARN 400 ticks (8 s),
+                                           $TIME_HURRY_MAX 525 ticks (10.5 s)
+    bin/frozen-bubble  validate_nextcolor  the next colour is drawn uniformly
+                                           from all 8 and re-drawn until it is
+                                           a colour already on the board
+    bin/frozen-bubble  stick_bubble        a group pops at 3 (the code sticks
+                                           while group-minus-self <= 1)
+    bin/frozen-bubble  $FREE_FALL_CONSTANT 0.5 px/tick^2 for falling clusters
+    bin/frozen-bubble  destroy_bubbles     popped bubbles scatter with
+                                           speedx rand(3)-1.5, speedy -rand(4)-2
+    bin/frozen-bubble  stick_bubble        fall stagger
+                                           (maxcy-cy)*5 + index on the row
+    bin/frozen-bubble  $KEYS{p1}           left/right rotate, UP fires,
+                                           DOWN centres the launcher
+    share/gfx/balls/bubble-1..8.gif        8 colours, sampled from the art
+
+  CHOSEN HERE, NOT MEASURED (the original has no such thing)
+
+    Points.  Single-player Frozen Bubble keeps no score at all: print_scores
+    shows loc("Level %s") and $pdata{p1}{score} is literally the level number.
+    The only place the code puts a value on a shot is the malus formula,
+    @will_destroy + @falling - 2, which counts a popped bubble and a dropped
+    one alike.  So: 10 a pop, 20 a drop -- doubled because in one-player a
+    dropped cluster buys nothing but skill -- and 1000 for clearing a level,
+    picked so a cleared level outweighs any single lucky shot.  All three are
+    mine; none is in the source.
+
+    Drag aiming.  The original only ever turns the launcher at 0.03 rad a
+    tick.  The arrow keys here do exactly that; a drag sets the angle
+    outright, because there is no other honest way to aim with a thumb.
+
+    The drawing.  The original draws bitmaps.  The collection's contract bans
+    external files, so the bubbles, the penguin, the ice and the sign are
+    drawn in code.
+
+    No sound.  The original's effects are GPL wav assets, not numbers to be
+    read out of the source; a synthesised stand-in would be invention, not
+    fidelity, so the page is silent.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="./icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="./icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="./icon-120.png">
+<link rel="icon" sizes="192x192" href="./icon-192.png" type="image/png">
+<meta name="robots" content="noindex, nofollow">
+<script>if('serviceWorker' in navigator && /^https?:$/.test(location.protocol))addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(function(){});});</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>الفقاعات المتجمّدة — Frozen Bubble</title>
+<meta name="apple-mobile-web-app-title" content="Frozen Bubble">
+<style>
+/* ==================== المادة المشتركة: «عاج وألمنيوم مؤكسد» ====================
+   الجهاز نفسه الذي تسكنه بقية ألعاب المجموعة: بدن عاجي دافئ، ولوحة شاشة من
+   ألمنيوم داكن تطوّقها حلقة مؤكسدة بلون اللعبة، ومفاتيح محدّبة. لا سطح مسطّح
+   في الجهاز كله. وكل التفاصيل رسومات CSS لا تكلّف الشاشة بكسلاً. */
+:root {
+  --ivory-hi:#f7f2e7; --ivory:#e9e2d1; --ivory-lo:#d5ccb7; --ivory-edge:#b9ae97; --ivory-deep:#a3977e;
+  --ink:#2a2723; --engrave:#6e6555;
+  --alu-hi:#464a51; --alu:#2b2e33; --alu-lo:#181a1e;
+  --mat:#1a1714; --mat-hi:#2f2a24;
+  --font-ui: "Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif;
+  /* لون هذا الجهاز: أزرق جليدي مؤكسد */
+  --acc:#3f93d8; --acc-hi:#8fd2f4; --acc-lo:#1f5c94; --acc-ring:rgba(95,175,235,.55); --acc-glow:rgba(120,205,255,.6);
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+.ground {
+  background:
+    radial-gradient(120% 70% at 50% -8%, rgba(255,236,205,.20), rgba(255,236,205,0) 62%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.016) 0 2px, rgba(0,0,0,0) 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.016) 0 2px, rgba(0,0,0,0) 2px 6px),
+    radial-gradient(110% 90% at 50% 110%, var(--mat-hi), var(--mat) 65%);
+}
+.unit {
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(255,255,255,.60), rgba(255,255,255,0) 55%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,.055) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(162deg, var(--ivory-hi) 0%, var(--ivory) 48%, var(--ivory-lo) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -3px 8px rgba(90,70,40,.22),
+    inset 0 0 44px rgba(120,95,60,.13),
+    0 0 0 1px var(--ivory-edge),
+    0 2px 0 var(--ivory-deep),
+    0 26px 48px rgba(0,0,0,.62);
+}
+.plate {
+  position:relative;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,0) 1px 2px, rgba(0,0,0,.08) 2px 3px),
+    linear-gradient(180deg, var(--alu-hi), var(--alu) 55%, var(--alu-lo));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.07),
+    inset 0 0 0 2.5px var(--acc-ring),
+    inset 0 3px 8px rgba(0,0,0,.75),
+    0 1px 0 rgba(255,255,255,.6),
+    0 0 0 1px rgba(0,0,0,.4);
+}
+.deck {
+  border-radius:18px;
+  background:
+    repeating-linear-gradient(180deg, rgba(255,255,255,.045) 0 1px, rgba(0,0,0,0) 1px 3px),
+    linear-gradient(180deg, var(--ivory-lo), var(--ivory) 32%, var(--ivory-lo));
+  box-shadow:
+    inset 0 2px 5px rgba(90,70,40,.28),
+    inset 0 -1px 0 rgba(255,255,255,.75),
+    0 1px 0 rgba(255,255,255,.65);
+}
+.key {
+  flex:none;
+  appearance:none; -webkit-appearance:none; border:0; padding:0; margin:0; cursor:pointer;
+  touch-action:none; -webkit-user-select:none; user-select:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  color:var(--ink); font:700 16px/1 var(--font-ui);
+  border-radius:14px;
+  background:
+    radial-gradient(90% 70% at 35% 22%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, var(--ivory-hi), var(--ivory-lo));
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -2px 3px rgba(90,70,40,.22),
+    0 0 0 1px var(--ivory-edge),
+    0 3px 0 var(--ivory-deep),
+    0 3px 0 1px rgba(0,0,0,.22),
+    0 6px 8px rgba(0,0,0,.28),
+    0 0 0 5px rgba(80,60,30,.075);
+}
+.key:active, .key.down {
+  transform:translateY(2px);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 2px 4px rgba(60,45,20,.22),
+    0 0 0 1px var(--ivory-edge),
+    0 1px 0 var(--ivory-deep),
+    0 2px 3px rgba(0,0,0,.25),
+    0 0 0 5px rgba(80,60,30,.075);
+}
+.key.round { border-radius:50%; }
+.key.acc {
+  color:#fff; text-shadow:0 -1px 0 rgba(0,0,0,.3);
+  background:
+    radial-gradient(90% 70% at 35% 22%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, var(--acc-hi), var(--acc) 55%, var(--acc-lo));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    inset 0 -2px 3px rgba(0,0,0,.28),
+    0 0 0 1px var(--acc-lo),
+    0 3px 0 var(--acc-lo),
+    0 3px 0 1px rgba(0,0,0,.28),
+    0 6px 8px rgba(0,0,0,.32),
+    0 0 0 5px rgba(80,60,30,.075);
+}
+.key.acc:active, .key.acc.down {
+  transform:translateY(2px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 2px 5px rgba(0,0,0,.35),
+    0 0 0 1px var(--acc-lo), 0 1px 0 var(--acc-lo), 0 2px 3px rgba(0,0,0,.3), 0 0 0 5px rgba(80,60,30,.075);
+}
+.lamp {
+  display:inline-block; width:9px; height:9px; border-radius:50%; flex:none;
+  background:radial-gradient(circle at 38% 32%, #fff 0 12%, var(--acc-hi) 30%, var(--acc) 60%, var(--acc-lo) 100%);
+  box-shadow: 0 0 7px var(--acc-glow), 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4);
+}
+body:not([data-state="playing"]) .lamp.run {
+  background:radial-gradient(circle at 38% 32%, #d9d0bd 0 12%, #8f8674 45%, #5a5244 100%);
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.35), 0 0 0 2.5px rgba(255,255,255,.4), inset 0 1px 2px rgba(0,0,0,.5);
+}
+.engr {
+  color:var(--engrave); font:700 9px/1 var(--font-ui); letter-spacing:.16em; text-transform:uppercase;
+  text-shadow:0 1px 0 rgba(255,255,255,.8); white-space:nowrap;
+}
+.engr.ar { letter-spacing:0; font-size:10px; direction:rtl; }
+.name {
+  color:var(--engrave); font:800 11px/1 var(--font-ui); letter-spacing:.3em; direction:ltr;
+  text-shadow:0 1px 0 rgba(255,255,255,.85), 0 -1px 0 rgba(90,70,40,.25);
+}
+.grille {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.65) 0 1.1px, transparent 1.6px) 0 1.2px / 6px 6px,
+    radial-gradient(circle at 50% 50%, #5a5244 0 1.2px, transparent 1.7px) 0 0 / 6px 6px;
+}
+/* ---- الشريط العلوي: فيه إشعار الرخصة، فهو أوّل ما يُقرأ في الصفحة ---- */
+.cap { flex:none; height:24px; display:flex; align-items:center; gap:8px; direction:ltr; padding:0 8px; }
+.cap .grille { flex:1; height:10px; min-width:12px; opacity:.8; }
+.foot { flex:none; height:26px; display:none; align-items:center; gap:10px; direction:ltr; padding:0 12px; }
+.foot .grille { flex:1; height:12px; opacity:.85; background-repeat:round; }
+@media (min-height: 780px) { .foot { display:flex; } .cap { height:30px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+/* ==================== تخطيط هذا الجهاز ====================
+   الملعب يملأ الطول: الشاشة تأخذ كل ما يفضل بعد الشريط العلوي ولوحة
+   التحكّم، ونسبتها ثابتة (288×468) فتتقلّص بالارتفاع لا بالقصّ. */
+html { height:100%; background:var(--mat); }
+body {
+  height:100%; overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  color:var(--ink); font-family:var(--font-ui);
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  touch-action:manipulation;
+}
+.unit {
+  flex:1 1 auto; min-height:0; width:100%; max-width:400px;
+  display:flex; flex-direction:column; gap:8px;
+  padding:10px 10px 12px; border-radius:26px;
+}
+/* بئر الشاشة: يأخذ الفراغ كله، والشاشة تتوسّطه بنسبتها */
+.well { flex:1 1 auto; min-height:0; padding:8px; border-radius:12px; display:flex; justify-content:center; align-items:center; overflow:hidden; }
+/* الشاشة تملأ البئر، والقماش يُحتوى فيها بنسبته هو (‎object-fit:contain‎).
+   والسبب أن `aspect-ratio` مع ارتفاعٍ صريح يمطّ الرسم حين يعلو البئر عن
+   نسبته: قِيس ذلك على ‎390×844‎ فجاءت الشاشة ‎338×610‎ أي ‎0.554‎ بدل
+   ‎0.576‎، فاستطالت الفقاعات ونزلت القاعدة تحت الحافّة. وبالاحتواء يبقى
+   الرسم على نسبته في كل مقاس، ويبقى شريطٌ رقيق بلون الشاشة لا يُرى.
+   ومن ثَمّ يُحسب موضع اللمس من صندوق المحتوى لا من صندوق العنصر. */
+.screen {
+  position:relative; width:100%; height:100%;
+  border-radius:5px; overflow:hidden; background:#101f31;
+  box-shadow:inset 0 0 22px rgba(4,12,22,.6);
+}
+canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
+
+/* ---- الطبقات فوق الشاشة ---- */
+.overlay {
+  position:absolute; inset:0; z-index:2; direction:rtl;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+  padding:12px; text-align:center; color:#eaf6ff; background:rgba(9,26,44,.93);
+  font-family:var(--font-ui); overflow:hidden;
+}
+.overlay.hidden { display:none; }
+.overlay h1 { font:900 20px/1 "Arial Black", Arial, sans-serif; letter-spacing:1.5px; direction:ltr; color:#bfe6ff; }
+.overlay p { font-size:11.5px; line-height:1.55; max-width:100%; }
+.overlay p.lbl { font-weight:700; font-size:11px; letter-spacing:.04em; opacity:.85; }
+.overlay p.hint { font-size:11px; opacity:.8; }
+.overlay p.cred { font-size:10.5px; opacity:.75; line-height:1.5; }
+.overlay .big { font-size:30px; font-weight:900; line-height:1.1; color:#fff; }
+.levels { direction:ltr; display:flex; justify-content:center; }
+.lvl { direction:ltr; font:700 18px/1 "Courier New", monospace; letter-spacing:2px; border:2px solid #7fc4ee; padding:5px 14px; border-radius:3px; color:#eaf6ff; }
+@media (max-width: 340px) {
+  .overlay { gap:5px; padding:9px; }
+  .overlay h1 { font-size:17px; }
+  .overlay p { font-size:10.5px; line-height:1.45; }
+  .overlay p.hint, .overlay p.cred { font-size:10px; }
+  .overlay .big { font-size:24px; }
+  .lvl { font-size:16px; padding:4px 11px; }
+}
+
+/* ---- لوحة التحكّم: صفّ واحد منخفض كي يبقى الطول للملعب ----
+   كل صفّ مادي يُقرأ من اليسار (direction:ltr) وإلا انقلبت الأسهم مع اتجاه
+   الصفحة العربي: ◀ يساراً و▶ يمينه، كما هما على الجهاز. */
+.deck { flex:none; width:100%; display:flex; justify-content:center; direction:ltr; padding:9px 8px 11px; }
+.field { width:100%; display:flex; align-items:center; justify-content:space-between; direction:ltr; gap:6px; }
+/* زوج التصويب: مفتاحان متلاصقان، ولكل واحد رقعة لمس تمتدّ إلى الخارج لا نحو جاره */
+.aim { position:relative; display:flex; gap:6px; flex:none; }
+.aim .key { width:60px; height:60px; font-size:19px; }
+.aim .key::after { content:""; position:absolute; }
+.aim .left::after  { inset:-9px 0 -11px -9px; }
+.aim .right::after { inset:-9px -9px -11px 0; }
+/* القاذف: المفتاح الأزرق الوحيد في الجهاز، وتحته نقش يقول ما يفعله */
+.fire { position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; flex:none; padding:0 2px; }
+.fire::before {
+  content:""; position:absolute; left:50%; top:-5px; width:76px; height:76px; margin-left:-38px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle at 50% 40%, rgba(80,60,30,.16), rgba(80,60,30,.09) 70%, rgba(80,60,30,0) 72%);
+  box-shadow:inset 0 1px 2px rgba(90,70,40,.25), 0 1px 0 rgba(255,255,255,.7);
+}
+#fireBtn { width:64px; height:64px; font-size:20px; }
+.fire .engr { display:none; }
+body:not([data-state]) .cap-start, body[data-state="menu"] .cap-start,
+body[data-state="over"] .cap-start,
+body[data-state="playing"] .cap-fire,
+body[data-state="paused"] .cap-resume, body[data-state="clear"] .cap-resume { display:block; }
+/* الإيقاف: مفتاح وظيفي بعيد عن الإبهامين فلا يُضغط خطأً */
+#pauseBtn { width:48px; height:48px; font-size:15px; flex:none; }
+.fnwrap { display:flex; flex-direction:column; align-items:center; gap:6px; flex:none; }
+.fnwrap .engr { font-size:8px; }
+
+/* الإطار القصير (الأفقي، والشاشات القصيرة): تتنازل الأطراف قبل الملعب */
+@media (max-height: 600px) {
+  .unit { gap:6px; padding:8px 8px 9px; border-radius:20px; }
+  .cap { height:20px; }
+  .well { padding:6px; }
+  .deck { padding:7px 6px 8px; }
+  .aim .key { width:54px; height:54px; font-size:17px; }
+  #fireBtn { width:56px; height:56px; }
+  .fire .engr, .fnwrap .engr { display:none !important; }
+  .fire::before { width:68px; height:68px; margin-left:-34px; }
+}
+</style>
+</head>
+
+<body class="ground" data-state="menu">
+
+<div class="unit">
+  <!-- إشعار الرخصة في رأس الصفحة، ظاهرٌ دائماً على بدن الجهاز -->
+  <div class="cap">
+    <span class="lamp run" aria-hidden="true"></span>
+    <span class="name">FROZEN BUBBLE</span>
+    <span class="grille" aria-hidden="true"></span>
+    <span class="engr">GPL v2</span>
+  </div>
+
+  <div class="well plate">
+    <div class="screen" id="screen">
+      <canvas id="game" width="288" height="500"></canvas>
+
+      <div id="menu" class="overlay">
+        <h1>FROZEN BUBBLE</h1>
+        <p>صوّب بالسحب أو بالسهمين، وأفلت لتقذف. ثلاث فقاعات من لون واحد تنفجر، وما انفصل عن السقف سقط.</p>
+        <p class="lbl">المستوى</p>
+        <div id="levels" class="levels"><span class="lvl" id="lvlPick">LEVEL 1</span></div>
+        <p class="hint">غيّر المستوى بـ <bdi dir="ltr">&#x25C0;&#xFE0E; &#x25B6;&#xFE0E;</bdi> واضغط الزرّ الأزرق للبدء.</p>
+        <!-- كل مقطعٍ لاتيني في عزلٍ ثنائي الاتجاه (bdi)، وإلّا انقلب مدى
+             السنوات وهاجرت علامة الحقوق إلى الطرف الخطأ في الصفحة العربية -->
+        <p class="cred"><bdi dir="ltr">© 2000–2012 The Frozen-Bubble Team</bdi>:
+          البرمجة <bdi dir="ltr">Guillaume Cottenceau</bdi>،
+          والرسوم <bdi dir="ltr">Alexis Younes</bdi> و<bdi dir="ltr">Amaury Amblard-Ladurantie</bdi>،
+          والموسيقى <bdi dir="ltr">Matthias Le Bidan</bdi>،
+          ومحرّر المستويات <bdi dir="ltr">Kim</bdi> و<bdi dir="ltr">David Joham</bdi>.
+          مئة المستوى من ملفّ مستويات اللعبة الأصلية. وهذه الصفحة حرّة برخصة
+          <bdi dir="ltr">GNU GPL</bdi> نسخة ٢، ونصّها في <bdi dir="ltr">frozen-LICENSE.txt</bdi>.</p>
+      </div>
+
+      <div id="paused" class="overlay hidden">
+        <h1>PAUSE</h1>
+        <p>اضغط الزرّ الأزرق للمتابعة</p>
+        <p class="hint">مستوى <span id="pLevel">1</span> — النتيجة <span id="pScore">0</span></p>
+      </div>
+
+      <div id="cleared" class="overlay hidden">
+        <h1>LEVEL UP</h1>
+        <p class="big" id="clScore">0</p>
+        <p>المستوى <span id="clNext">2</span> جاهز</p>
+        <p class="hint">اضغط الزرّ الأزرق للمتابعة</p>
+      </div>
+
+      <div id="gameover" class="overlay hidden">
+        <h1 id="overTitle">GAME OVER</h1>
+        <p class="big" id="finalScore">0</p>
+        <p id="recordMsg"></p>
+        <p class="hint">الزرّ الأزرق: من جديد</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck">
+    <div class="field">
+      <div class="aim">
+        <button class="key left"  id="leftBtn"  type="button" aria-label="صوّب يساراً">&#x25C0;&#xFE0E;</button>
+        <button class="key right" id="rightBtn" type="button" aria-label="صوّب يميناً">&#x25B6;&#xFE0E;</button>
+      </div>
+      <div class="fire">
+        <button class="key round acc" id="fireBtn" type="button" aria-label="اقذف / ابدأ">&#x25B2;&#xFE0E;</button>
+        <span class="engr ar cap-start">ابدأ</span><span class="engr ar cap-fire">اقذف</span><span class="engr ar cap-resume">متابعة</span>
+      </div>
+      <div class="fnwrap">
+        <button class="key round" id="pauseBtn" type="button" aria-label="إيقاف مؤقّت" title="إيقاف (Esc)">&#x2016;</button>
+        <span class="engr ar">إيقاف</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span class="engr">100 Levels</span>
+    <span class="grille" aria-hidden="true"></span>
+    <span class="engr">GPL v2 · Frozen-Bubble Team</span>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =================================================================
+     المقاييس — كلها من الأصل، والسطر الذي جاء منه كل رقم في رأس الملف.
+     ================================================================= */
+  var BS = 32;                 // $BUBBLE_SIZE
+  var ROW = 28;                // $ROW_SIZE = BS*7/8
+  var COLS = 8;                // iter_rowscols: 8 في الصفّ الزوجي و7 في الفردي
+  var ROWS = 12;               // الصفوف 0..11، وما زاد عن 11 خسارة
+  var W = 288, H = 500;
+  var HUD = 40;                // شريط النتيجة واللافتة
+  var TOP = 48;                // top_limit الأصلي 44، وهنا 48 بعد شريط النتيجة
+  var LEFT = 16;               // left_limit، وسماكة الجدار الجليدي 16
+  var RIGHT = LEFT + COLS * BS;        // 272 = left_limit + 8*32
+  var PIVOT_X = (LEFT + RIGHT) / 2;    // 144، وسط الملعب
+  var LAUNCH_TOP = TOP + 346;          // initial_bubble_y 390 - top_limit 44
+  var PIVOT_Y = LAUNCH_TOP + BS / 2;   // 410، مركز الفقاعة على القاذف
+  var NEXT_Y = TOP + 396 + BS / 2;     // next_bubble y 440 - top_limit 44
+  var DANGER_Y = TOP + ROWS * ROW;     // 384، أسفل الصفّ ١١: ما نزل عنه خسارة
+  var SPEED = 10;              // $BUBBLE_SPEED
+  var TURN = 0.03;             // $LAUNCHER_SPEED
+  var A_MIN = 0.1, A_MAX = Math.PI - 0.1;
+  var HIT2 = (BS * 0.82) * (BS * 0.82);  // is_collision
+  var GRAV = 0.5;              // $FREE_FALL_CONSTANT
+  var DROP_AT = 8;             // $TIME_APPEARS_NEW_ROOT في طور المستويات
+  var HURRY_WARN = 400, HURRY_MAX = 525;
+  var TICK = 20;               // $TARGET_ANIM_SPEED
+  var NCOL = 8;                // bubble-1..8.gif
+
+  /* النقاط: ليست في الأصل — انظر «CHOSEN HERE» في رأس الملف */
+  var PT_POP = 10, PT_DROP = 20, PT_LEVEL = 1000;
+
+  /* الألوان الثمانية، مأخوذة عيّنةً من رسوم الأصل share/gfx/balls/bubble-N.gif.
+     الرقم في ملفّ المستويات هو الفهرس نفسه: 0 → bubble-1 وهكذا. */
+  var COLORS = [
+    { base:'#6e5f60', hi:'#b9afae', lo:'#302629', name:'رمادي'   },  /* bubble-1 */
+    { base:'#dcdcdc', hi:'#ffffff', lo:'#8a8a8a', name:'أبيض'    },  /* bubble-2 */
+    { base:'#252ada', hi:'#7d80e9', lo:'#12166d', name:'أزرق'    },  /* bubble-3 */
+    { base:'#1ce454', hi:'#86f1a4', lo:'#0b4e1f', name:'أخضر'    },  /* bubble-4 */
+    { base:'#f3d70c', hi:'#faee96', lo:'#76690a', name:'أصفر'    },  /* bubble-5 */
+    { base:'#bd19e5', hi:'#de8bf2', lo:'#570e6a', name:'بنفسجي'  },  /* bubble-6 */
+    { base:'#db2433', hi:'#ef9ea5', lo:'#64131a', name:'أحمر'    },  /* bubble-7 */
+    { base:'#f3690a', hi:'#fab484', lo:'#853a06', name:'برتقالي' }   /* bubble-8 */
+  ];
+
+  /* مئة المستوى كما هي في share/data/levels: عشرة صفوف لكل مستوى، الصفّ
+     الزوجي ثمان خانات والفردي سبع، '.' فراغ ورقمٌ لوناً. حُذفت الفراغات
+     الأخيرة من كل مستوى اختصاراً وتُعاد عند القراءة. */
+  var LEVEL_BLOB = '664422336644223223366442336644|.777777..11111...2222.....2......22......5......55|..7..7....717.....12.....121.....25.....353.....53......3|...00.....501....3516...43.67..74..74.67...4316....351.....5|..0000...01110..010010..01110...0000....7.7....7777|.444666.4.....6.4....6.4231236.312312|.444666.4.....6.4....6.4231236.312312..23123|.00..22..5...3..0...6...3...0..4...5...2...3..2...1...3...4|3......363246324......42463246...6.......3|.2.1.1.212.21.11.1.2.2.21.12.2.2.2.2.212.21.11.1.2.1.22.11.2.2.1.1.1|.77..55.1.....421....432.....312....341.....471....4577...55|77....5515...7421....432.....315....741.....471....4575...75|...00.....501....3516...43262..747224.67733431611133511....5|..0..0...33.33..020020..33.33...0..0|...11.....222....3333...44444..555555....6......77......0|...25....43....67.52.......34....25.76.43....67.52.......34.......76|...55......3......1.......7......2.......4......5.......3|...01.....0277....017...0000...00011..000111..00111...00077...77|.1......1.......234765.......1......1..23476..1......1.......234765|.6......5......23476523......4......7..43256..7......6......5234765|32100123321012343211234432123454322345543234565433456654345676544567|...55......3......24......6......24....2.5.4.101010103.3.2.6|....1...7435...6..1.......53476...1..67435......1...6...5347|....736...37363..57363..67367..77361..37363..56271|5......55.666.5.54..45..3...3..60..06..3...3...4..4....666|.70..07.7.0.0.771.00.177120217763223677.323.7.773377....3|.3.1.7.65.7.7.66.0.5.3..2.1.5..4.3.4..2.3.2....4.6......5|....1.......3..61312141....6.....41.....1.3.....21.......4.....61......6|...54.....410.....23....14.22..312514..42.04|....1......1....2..1.5.5..1..0.6..1.4..0.1.5...5501|...63.....326....2632...63263..326326.263263263263263|666666664.......3257643.5.......764325..4.......32576|1.7..6.26.1.613.4.72.7.27...4.6.3502.71.....1.145751|666..666..6.6....2332...3.5.3...5335....616...42..24|...55.....5.....3466..533465.53236655.33465.5.3466..5..5.......55|1......11.222.1.123321.623.326623..326623.326333773330502050|..777....7227...75557..777777...6.6....6..6...644.644|.33.333.37546531333.3312121212133.333135645732333.3321122211|.65.....313.....56.......53.....616.....35.......36.....565.....63|63745163516374563745163|......44..77744......44.1...7..11..7..333.7..3.2333.3.2.3.33.2|..4......74......74.....474...1111111.121211.22222222|0......661437500......661437500......66143750|33466433034643151344301013431021633001034361561264002|66....4440...3606....427.....744....566477564.764647..0.7.7|.5....4..5...4...5664....2.2..006..611..2.2....7663...7...3..7....3|.6....2.1711131..4114...13171....26.....151|777777777.....77..205227...0367.....4055.....4362....0204|..1..1...4..5...7..111.6....7.1111.4....5......0......3......1|.77..77.6.4.4.65..33..56.....6.7....7..4...4...3..3....2.2.....55|.00..00.7466643566626637466643.00..00|.....777....277.0777.776777...6...77776......42224.3.4444333|4..7.6.7767..74..7..7...000003..022064..00013...00.34...6.56......10|.5....5.0..0..0000220000..0..0.7.3..7...36......6.....36.....3|...65.....263....5471...62234...3736....132.....45......4|77.22.666..6..32..1..2.5..3..21..2..1.5..2..26..1..7.5..5..4|...66....04440....66.....272.....66....05550....33|..413....1..1....41341..134..4.3..341..13413...41|.64.325.0.....1.235.46.0.....1.46.253.0.....1.523.46|...66.....764...217413.2111113.222333....5......23......5.....2233|4.5..3.62.3.2.44..10..66.235.44..01..62.5.3.44.3..2.66.....4|260551341..2..04..36..2...0......14......2......63......5......41|....51130510533510510510510516....1651....516....1051....510|.073..22.073..2.073..22.073.31.073.645.073.70.073.234.073.56.....701|...7777.345...72......37.....47...34567..20126...345601.....234.....560|.7....2.11...33.2....4.33...55.4....6.55...11.6....7|.4....4.2..1..25..00..55..1..6.427754....6......33......7|.1..234.2..304.4..231..3.430..4..251..3.4504|2..11..22.333.2.2.44.2..77077....44.....575..632642365.....1|423571361..1..1301324354..4..4.5..5..50320450.6..6..67..7..7|.54.11..5.41.1.0.....0.064..42.4352636.26..54|...66.....554....1664...17253..272153.2131427.313427..35566|..73.....176....37515..7702404714656571771771|..1..1...56156..112211.4710174.375753..11111|4...5..46676.4542752264..41.52.5277.744654.42...4.41.0005.......0000|1...00..2..010.3..0220.4.011105..0440.6..444.7...44.....010....0110|..3..17..74..431..020..54.3...4.36116..1..4.1.75...3...3|1...1...2...2...3..33...4.4.4..5..55..6..717.7...66|2..6.2515.4.4.46..3...3420...5...6.36...5.5.....3.425|6...4..303..6.0..7.1.3.7.47.2.523216.3..04354.76..0..43...420.....6|61251630......40527162.3......67640526......16140623.0.......0453760|...01.....070....1220...07070..6.77.6.4166641.5.77.5|...56.....333....7537...3.6.3.2..37..122.3.11.025610....3......37|.6....2..26060..0......6.......3320600.6....0...6026..20|07......15.....725.....634....5544....3353...12253...10076..335576|..2662...21102..232202.2325272242527202426620.2522272.256672..22222|..0..0..10010011775577132.2.2337.66.737..6..7445..544|.63..36.6.2.2.62.0110.250.7.05.5.66.5.714.4177.4..4.720...02.2....2|61....40275557361....40257775361....40206660361....40|5..11..55.4.4.5.24..42.72...270.0440.072...27.23..32.5.3.3.55..66..5|22....555.....25......21.151.352531252205.205.37..37...205|06523417....1.....11.....1....71432560....1.....11.....1....06523417|..1..1...24.24..236532..65.65....77......7...1..77..32..7..2.345641|1..22..21373742.16..62.6.737.6.42..13...261...433443|...56......3......12......4......57......2...65432175|.0.1.2...4.5.6..7.0.2...6.3.6..1.1.2...3.5.0..2.4.6...3.6.7|112233445567655643322164657631|74.12.4755.2.44.5.77.4.1067602.2.53.1.11...22614..42653...35|15100151125.52136122163434.43434655643023.32023155132|302757656.1.2.1.640345..5.1.4..735653.1.2.4.264466551';
+  var LEVELS = LEVEL_BLOB.split('|');
+
+  /* =================================================================
+     حساب الشبكة السداسية — نصّ الأصل حرفاً بحرف
+     ================================================================= */
+  function odd(n) { return ((n % 2) + 2) % 2 === 1; }
+  function even(n) { return !odd(n); }
+  /* Perl's int() يقطع نحو الصفر لا نحو الأسفل، فـMath.trunc لا Math.floor */
+  function cellX(cx, cy) { return LEFT + cx * BS + (odd(cy + S.swap) ? BS / 2 : 0); }
+  function cellY(cy) { return TOP + cy * ROW; }
+  function closestPos(x, y) {
+    var ny = Math.trunc((y - TOP + ROW / 2) / ROW);
+    var nx = Math.trunc((x - LEFT + BS / 2 - (odd(ny + S.swap) ? BS / 2 : 0)) / BS);
+    return [nx, ny];
+  }
+  /* bubble_next_to: المسافة في إحداثيات الشبكة، بنصف خانة إزاحةً للصفّ الفردي */
+  function around(cx, cy) {
+    var e = even(cy + S.swap) ? 1 : 0;            // next_positions
+    return [[cx - 1, cy], [cx + 1, cy],
+            [cx - e, cy - 1], [cx - e, cy + 1],
+            [cx - e + 1, cy - 1], [cx - e + 1, cy + 1]];
+  }
+  function key(cx, cy) { return cy * 16 + cx; }   // 16 لا 8: الأعمدة 0..7 والصفوف 0..12+
+
+  /* =================================================================
+     الحالة
+     ================================================================= */
+  var S = {
+    phase: 'menu',        // menu | play | paused | clear | over | done
+    level: 1, pick: 1, score: 0, best: 0,
+    grid: new Map(),      // key(cx,cy) -> {cx,cy,c,root}
+    swap: 0,             // $oddswap
+    rootlevel: 0,        // $newrootlevel
+    shots: 0,            // $newroot
+    angle: Math.PI / 2,
+    cur: 0, next: 0,
+    fly: null,           // {x,y,ox,oy,dir,c} بإحداثيات الزاوية العليا اليسرى كالأصل
+    falling: [], popping: [],
+    hurry: 0,
+    act: { left: false, right: false, centre: false, fire: false },
+    drag: false,
+    flash: 0             // وميض السقف قبل نزوله
+  };
+
+  function rnd(n) { return Math.floor(Math.random() * n); }
+
+  /* validate_nextcolor: لونٌ من الثمانية، يُعاد سحبه حتى يكون لوناً موجوداً
+     على اللوح فعلاً — وهذا في طور اللاعب الواحد وحده. */
+  function colourOnBoard(c) {
+    var it = S.grid.values(), v;
+    while (!(v = it.next()).done) if (v.value.c === c) return true;
+    return false;
+  }
+  function pickColour() {
+    if (!S.grid.size) return rnd(NCOL);
+    var c, guard = 0;
+    do { c = rnd(NCOL); } while (!colourOnBoard(c) && ++guard < 400);
+    return c;
+  }
+
+  function loadLevel(n) {
+    S.grid.clear();
+    S.swap = 0; S.rootlevel = 0; S.shots = 0; S.flash = 0;
+    S.angle = Math.PI / 2; S.hurry = 0;
+    S.fly = null; S.falling = []; S.popping = [];
+    var rows = LEVELS[n - 1] || '';
+    var i = 0;
+    for (var cy = 0; cy < 10; cy++) {
+      var wide = even(cy) ? COLS : COLS - 1;
+      for (var cx = 0; cx < wide; cx++, i++) {
+        var ch = rows.charAt(i);
+        if (ch === '' || ch === '.') continue;
+        var c = ch.charCodeAt(0) - 48;
+        if (c < 0 || c >= NCOL) continue;
+        /* real_stick_bubble: الفقاعة على صفّ السقف جذرٌ يتعلّق به ما تحته */
+        S.grid.set(key(cx, cy), { cx: cx, cy: cy, c: c, root: cy === S.rootlevel });
+      }
+    }
+    S.cur = pickColour();
+    S.next = pickColour();
+  }
+
+  /* find_bubble_group: كل ما اتّصل بها من لونها */
+  function group(cx, cy, c) {
+    var seen = new Set([key(cx, cy)]), out = [[cx, cy]], q = [[cx, cy]];
+    while (q.length) {
+      var p = q.pop(), ns = around(p[0], p[1]);
+      for (var i = 0; i < ns.length; i++) {
+        var k = key(ns[i][0], ns[i][1]);
+        if (seen.has(k)) continue;
+        var b = S.grid.get(k);
+        if (!b || b.c !== c) continue;
+        seen.add(k); out.push([b.cx, b.cy]); q.push([b.cx, b.cy]);
+      }
+    }
+    return out;
+  }
+
+  /* ما بقي متعلّقاً بالجذور، وما عداه ساقط */
+  function detached() {
+    var seen = new Set(), q = [];
+    var it = S.grid.values(), v;
+    while (!(v = it.next()).done) {
+      if (v.value.root) { var k = key(v.value.cx, v.value.cy); if (!seen.has(k)) { seen.add(k); q.push(v.value); } }
+    }
+    while (q.length) {
+      var b = q.pop(), ns = around(b.cx, b.cy);
+      for (var i = 0; i < ns.length; i++) {
+        var nk = key(ns[i][0], ns[i][1]);
+        if (seen.has(nk)) continue;
+        var nb = S.grid.get(nk);
+        if (!nb) continue;
+        seen.add(nk); q.push(nb);
+      }
+    }
+    var out = [];
+    it = S.grid.values();
+    while (!(v = it.next()).done) if (!seen.has(key(v.value.cx, v.value.cy))) out.push(v.value);
+    return out;
+  }
+
+  function scatter(list) {   // destroy_bubbles
+    for (var i = 0; i < list.length; i++) {
+      S.popping.push({ x: cellX(list[i].cx, list[i].cy), y: cellY(list[i].cy), c: list[i].c,
+                       vx: Math.random() * 3 - 1.5, vy: -Math.random() * 4 - 2 });
+    }
+  }
+
+  function dropCluster(list) {   // ترتيب الانتظار: من الأسفل إلى الأعلى، ومن اليمين إلى اليسار
+    if (!list.length) return;
+    var maxcy = 0, i;
+    for (i = 0; i < list.length; i++) if (list[i].cy > maxcy) maxcy = list[i].cy;
+    list.sort(function (a, b) { return (b.cy * 8 + b.cx) - (a.cy * 8 + a.cx); });
+    var shift = 0, line = maxcy;
+    for (i = 0; i < list.length; i++) {
+      if (line !== list[i].cy) shift = 0;
+      line = list[i].cy;
+      S.falling.push({ x: cellX(list[i].cx, list[i].cy), y: cellY(list[i].cy), c: list[i].c,
+                       wait: (maxcy - list[i].cy) * 5 + shift, speed: 0 });
+      shift++;
+    }
+  }
+
+  /* stick_bubble: تلتصق، أو ينفجر العنقود ويسقط ما انفصل */
+  function stick(cx, cy, c) {
+    /* حرزٌ لا قاعدة: الهندسة لا تخرج بالخانة عن اللوح، لكن خانةً سالبة تفسد
+       مفتاح الخريطة فتُفقد فقاعة. والأصل يقبل الخانة ٧ في الصفّ الفردي —
+       وهي ملاصقة للجدار الأيمن تماماً — فتُقبل هنا كما هي. */
+    if (cx < 0) cx = 0; else if (cx > COLS - 1) cx = COLS - 1;
+    if (cy < S.rootlevel) cy = S.rootlevel; else if (cy > ROWS) cy = ROWS;
+    /* وإن صادفت الخانة مشغولةً — وهي حالةٌ يتركها الأصل بفقاعتين في مكان
+       واحد — فأقرب خانة فارغة حولها، فلا تُدفن فقاعة تحت أخرى. */
+    if (S.grid.has(key(cx, cy))) {
+      var alt = around(cx, cy), got = false;
+      for (var a = 0; a < alt.length; a++) {
+        var ax = alt[a][0], ay = alt[a][1];
+        if (ax < 0 || ax > COLS - 1 || ay < S.rootlevel || ay > ROWS) continue;
+        if (!S.grid.has(key(ax, ay))) { cx = ax; cy = ay; got = true; break; }
+      }
+      if (!got) { S.shots++; verifyEnd(); return; }
+    }
+    var g = group(cx, cy, c);            // فيها الفقاعة الجديدة
+    if (g.length - 1 <= 1) {             // @will_destroy <= 1 → التصاق
+      S.grid.set(key(cx, cy), { cx: cx, cy: cy, c: c, root: cy === S.rootlevel });
+    } else {
+      var popped = [], i;
+      for (i = 0; i < g.length; i++) {
+        var b = S.grid.get(key(g[i][0], g[i][1]));
+        if (b) { popped.push(b); S.grid.delete(key(b.cx, b.cy)); }
+      }
+      popped.push({ cx: cx, cy: cy, c: c });      // والقاذفة معها
+      scatter(popped);
+      var fell = detached();
+      for (i = 0; i < fell.length; i++) S.grid.delete(key(fell[i].cx, fell[i].cy));
+      dropCluster(fell);
+      S.score += (popped.length * PT_POP) + (fell.length * PT_DROP);
+      if (S.score > S.best) { S.best = S.score; noteBest(); }
+    }
+
+    /* نزول السقف: عدّاد القذفات، ووميضٌ قبله بقذفتين كما في الأصل */
+    S.shots++;
+    if (S.shots === DROP_AT - 1 || S.shots === DROP_AT) S.flash = 1;
+    if (S.shots > DROP_AT) {
+      S.shots = 0; S.flash = 0;
+      S.swap = S.swap ? 0 : 1;
+      var moved = [], it = S.grid.values(), v;
+      while (!(v = it.next()).done) moved.push(v.value);
+      S.grid.clear();
+      for (var j = 0; j < moved.length; j++) { moved[j].cy++; S.grid.set(key(moved[j].cx, moved[j].cy), moved[j]); }
+      S.rootlevel++;
+    }
+    verifyEnd();
+  }
+
+  /* verify_if_end: فقاعةٌ تحت الصفّ ١١ خسارة، ولوحٌ فارغ مستوى تمّ */
+  function verifyEnd() {
+    if (S.phase !== 'play') return;
+    var it = S.grid.values(), v;
+    while (!(v = it.next()).done) {
+      if (v.value.cy > ROWS - 1) { lose(); return; }
+    }
+    if (S.grid.size === 0) clear();
+  }
+
+  /* =================================================================
+     نبضة المحاكاة: عشرون مللي ثانية، هي $TARGET_ANIM_SPEED نفسها
+     ================================================================= */
+  function launch() {
+    S.fly = { x: PIVOT_X - BS / 2, y: LAUNCH_TOP, ox: PIVOT_X - BS / 2, oy: LAUNCH_TOP,
+              dir: S.angle, c: S.cur };
+    S.cur = S.next;
+    S.next = pickColour();      // validate_nextcolor يُقاس على اللوح الآن
+    S.hurry = 0;
+  }
+
+  function tick() {
+    var i;
+
+    /* الفقاعات المنفجرة والساقطة تتحرّك في كل الأطوار كي تكمل حركتها */
+    for (i = S.popping.length - 1; i >= 0; i--) {
+      var e = S.popping[i];
+      e.x += e.vx; e.y += e.vy; e.vy += GRAV;
+      if (e.y > H) S.popping.splice(i, 1);
+    }
+    for (i = S.falling.length - 1; i >= 0; i--) {
+      var f = S.falling[i];
+      if (f.wait > 0) { f.wait--; continue; }
+      f.y += f.speed; f.speed += GRAV;
+      if (f.y > H) S.falling.splice(i, 1);
+    }
+
+    if (S.phase !== 'play') return;
+
+    /* دوران القاذف بسرعة الأصل، والمفاتيح وحدها تدور — السحب يضع الزاوية */
+    if (S.act.left) S.angle += TURN;
+    if (S.act.right) S.angle -= TURN;
+    if (S.act.centre) {
+      if (S.angle >= Math.PI / 2 - TURN && S.angle <= Math.PI / 2 + TURN) S.angle = Math.PI / 2;
+      else S.angle += (S.angle < Math.PI / 2) ? TURN : -TURN;
+    }
+    if (S.angle < A_MIN) S.angle = A_MIN;
+    if (S.angle > A_MAX) S.angle = A_MAX;
+
+    S.hurry++;
+    /* القذف التلقائي في الأصل مساواةٌ صارمة (‎== $TIME_HURRY_MAX‎) ويشترط ألّا
+       تكون فقاعةٌ في الجوّ. فإن بلغ العدّاد حدَّه وفي الجوّ فقاعة فات الشرط
+       ولم يعد — وهذه طبيعة الأصل، بقيت كما هي. */
+    if ((S.act.fire || S.hurry === HURRY_MAX) && !S.fly) launch();
+    S.act.fire = false;
+
+    if (S.fly) {
+      var b = S.fly;
+      b.ox = b.x; b.oy = b.y;
+      b.x += SPEED * Math.cos(b.dir);
+      b.y -= SPEED * Math.sin(b.dir);
+      if (b.x < LEFT) { b.x = 2 * LEFT - b.x; b.dir -= 2 * (b.dir - Math.PI / 2); }
+      if (b.x > RIGHT - BS) { b.x = 2 * (RIGHT - BS) - b.x; b.dir += 2 * (Math.PI / 2 - b.dir); }
+
+      if (b.y <= TOP + S.rootlevel * ROW) {          // التصاق بالسقف
+        var p = closestPos(b.x, b.y);
+        S.fly = null; stick(p[0], p[1], b.c);
+      } else {
+        var it = S.grid.values(), v;
+        while (!(v = it.next()).done) {
+          var g = v.value, gx = cellX(g.cx, g.cy), gy = cellY(g.cy);
+          var dx = b.x - gx;
+          if (dx * dx > HIT2) continue;
+          var dy = b.y - gy;
+          if (dx * dx + dy * dy >= HIT2) continue;
+          var q = closestPos((b.ox + b.x) / 2, (b.oy + b.y) / 2);
+          S.fly = null; stick(q[0], q[1], b.c);
+          break;
+        }
+      }
+    }
+  }
+
+  /* =================================================================
+     الرسم — كل شيء بالكود، ولا ملفّ خارجياً في الصفحة
+     ================================================================= */
+  var cv = document.getElementById('game');
+  var g2 = cv.getContext('2d');
+
+  function bubble(x, y, ci, r) {
+    var C = COLORS[ci];
+    var gr = g2.createRadialGradient(x - r * 0.34, y - r * 0.38, r * 0.12, x, y, r);
+    gr.addColorStop(0, C.hi); gr.addColorStop(0.5, C.base); gr.addColorStop(1, C.lo);
+    g2.beginPath(); g2.arc(x, y, r, 0, 6.2832); g2.fillStyle = gr; g2.fill();
+    g2.lineWidth = Math.max(1, r * 0.09); g2.strokeStyle = 'rgba(8,14,22,.55)'; g2.stroke();
+    /* بريق الجليد: نقطة عالية وقوس سفلي خفيف، كما في رسوم الأصل */
+    g2.beginPath(); g2.ellipse(x - r * 0.33, y - r * 0.40, r * 0.26, r * 0.17, -0.7, 0, 6.2832);
+    g2.fillStyle = 'rgba(255,255,255,.85)'; g2.fill();
+    g2.beginPath(); g2.arc(x, y, r * 0.72, 0.5, 1.9);
+    g2.lineWidth = Math.max(1, r * 0.1); g2.strokeStyle = 'rgba(255,255,255,.22)'; g2.stroke();
+  }
+
+  function iceWall() {
+    /* جداران من كتل جليد: تدرّج بارد، وأوجه مشطوفة، وخطوط فواصل */
+    for (var side = 0; side < 2; side++) {
+      var x0 = side ? RIGHT : 0;
+      var lg = g2.createLinearGradient(x0, 0, x0 + LEFT, 0);
+      if (side) { lg.addColorStop(0, '#9fd8ef'); lg.addColorStop(0.45, '#cbeaf8'); lg.addColorStop(1, '#5c93b5'); }
+      else { lg.addColorStop(0, '#5c93b5'); lg.addColorStop(0.55, '#cbeaf8'); lg.addColorStop(1, '#9fd8ef'); }
+      g2.fillStyle = lg; g2.fillRect(x0, HUD, LEFT, H - HUD);
+      g2.strokeStyle = 'rgba(255,255,255,.55)'; g2.lineWidth = 1;
+      for (var y = HUD + 10; y < H; y += 26) {
+        g2.beginPath(); g2.moveTo(x0 + 1.5, y); g2.lineTo(x0 + LEFT - 1.5, y + (side ? -4 : 4)); g2.stroke();
+      }
+      g2.strokeStyle = 'rgba(30,70,100,.45)';
+      g2.beginPath(); g2.moveTo(side ? x0 + 0.5 : x0 + LEFT - 0.5, HUD); g2.lineTo(side ? x0 + 0.5 : x0 + LEFT - 0.5, H); g2.stroke();
+    }
+  }
+
+  function panel(x, y, w, h, label, value) {
+    var lg = g2.createLinearGradient(x, y, x, y + h);
+    lg.addColorStop(0, '#e8f6fd'); lg.addColorStop(0.5, '#a9d3e8'); lg.addColorStop(1, '#6d9fba');
+    g2.beginPath(); g2.roundRect ? g2.roundRect(x, y, w, h, 5) : g2.rect(x, y, w, h);
+    g2.fillStyle = lg; g2.fill();
+    g2.lineWidth = 1.2; g2.strokeStyle = 'rgba(26,62,88,.7)'; g2.stroke();
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    g2.fillStyle = 'rgba(20,52,76,.8)'; g2.font = '700 8px Helvetica, Arial, sans-serif';
+    g2.fillText(label, x + w / 2, y + 9);
+    g2.fillStyle = '#0f2f47'; g2.font = '700 13px "Courier New", Courier, monospace';
+    g2.fillText(value, x + w / 2, y + h - 11);
+  }
+
+  function woodSign(x, y, w, h, text) {
+    var lg = g2.createLinearGradient(x, y, x, y + h);
+    lg.addColorStop(0, '#a9702f'); lg.addColorStop(0.45, '#8a5320'); lg.addColorStop(1, '#5f3712');
+    g2.beginPath(); g2.roundRect ? g2.roundRect(x, y, w, h, 4) : g2.rect(x, y, w, h);
+    g2.fillStyle = lg; g2.fill();
+    g2.lineWidth = 2; g2.strokeStyle = '#3d2209'; g2.stroke();
+    g2.save();
+    g2.beginPath(); g2.roundRect ? g2.roundRect(x, y, w, h, 4) : g2.rect(x, y, w, h); g2.clip();
+    g2.strokeStyle = 'rgba(60,32,8,.30)'; g2.lineWidth = 1;
+    for (var i = 1; i < 5; i++) {
+      g2.beginPath(); g2.moveTo(x, y + i * h / 5 + 1.5); g2.lineTo(x + w, y + i * h / 5 - 1); g2.stroke();
+    }
+    g2.restore();
+    /* مسمارٌ في كل زاوية */
+    g2.fillStyle = 'rgba(232,222,198,.85)';
+    for (var c = 0; c < 4; c++) {
+      g2.beginPath(); g2.arc(x + (c % 2 ? w - 5 : 5), y + (c > 1 ? h - 5 : 5), 1.6, 0, 6.2832); g2.fill();
+    }
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    g2.font = '800 13px Georgia, "Times New Roman", serif';
+    g2.fillStyle = 'rgba(40,20,4,.55)'; g2.fillText(text, x + w / 2 + 0.8, y + h / 2 + 1.4);
+    g2.fillStyle = '#ffe6ae'; g2.fillText(text, x + w / 2, y + h / 2 + 0.6);
+  }
+
+  function ceiling() {
+    var y = TOP + S.rootlevel * ROW;
+    /* العمود المسنّن فوق السقف: يقصر كلما نزل، فيُرى أنه يُكبس */
+    var lg = g2.createLinearGradient(0, HUD, 0, y);
+    lg.addColorStop(0, '#20364a'); lg.addColorStop(1, '#385877');
+    g2.fillStyle = lg; g2.fillRect(LEFT, HUD, RIGHT - LEFT, Math.max(0, y - HUD));
+    g2.strokeStyle = 'rgba(150,200,230,.18)'; g2.lineWidth = 1;
+    for (var t = HUD + 5; t < y; t += 7) {
+      g2.beginPath(); g2.moveTo(LEFT + 2, t); g2.lineTo(RIGHT - 2, t); g2.stroke();
+    }
+    /* حافّة السقف: نصلٌ معدني بأسنان، ويضيء قبل النزول بقذفتين */
+    var lit = S.flash && (!reduce) && (Math.floor(clock / 8) % 2 === 0);
+    var bg = g2.createLinearGradient(0, y - 9, 0, y);
+    bg.addColorStop(0, lit ? '#ffd28a' : '#9fb6c9'); bg.addColorStop(1, lit ? '#c2661f' : '#4a6478');
+    g2.fillStyle = bg; g2.fillRect(LEFT, y - 9, RIGHT - LEFT, 9);
+    g2.fillStyle = lit ? '#ffeccb' : '#cfe2ee';
+    for (var x = LEFT; x < RIGHT; x += 8) {
+      g2.beginPath(); g2.moveTo(x, y); g2.lineTo(x + 4, y + 4); g2.lineTo(x + 8, y); g2.closePath(); g2.fill();
+    }
+  }
+
+  function dangerLine() {
+    g2.save();
+    g2.strokeStyle = 'rgba(226,64,58,.85)'; g2.lineWidth = 2; g2.setLineDash([6, 5]);
+    g2.beginPath(); g2.moveTo(LEFT, DANGER_Y); g2.lineTo(RIGHT, DANGER_Y); g2.stroke();
+    g2.restore();
+  }
+
+  function penguin() {
+    var a = S.angle;
+    /* القاعدة الجليدية، وفيها نافذة الفقاعة التالية */
+    var bg = g2.createLinearGradient(0, 444, 0, 476);
+    bg.addColorStop(0, '#cfe9f6'); bg.addColorStop(1, '#6d9cbb');
+    g2.beginPath(); g2.roundRect ? g2.roundRect(92, 444, 104, 32, 9) : g2.rect(92, 444, 104, 32);
+    g2.fillStyle = bg; g2.fill();
+    g2.lineWidth = 1.5; g2.strokeStyle = 'rgba(26,62,88,.65)'; g2.stroke();
+
+    /* الماسورة: تدور بالزاوية، وتخرج من تحت الفقاعة فتُرى جهةُ التصويب */
+    g2.save();
+    g2.translate(PIVOT_X, PIVOT_Y); g2.rotate(-a);
+    var tg = g2.createLinearGradient(0, -7, 0, 7);
+    tg.addColorStop(0, '#d7e7f2'); tg.addColorStop(0.5, '#7d97ab'); tg.addColorStop(1, '#3d5567');
+    g2.beginPath(); g2.roundRect ? g2.roundRect(-6, -7, 34, 14, 7) : g2.rect(-6, -7, 34, 14);
+    g2.fillStyle = tg; g2.fill();
+    g2.lineWidth = 1.5; g2.strokeStyle = 'rgba(20,40,58,.75)'; g2.stroke();
+    g2.beginPath(); g2.arc(26, 0, 4, 0, 6.2832); g2.fillStyle = '#2b4355'; g2.fill();
+    g2.restore();
+
+    /* البطريق: بدنٌ داكن، بطن أبيض، منقار وقدمان برتقاليتان، وعينان تتبعان التصويب */
+    var bx = PIVOT_X, by = 428;
+    g2.fillStyle = '#e8862a';
+    g2.beginPath(); g2.ellipse(bx - 10, 450, 8, 4, -0.15, 0, 6.2832); g2.fill();
+    g2.beginPath(); g2.ellipse(bx + 10, 450, 8, 4, 0.15, 0, 6.2832); g2.fill();
+    var pg = g2.createLinearGradient(bx - 20, by - 20, bx + 16, by + 20);
+    pg.addColorStop(0, '#46586d'); pg.addColorStop(0.55, '#26333f'); pg.addColorStop(1, '#141c25');
+    g2.beginPath(); g2.ellipse(bx, by, 21, 22, 0, 0, 6.2832); g2.fillStyle = pg; g2.fill();
+    g2.lineWidth = 1.5; g2.strokeStyle = 'rgba(8,12,18,.8)'; g2.stroke();
+    /* الزعنفتان ترتفعان مع الماسورة قليلاً */
+    g2.save(); g2.translate(bx, by);
+    g2.fillStyle = '#1b242e';
+    var lift = (a - Math.PI / 2) * 0.5;
+    g2.save(); g2.rotate(-0.5 - lift); g2.beginPath(); g2.ellipse(-20, 0, 6, 12, 0, 0, 6.2832); g2.fill(); g2.restore();
+    g2.save(); g2.rotate(0.5 - lift); g2.beginPath(); g2.ellipse(20, 0, 6, 12, 0, 0, 6.2832); g2.fill(); g2.restore();
+    g2.restore();
+    /* البطن */
+    var wg = g2.createLinearGradient(bx, by - 8, bx, by + 20);
+    wg.addColorStop(0, '#ffffff'); wg.addColorStop(1, '#d3dde6');
+    g2.beginPath(); g2.ellipse(bx, by + 6, 13, 14, 0, 0, 6.2832); g2.fillStyle = wg; g2.fill();
+    /* الوجه: تحت الفقاعة فيبقى مرئياً */
+    var look = Math.cos(a) * 2.2;
+    for (var s = -1; s <= 1; s += 2) {
+      g2.beginPath(); g2.arc(bx + s * 6, by + 1, 4.2, 0, 6.2832); g2.fillStyle = '#fff'; g2.fill();
+      g2.beginPath(); g2.arc(bx + s * 6 + look, by + 1.6, 2.1, 0, 6.2832); g2.fillStyle = '#10161d'; g2.fill();
+    }
+    g2.beginPath(); g2.moveTo(bx - 5, by + 8); g2.lineTo(bx + 5, by + 8); g2.lineTo(bx, by + 15); g2.closePath();
+    g2.fillStyle = '#e8862a'; g2.fill();
+    g2.lineWidth = 1; g2.strokeStyle = 'rgba(120,62,8,.7)'; g2.stroke();
+
+    /* نافذة الفقاعة التالية في القاعدة */
+    g2.beginPath(); g2.arc(PIVOT_X, NEXT_Y, 14, 0, 6.2832);
+    g2.fillStyle = 'rgba(16,40,60,.75)'; g2.fill();
+    g2.lineWidth = 2; g2.strokeStyle = 'rgba(232,245,252,.8)'; g2.stroke();
+    if (S.phase === 'play' || S.phase === 'paused') bubble(PIVOT_X, NEXT_Y, S.next, 11);
+
+    /* خطّ التصويب: طوله ٦٠ كـ‎simpleshooter diameter‎، يبدأ من حافّة الفقاعة */
+    if (S.phase === 'play' && !S.fly) {
+      g2.save();
+      g2.strokeStyle = 'rgba(255,255,255,.75)'; g2.lineWidth = 2; g2.setLineDash([3, 5]);
+      g2.beginPath();
+      g2.moveTo(PIVOT_X + Math.cos(a) * 18, PIVOT_Y - Math.sin(a) * 18);
+      g2.lineTo(PIVOT_X + Math.cos(a) * 78, PIVOT_Y - Math.sin(a) * 78);
+      g2.stroke(); g2.restore();
+    }
+
+    /* الفقاعة الحالية على القاذف */
+    if (S.phase === 'play' || S.phase === 'paused') bubble(PIVOT_X, PIVOT_Y, S.cur, BS / 2);
+  }
+
+  function draw() {
+    /* أرضية الملعب: عمقٌ بارد لا لون واحد مسطّح */
+    var sky = g2.createLinearGradient(0, HUD, 0, H);
+    sky.addColorStop(0, '#0d2136'); sky.addColorStop(0.55, '#123049'); sky.addColorStop(1, '#1b4363');
+    g2.fillStyle = sky; g2.fillRect(0, 0, W, H);
+    g2.save();
+    g2.beginPath(); g2.rect(LEFT, HUD, RIGHT - LEFT, H - HUD); g2.clip();
+    g2.fillStyle = 'rgba(255,255,255,.05)';
+    for (var s = 0; s < 22; s++) {
+      var sx = (s * 53 % (RIGHT - LEFT)) + LEFT, sy = HUD + (s * 91 % (H - HUD));
+      g2.fillRect(sx, sy, 1, 1);
+    }
+    g2.restore();
+
+    ceiling();
+    dangerLine();
+
+    var it = S.grid.values(), v;
+    while (!(v = it.next()).done) {
+      var b = v.value;
+      bubble(cellX(b.cx, b.cy) + BS / 2, cellY(b.cy) + BS / 2, b.c, BS / 2);
+    }
+    var i;
+    for (i = 0; i < S.falling.length; i++)
+      bubble(S.falling[i].x + BS / 2, S.falling[i].y + BS / 2, S.falling[i].c, BS / 2);
+    for (i = 0; i < S.popping.length; i++)
+      bubble(S.popping[i].x + BS / 2, S.popping[i].y + BS / 2, S.popping[i].c, BS / 2 - 2);
+    if (S.fly) bubble(S.fly.x + BS / 2, S.fly.y + BS / 2, S.fly.c, BS / 2);
+
+    penguin();
+    iceWall();
+
+    /* الشريط العلوي: لوحتا نتيجة ولافتة خشبية بينهما */
+    var hg = g2.createLinearGradient(0, 0, 0, HUD);
+    hg.addColorStop(0, '#20364a'); hg.addColorStop(1, '#0e1d2c');
+    g2.fillStyle = hg; g2.fillRect(0, 0, W, HUD);
+    panel(4, 3, 88, 34, 'SCORE', String(S.score));
+    panel(196, 3, 88, 34, 'TOP', String(S.best));
+    woodSign(98, 2, 92, 36, 'LEVEL ' + (S.phase === 'menu' ? S.pick : S.level));
+
+    /* HURRY: نصّ الأصل نفسه، وميضه يسكن عند تقليل الحركة */
+    if (S.phase === 'play' && S.hurry > HURRY_WARN && (reduce || Math.floor(clock / 12) % 2 === 0)) {
+      g2.save();
+      g2.textAlign = 'center'; g2.textBaseline = 'middle';
+      g2.font = '900 26px "Arial Black", Arial, sans-serif';
+      g2.lineWidth = 4; g2.strokeStyle = 'rgba(10,20,30,.8)';
+      g2.strokeText('HURRY!', W / 2, HUD + 130); g2.fillStyle = '#ffd34a';
+      g2.fillText('HURRY!', W / 2, HUD + 130);
+      g2.restore();
+    }
+  }
+
+  /* =================================================================
+     الأطوار والواجهة
+     ================================================================= */
+  var BEST_KEY = 'fb.best', LVL_KEY = 'fb.level';
+  var ov = {
+    menu: document.getElementById('menu'),
+    paused: document.getElementById('paused'),
+    cleared: document.getElementById('cleared'),
+    over: document.getElementById('gameover')
+  };
+  var lvlPick = document.getElementById('lvlPick');
+  var reduce = false, clock = 0;
+  try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+
+  try { S.best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; } catch (e) { S.best = 0; }
+  if (!(S.best >= 0)) S.best = 0;
+  try {
+    var st = parseInt(localStorage.getItem(LVL_KEY) || '1', 10);
+    if (st >= 1 && st <= LEVELS.length) S.pick = st;
+  } catch (e) {}
+  S.level = S.pick;          /* المستوى المحفوظ هو ما تفتح عليه القائمة */
+
+  var bestSaved = S.best, lastWrite = 0;
+  /* أعلى نتيجة تُكتب وهي ترتفع، مخنوقةً بثانية كي لا يُلمس التخزين مع كل نقطة */
+  function noteBest() {
+    var now = Date.now();
+    if (now - lastWrite < 1000) return;
+    lastWrite = now; writeAll();
+  }
+  function writeAll() {
+    try {
+      if (S.best !== bestSaved) { localStorage.setItem(BEST_KEY, String(S.best)); bestSaved = S.best; }
+      localStorage.setItem(LVL_KEY, String(S.phase === 'menu' ? S.pick : S.level));
+    } catch (e) {}
+  }
+
+  function show(which) {
+    for (var k in ov) if (ov.hasOwnProperty(k)) ov[k].classList.toggle('hidden', k !== which);
+  }
+  function setPhase(p) {
+    S.phase = p;
+    document.body.dataset.state = (p === 'play') ? 'playing'
+      : (p === 'paused') ? 'paused'
+      : (p === 'menu') ? 'menu'
+      : (p === 'clear') ? 'clear' : 'over';
+    show(p === 'menu' ? 'menu' : p === 'paused' ? 'paused' : p === 'clear' ? 'cleared'
+       : (p === 'over' || p === 'done') ? 'over' : null);
+  }
+
+  function toMenu() {
+    S.pick = Math.min(Math.max(S.level || 1, 1), LEVELS.length);
+    lvlPick.textContent = 'LEVEL ' + S.pick;
+    setPhase('menu');
+  }
+  function start(n) {
+    S.level = n; S.score = 0;
+    loadLevel(n);
+    setPhase('play');
+    writeAll();
+  }
+  function clear() {
+    S.score += PT_LEVEL;
+    if (S.score > S.best) { S.best = S.score; }
+    if (S.level >= LEVELS.length) {
+      document.getElementById('overTitle').textContent = 'ALL 100 CLEARED';
+      document.getElementById('finalScore').textContent = String(S.score);
+      document.getElementById('recordMsg').textContent = 'مئة المستوى كاملةً.';
+      setPhase('done');
+    } else {
+      document.getElementById('clScore').textContent = String(S.score);
+      document.getElementById('clNext').textContent = String(S.level + 1);
+      setPhase('clear');
+    }
+    writeAll();
+  }
+  function lose() {
+    document.getElementById('overTitle').textContent = 'GAME OVER';
+    document.getElementById('finalScore').textContent = String(S.score);
+    document.getElementById('recordMsg').textContent =
+      (S.score >= S.best && S.score > 0) ? 'أعلى نتيجة جديدة' : ('أعلى نتيجة ' + S.best);
+    setPhase('over');
+    writeAll();
+  }
+  function nextLevel() {
+    var keep = S.score;
+    start(S.level + 1);
+    S.score = keep;
+  }
+
+  /* الزرّ الأزرق: فعلٌ واحد في كل طور، فلا طريقان ظاهران لفعل واحد */
+  function primary() {
+    if (S.phase === 'menu') start(S.pick);
+    else if (S.phase === 'play') S.act.fire = true;
+    else if (S.phase === 'paused') setPhase('play');
+    else if (S.phase === 'clear') nextLevel();
+    else toMenu();
+  }
+  function togglePause() {
+    if (S.phase === 'play') { setPhase('paused');
+      document.getElementById('pLevel').textContent = String(S.level);
+      document.getElementById('pScore').textContent = String(S.score);
+      writeAll();
+    } else if (S.phase === 'paused') setPhase('play');
+  }
+  function nudge(d) {
+    if (S.phase === 'menu') {
+      S.pick = Math.min(Math.max(S.pick + d, 1), LEVELS.length);
+      lvlPick.textContent = 'LEVEL ' + S.pick;
+      writeAll();
+    }
+  }
+
+  /* =================================================================
+     التحكّم: سحبٌ على الملعب، ومفاتيح على الجهاز ولوحة المفاتيح
+     ================================================================= */
+  function hold(btn, on, off) {
+    btn.addEventListener('pointerdown', function (ev) {
+      ev.preventDefault();
+      try { btn.setPointerCapture(ev.pointerId); } catch (e) {}
+      btn.classList.add('down'); on();
+    });
+    ['pointerup', 'pointercancel'].forEach(function (t) {
+      btn.addEventListener(t, function () { btn.classList.remove('down'); if (off) off(); });
+    });
+  }
+  var lb = document.getElementById('leftBtn'), rb = document.getElementById('rightBtn');
+  hold(lb, function () { S.act.left = true; nudge(-1); }, function () { S.act.left = false; });
+  hold(rb, function () { S.act.right = true; nudge(1); }, function () { S.act.right = false; });
+  hold(document.getElementById('fireBtn'), primary, null);
+  document.getElementById('pauseBtn').addEventListener('click', function (e) { e.preventDefault(); togglePause(); });
+
+  /* السحب على الملعب: يضع الزاوية مباشرةً، والإفلات يقذف */
+  var screen = document.getElementById('screen');
+  /* من إحداثيات الصفحة إلى إحداثيات القماش، عبر الاحتواء: مقياسٌ واحد
+     للمحورين وشريطان متساويان حول الرسم. */
+  function toCanvas(ev) {
+    var r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    var k = Math.min(r.width / W, r.height / H);
+    return [(ev.clientX - r.left - (r.width - W * k) / 2) / k,
+            (ev.clientY - r.top - (r.height - H * k) / 2) / k];
+  }
+  function aimAt(ev) {
+    var pt = toCanvas(ev);
+    if (!pt) return;
+    var x = pt[0], y = pt[1];
+    var a = Math.atan2(PIVOT_Y - y, x - PIVOT_X);
+    if (a < A_MIN) a = A_MIN;
+    if (a > A_MAX) a = A_MAX;
+    S.angle = a;
+  }
+  screen.addEventListener('pointerdown', function (ev) {
+    if (S.phase !== 'play') return;
+    ev.preventDefault();
+    S.drag = true;
+    try { screen.setPointerCapture(ev.pointerId); } catch (e) {}
+    aimAt(ev);
+  });
+  screen.addEventListener('pointermove', function (ev) { if (S.drag) { ev.preventDefault(); aimAt(ev); } });
+  screen.addEventListener('pointerup', function (ev) {
+    if (!S.drag) return;
+    S.drag = false; aimAt(ev); S.act.fire = true;
+  });
+  screen.addEventListener('pointercancel', function () { S.drag = false; });
+
+  document.addEventListener('keydown', function (ev) {
+    var k = ev.key;
+    /* تكرار المفتاح المضغوط لا يقذف: الأصل يقرأ ضغطةً واحدة لا سيلاً منها */
+    if (ev.repeat && (k === 'ArrowUp' || k === ' ' || k === 'Spacebar')) { ev.preventDefault(); return; }
+    if (k === 'ArrowLeft') { S.act.left = true; nudge(-1); }
+    else if (k === 'ArrowRight') { S.act.right = true; nudge(1); }
+    else if (k === 'ArrowDown') { S.act.centre = true; }          /* مفتاح الأصل: يعيد القاذف إلى الوسط */
+    else if (k === 'ArrowUp' || k === ' ' || k === 'Spacebar') { primary(); }   /* الأصل يقذف بـ↑، والمسافة معه */
+    else if (k === 'Escape' || k === 'p' || k === 'P') { togglePause(); }
+    else return;
+    ev.preventDefault();
+  });
+  document.addEventListener('keyup', function (ev) {
+    if (ev.key === 'ArrowLeft') S.act.left = false;
+    else if (ev.key === 'ArrowRight') S.act.right = false;
+    else if (ev.key === 'ArrowDown') S.act.centre = false;
+  });
+
+  /* =================================================================
+     الحلقة: خطوة ثابتة ٢٠ مللي، فتلعب اللعبة بسرعتها هي على أي شاشة
+     ================================================================= */
+  var acc = 0, last = 0, raf = 0;
+  function frame(ts) {
+    raf = requestAnimationFrame(frame);
+    if (!last) last = ts;
+    var dt = ts - last; last = ts;
+    if (dt > 240) dt = 240;            /* فجوةٌ طويلة لا تُسرّع اللعبة */
+    acc += dt;
+    var n = 0;
+    while (acc >= TICK && n < 12) { tick(); acc -= TICK; n++; clock++; }
+    if (acc > TICK * 12) acc = 0;
+    draw();
+  }
+  function run() { if (!raf) { last = 0; raf = requestAnimationFrame(frame); } }
+  function halt() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (S.phase === 'play') togglePause(); writeAll(); halt(); }
+    else run();
+  });
+  window.addEventListener('pagehide', function () { writeAll(); halt(); });
+
+  toMenu();
+  draw();
+  run();
+})();
+</script>
+</body>
+</html>

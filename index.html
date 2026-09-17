@@ -419,7 +419,7 @@
   // served from a real origin it then re-reads games.json and redraws if the
   // file has changed. Adding a game therefore means dropping its page next to
   // this one and adding an entry to games.json — no code change, no rebuild.
-  const REGISTRY = {"version": 1, "games": [{"id": "bounce", "file": "bounce.html", "ar": "الكرة الحمراء", "en": "BOUNCE", "stripe": "#e8231f", "desc": "المراحل الإحدى عشرة الأصلية برسومها وفيزيائها، مع حفظ التقدم واختيار نظام التحكم.", "thumb": {"builtin": "bounce"}}, {"id": "snake", "file": "snake.html", "ar": "الدودة", "en": "SNAKE II", "stripe": "#9bbc0f", "desc": "أسطورة نوكيا على شاشة خضراء، بسرعات متدرجة وأعلى نتيجة محفوظة.", "thumb": {"builtin": "snake"}}, {"id": "tetris", "file": "tetris.html", "ar": "تتريس", "en": "TETRIS", "stripe": "#e0a45e", "desc": "القطع الكلاسيكية على جهاز عاجي بأزرار كبيرة، بموسيقى ومؤثرات.", "thumb": {"builtin": "tetris"}}, {"id": "cadet", "file": "cadet.html", "ar": "سبيس كاديت الأصلية", "en": "SPACE CADET", "stripe": "#5de1ff", "desc": "محرّك اللعبة الأصلي نفسه (مفتوح المصدر، رخصة MIT) في المتصفّح. تختار ملفّات نسختك مرّة واحدة فتُحفظ في هذا الجهاز وحده.", "thumb": {"builtin": "cadet"}}]};
+  const REGISTRY = {"version": 1, "games": [{"id": "bounce", "file": "bounce.html", "ar": "الكرة الحمراء", "en": "BOUNCE", "stripe": "#e8231f", "desc": "المراحل الإحدى عشرة الأصلية برسومها وفيزيائها، مع حفظ التقدم واختيار نظام التحكم.", "thumb": {"builtin": "bounce"}}, {"id": "snake", "file": "snake.html", "ar": "الدودة", "en": "SNAKE II", "stripe": "#9bbc0f", "desc": "أسطورة نوكيا على شاشة خضراء، بسرعات متدرجة وأعلى نتيجة محفوظة.", "thumb": {"builtin": "snake"}}, {"id": "tetris", "file": "tetris.html", "ar": "تتريس", "en": "TETRIS", "stripe": "#e0a45e", "desc": "القطع الكلاسيكية على جهاز عاجي بأزرار كبيرة، بموسيقى ومؤثرات.", "thumb": {"builtin": "tetris"}}, {"id": "cadet", "file": "cadet.html", "ar": "سبيس كاديت الأصلية", "en": "SPACE CADET", "stripe": "#5de1ff", "desc": "محرّك اللعبة الأصلي نفسه (مفتوح المصدر، رخصة MIT) في المتصفّح. تختار ملفّات نسختك مرّة واحدة فتُحفظ في هذا الجهاز وحده.", "thumb": {"builtin": "cadet"}}, {"id": "frozen", "file": "frozen.html", "ar": "الفقاعات المتجمّدة", "en": "FROZEN BUBBLE", "stripe": "#3f93d8", "desc": "مئة مستوى من اللعبة الأصلية بشبكتها السداسية وفيزيائها، وبطريقٌ قاذف أسفل الملعب. حرّة برخصة GPL v2.", "thumb": {"builtin": "frozen"}}]};
   const SOURCES = {};   // artifact build only: the games carried inline
   // Whether this page can read its neighbours. The build says what it intends,
   // but a page opened over file:// has no origin to fetch from whatever the
@@ -532,7 +532,34 @@
     px(c, 22, 4, 5, 4, t % 10 < 5 ? '#5cf08a' : '#2b8f52');
     px(c, 23, 5, 1, 2, '#0d0820'); px(c, 25, 5, 1, 2, '#0d0820');
   }
-  const BUILTIN = { bounce: drawBounce, snake: drawSnake, tetris: drawTetris, cadet: drawCadet };
+  // Frozen Bubble: a bubble flies up, sticks, the third of its colour pops the
+  // group, and the cluster it was holding up drops away.
+  const FROZEN_T = 30;
+  function drawFrozen(c, f) {
+    const t = (f | 0) % FROZEN_T;
+    const BL = '#252ada', GR = '#1ce454', YE = '#f3d70c', RE = '#db2433';
+    px(c, 0, 0, 32, 32, '#123049');
+    px(c, 0, 2, 3, 30, '#cbeaf8'); px(c, 29, 2, 3, 30, '#cbeaf8');   // الجداران الجليديان
+    px(c, 3, 0, 26, 3, '#4a6478');                                    // السقف
+    function ball(cx, cy, col) {
+      c.fillStyle = col; c.beginPath(); c.arc(cx, cy, 3, 0, Math.PI * 2); c.fill();
+      px(c, cx - 2, cy - 2, 1, 1, '#ffffff');
+    }
+    const popped = t >= 14;
+    ball(9, 6, YE); ball(23, 6, GR);                 // الصفّ المعلّق بالسقف
+    if (!popped) { ball(16, 6, BL); ball(12, 12, BL); ball(20, 12, BL); ball(16, 18, YE); }
+    else if (t < 18) { px(c, 13, 3, 7, 7, '#ffffff'); px(c, 9, 9, 15, 7, '#ffffff'); }  // وميض الانفجار
+    else { const d = (t - 18) * 2; if (d < 26) ball(16, 18 + d, YE); }                  // العنقود يسقط
+    if (!popped) {                                    // الفقاعة تصعد نحو مكانها
+      const fy = 26 - Math.min(20, t * 1.5);
+      ball(16, fy, BL);
+    }
+    px(c, 12, 27, 8, 5, '#26333f');                  // البطريق القاذف
+    px(c, 14, 28, 1, 1, '#ffffff'); px(c, 17, 28, 1, 1, '#ffffff');
+    px(c, 15, 30, 2, 1, '#e8862a');
+    if (popped && t >= 18) ball(16, 24, RE);         // التالية على القاذف
+  }
+  const BUILTIN = { bounce: drawBounce, snake: drawSnake, tetris: drawTetris, cadet: drawCadet, frozen: drawFrozen };
 
   /* A future game does not have to ship a draw function. Its "thumb" may be:
        {"builtin": "bounce"}                       one of the four above

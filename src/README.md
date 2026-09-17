@@ -24,6 +24,7 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 | `games/snake.html` | `snake.html` |
 | `games/tetris.html` | `tetris.html` |
 | `games/cadet.html` | `cadet.html` |
+| `games/frozen.html` | `frozen.html` |
 | `build.py` نفسه | `sw.js` و`manifest.webmanifest` |
 
 ألعاب `games/` تمرّ بـ`with_app_head` التي تضيف روابط الأيقونات ووسوم تطبيق الويب إلى رأس الصفحة فقط، دون أن تمسّ طريقة اللعب. لهذا `games/snake.html` و`snake.html` متشابهان عدا الرأس.
