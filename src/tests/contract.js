@@ -64,6 +64,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
               small: keys.filter(k => k.min < 44),
               canvases, rows,
               layers: getComputedStyle(document.body).backgroundImage.split('gradient').length - 1,
+              bgMatch: document.body.dataset.bg === 'match',
+              bgColor: getComputedStyle(document.body).backgroundColor,
             };
           });
           const rm = await ctx.newPage();
@@ -96,7 +98,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
             if (m.rows.length) fails.push('declares fullscreen yet has chassis rows');
           } else if (!m.rows.length) fails.push('no chassis row found');
           else if (m.rows.some(d => d !== 'ltr')) fails.push('a physical row is not ltr');
-          if (m.layers < 2) fails.push('the page background is a flat colour');
+          /* خلفية مسطّحة عيبٌ عادةً — إلا في صفحة تملأها لعبةٌ لها سوادها هي،
+             فأي تدرّج خلفها يُظهر حدّاً بينها وبين ما حولها. فتُعفى بشرطين لا
+             بواحد: أن تُعلن ذلك بـ‎body[data-bg=match]‎، وأن يكون المسطّح
+             سواداً فعلاً — فلا يصير الإعفاء باباً لأي لون مسطّح. */
+          if (m.layers < 2) {
+            const rgb = (m.bgColor.match(/\d+/g) || []).slice(0, 3).map(Number);
+            const black = rgb.length === 3 && rgb.every(v => v <= 16);
+            if (!m.bgMatch) fails.push('the page background is a flat colour');
+            else if (!black) fails.push('claims to match the game yet is not its black: ' + m.bgColor);
+          }
           if (fails.length) { bad++; console.log('FAIL ' + label + fails.join(' | ')); }
           else console.log('PASS ' + label + m.canvases.join(' '));
           await ctx.close();

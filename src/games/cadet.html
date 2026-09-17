@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>سبيس كاديت الأصلية</title>
 <meta name="apple-mobile-web-app-title" content="Cadet">
-<meta name="theme-color" content="#0b0616">
+<meta name="theme-color" content="#000000">
 <style>
 /* ==========================================================================
    سبيس كاديت الأصلية — المحرّك الحقيقي لا تقليداً له.
@@ -24,7 +24,12 @@
    والمضربان نصفا الشاشة. وما يبقى من العقد كما هو: بلا إنترنت خارجي، ولا هدف
    لمس تحت ٤٤ بكسلاً.
    ========================================================================== */
-:root { --ink:#f4ecff; --neon:#c46bff; --neon-2:#5de1ff; --amber:#ffc24d;
+/* الألوان مأخوذة من إطار اللعبة نفسه لا مختارة بالعين: ما حول الطاولة أسودُ
+   خالص (`0,0,0`)، وشريط قوائم المحرّك رماديّ `36,36,36`، وإطار لوحاته
+   `172,172,172`. فالصفحة تكرّر الدرجات الثلاث حتى لا يبين حدٌّ بين اللعبة
+   وما حولها. */
+:root { --ink:#e6e6e6; --neon:#acacac; --neon-2:#c8c8c8; --amber:#ffc24d;
+  --bg:#000; --btn:#242424; --btn-on:#4a4a4a; --line:rgba(172,172,172,.38);
   --font-ui:"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif; }
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; overflow:hidden; }
@@ -32,10 +37,7 @@ body {
   font-family:var(--font-ui); color:var(--ink);
   -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
   touch-action:none; overscroll-behavior:none; -webkit-text-size-adjust:100%;
-  background:
-    radial-gradient(120% 80% at 18% 4%, rgba(150,80,220,.26), rgba(150,80,220,0) 55%),
-    radial-gradient(90% 70% at 88% 24%, rgba(60,170,230,.14), rgba(60,170,230,0) 60%),
-    radial-gradient(140% 100% at 50% 108%, #23103f 0%, #140a26 42%, #080413 100%);
+  background:var(--bg);
 }
 /* ---------- قصّ إطار المحرّك ----------
    المحرّك يرسم إطاراً واحداً ‎٦٠٠×٤٤٠‎: شريط قوائم أعلاه، ثم الطاولة يساراً
@@ -58,8 +60,10 @@ body {
   justify-content:center; gap:8px; }
 #info canvas, #hBall { display:block; height:auto; image-rendering:pixelated; border-radius:3px; }
 #info canvas[hidden], #hBall[hidden] { display:none; }
-/* شارة عدد الكرات قصيرة عريضة، فلا تتوازى مع اللوحتين — مكانها زاوية الشاشة */
-#hBall { position:fixed; z-index:6; }
+/* شارة عدد الكرات قصيرة عريضة (‏‎١٢٤×٣٦‎‏) فلا تتوازى مع لوحتين نسبتهما قريبة من
+   المربّع. ورأسياً مكانها صفُّ المقابض فوق المضرب الأيسر، ملاصقةً لزاوية
+   الطاولة — فيخلو أعلى الشاشة للّوحتين وتكبر الطاولة بقدر ما يخلو.
+   وأفقياً تبقى في الهامش الأيسر تحت لوحة النتيجة حيث المكان متّسع. */
 #view { flex:1 1 auto; min-height:0; width:100%;
   display:flex; align-items:center; justify-content:center; }
 #clip { position:relative; overflow:hidden; background:#000; }
@@ -89,15 +93,14 @@ body {
    يبقى عموداً في الهامش الأيسر حيث لا يزاحم شيئاً. */
 @media (orientation: portrait) { #rail { flex-direction:row !important; } }
 #rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:4px;
-  top:calc(env(safe-area-inset-top, 0px) + 4px); left:calc(env(safe-area-inset-left, 0px) + 6px); }
+  top:env(safe-area-inset-top, 0px); left:env(safe-area-inset-left, 0px); }
 /* الرقعة نفسها هي الشكل المرئي — مستطيلة لا دائرة، وبالقياس نفسه فلا هدفَ
    لمسٍ تحت ٤٤. */
 #rail button { position:relative; width:54px; height:44px; flex:none; padding:0; border:0;
-  border-radius:11px; color:var(--ink); cursor:pointer;
+  border-radius:10px; color:var(--ink); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  background:radial-gradient(80% 80% at 32% 22%, rgba(255,255,255,.16), rgba(255,255,255,0) 62%),
-             linear-gradient(168deg, rgba(90,50,140,.9), rgba(24,12,46,.92));
-  box-shadow:inset 0 0 0 1.5px rgba(196,107,255,.45), 0 2px 8px rgba(0,0,0,.55); }
+  background:var(--btn); box-shadow:inset 0 0 0 1px var(--line); }
+#rail button:active { background:var(--btn-on); }
 #rail button .g { position:relative; z-index:1; display:flex; line-height:0; }
 #rail button .g svg { width:21px; height:21px; display:block; }
 
@@ -113,22 +116,23 @@ body {
    واسعة جانبيها، فتسكنها الرقع ولا تقضم من الطاولة شيئاً. */
 #pad { position:fixed; z-index:6; direction:ltr; pointer-events:none;
   left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; gap:6px;
-  padding:0 calc(env(safe-area-inset-right, 0px) + 6px)
+  padding:0 env(safe-area-inset-right, 0px)
           calc(env(safe-area-inset-bottom, 0px) + 6px)
-          calc(env(safe-area-inset-left, 0px) + 6px); }
+          env(safe-area-inset-left, 0px); }
 #row { display:flex; width:100%; align-items:flex-end; gap:8px; }
+#top { display:flex; width:100%; align-items:flex-end; gap:6px; }
+#hBall, #pace { flex:1 1 0; min-width:0; }
+#hBall { display:block; height:auto; image-rendering:pixelated; border-radius:3px; }
+#hBall[hidden] { display:none; }
 #pad[hidden] { display:none; }
 #pad button { pointer-events:auto; border:0; padding:0; cursor:pointer; color:var(--ink);
-  border-radius:16px; font:800 12px/1.15 var(--font-ui); letter-spacing:.2px;
+  border-radius:14px; font:800 12px/1.15 var(--font-ui); letter-spacing:.2px;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  background:radial-gradient(80% 80% at 32% 22%, rgba(255,255,255,.16), rgba(255,255,255,0) 62%),
-             linear-gradient(168deg, rgba(150,80,220,.46), rgba(24,12,46,.88));
-  box-shadow:inset 0 0 0 1.5px rgba(196,107,255,.5), 0 2px 10px rgba(0,0,0,.55); }
+  background:var(--btn); box-shadow:inset 0 0 0 1px var(--line); }
 #pad button .ic { display:flex; line-height:0; }
 #pad button .ic svg { width:42px; height:42px; display:block; }
 #bumps button .ic svg { width:24px; height:24px; }
-#pad button.on { background:linear-gradient(168deg, rgba(255,194,77,.85), rgba(120,60,10,.92));
-  box-shadow:inset 0 0 0 1.5px rgba(255,194,77,.75), 0 0 16px rgba(255,194,77,.3); }
+#pad button.on { background:var(--btn-on); box-shadow:inset 0 0 0 1px rgba(172,172,172,.75); }
 .flip { flex:1 1 0; min-width:72px; height:var(--padh); border-radius:14px; }
 #bumps { pointer-events:none; display:flex; gap:6px; flex:none; }
 #bumps button { width:48px; height:48px; border-radius:14px; font-size:11px; }
@@ -136,6 +140,11 @@ body {
 @media (orientation: landscape) {
   /* أفقياً تبقى هوامش سوداء واسعة جانبَي الطاولة، فتُنزَع الدفعات والقاذف من
      الصفّ وتُثبَّت فيها، ويبقى المضربان وحدهما عند الطرفين. */
+  #pad { padding-left:calc(env(safe-area-inset-left, 0px) + 6px);
+         padding-right:calc(env(safe-area-inset-right, 0px) + 6px); }
+  #top { display:contents; }
+  #pace { display:none; }
+  #hBall { position:fixed; z-index:6; }
   .flip { flex:none; width:112px; height:150px; }
   #row { justify-content:space-between; }
   #bumps { position:absolute; left:calc(env(safe-area-inset-left, 0px) + 6px);
@@ -148,38 +157,35 @@ body {
 .sheet { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:13px; text-align:center; overflow-y:auto;
   padding:calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
-  background:radial-gradient(90% 60% at 50% 22%, rgba(196,107,255,.22), rgba(196,107,255,0) 62%),
-             linear-gradient(180deg, rgba(6,3,14,.92), rgba(6,3,14,.975));
+  background:linear-gradient(180deg, rgba(0,0,0,.93), rgba(0,0,0,.97));
   -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
 .sheet[hidden] { display:none; }
 .logo { font:800 clamp(24px, 7vw, 40px)/1.05 var(--font-ui); letter-spacing:.5px;
-  background:linear-gradient(180deg, #fff 0%, var(--neon) 58%, #6a2ea8 100%);
+  background:linear-gradient(180deg, #fff 0%, #b4b4b4 58%, #585858 100%);
   -webkit-background-clip:text; background-clip:text; color:transparent; }
-.sub { font:600 13px/1.8 var(--font-ui); color:#b9a6d8; max-width:34ch; }
+.sub { font:600 13px/1.8 var(--font-ui); color:#9a9a9a; max-width:34ch; }
 .go { appearance:none; -webkit-appearance:none; min-width:200px; min-height:48px; padding:0 22px;
-  border-radius:26px; border:1.5px solid rgba(196,107,255,.6); cursor:pointer;
-  background:linear-gradient(180deg, rgba(150,80,220,.5), rgba(60,24,110,.6));
-  color:var(--ink); font:800 15px/1 var(--font-ui);
-  box-shadow:0 0 18px rgba(196,107,255,.22), inset 0 1px 0 rgba(255,255,255,.22); }
-.ghost { background:transparent; border-color:rgba(196,107,255,.3); box-shadow:none;
-  font-weight:700; min-height:44px; min-width:140px; }
-.hint { font:600 12px/1.9 var(--font-ui); color:#9d8cbb; max-width:38ch;
-  border-top:1px solid rgba(196,107,255,.2); padding-top:12px; }
+  border-radius:12px; border:1px solid var(--line); cursor:pointer;
+  background:var(--btn); color:var(--ink); font:800 15px/1 var(--font-ui); }
+.go:active { background:var(--btn-on); }
+.ghost { background:transparent; font-weight:700; min-height:44px; min-width:140px; }
+.hint { font:600 12px/1.9 var(--font-ui); color:#8a8a8a; max-width:38ch;
+  border-top:1px solid rgba(172,172,172,.22); padding-top:12px; }
 .hint b { color:var(--neon-2); font-weight:800; }
 .warn { color:#ffb0b0; font:700 13px/1.6 var(--font-ui); max-width:34ch; }
-.files { font:600 12px/1.7 var(--font-ui); color:#8cf0a8; }
+.files { font:600 12px/1.7 var(--font-ui); color:#9fd8a8; }
 input[type=file] { display:none; }
 .linkbox { display:flex; flex-direction:column; align-items:center; gap:9px; width:min(420px, 100%);
-  border-top:1px solid rgba(196,107,255,.2); padding-top:14px; }
-#linkUrl { width:100%; min-height:46px; padding:0 14px; border-radius:14px; box-sizing:border-box;
-  border:1.5px solid rgba(196,107,255,.35); background:rgba(255,255,255,.05);
+  border-top:1px solid rgba(172,172,172,.22); padding-top:14px; }
+#linkUrl { width:100%; min-height:46px; padding:0 14px; border-radius:10px; box-sizing:border-box;
+  border:1px solid var(--line); background:rgba(255,255,255,.04);
   color:var(--ink); font:600 13px/1 var(--font-ui); }
 #linkUrl::placeholder { color:#7a6a96; }
 #linkUrl:focus-visible { outline:2px solid var(--neon-2); outline-offset:2px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 </style>
 </head>
-<body data-layout="fullscreen" data-needs-assets>
+<body data-layout="fullscreen" data-needs-assets data-bg="match">
 
 <div id="stage">
   <div id="info">
@@ -189,7 +195,6 @@ input[type=file] { display:none; }
   <div id="view"><div id="clip"><canvas id="canvas" hidden tabindex="-1"></canvas>
     <div id="shield"></div></div></div>
 </div>
-<canvas id="hBall" hidden aria-hidden="true"></canvas>
 
 <div id="rail">
   <button id="newBtn" type="button" aria-label="جولة جديدة"><span class="g"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12 A8 8 0 1 1 17.3 6.1"/><path d="M20 3.6 V7.2 H16.4"/></svg></span></button>
@@ -198,10 +203,14 @@ input[type=file] { display:none; }
 </div>
 
 <div id="pad" hidden>
+  <div id="top">
+    <canvas id="hBall" hidden aria-hidden="true"></canvas>
   <div id="bumps">
     <button id="bumpL" type="button" aria-label="دفعة يسار"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><g><rect x="13.5" y="6.5" width="15" height="19" rx="3.5"/><path d="M9.5 16 H3.2 M6.6 12.3 L2.8 16 L6.6 19.7"/></g></svg></span></button>
     <button id="bumpU" type="button" aria-label="دفعة للأمام"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="13.5" width="19" height="15" rx="3.5"/><path d="M16 9.5 V3.2 M12.3 6.6 L16 2.8 L19.7 6.6"/></svg></span></button>
     <button id="bumpR" type="button" aria-label="دفعة يمين"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(32 0) scale(-1 1)"><rect x="13.5" y="6.5" width="15" height="19" rx="3.5"/><path d="M9.5 16 H3.2 M6.6 12.3 L2.8 16 L6.6 19.7"/></g></svg></span></button>
+  </div>
+    <div id="pace"></div>
   </div>
   <div id="row">
     <button class="flip" id="flipL" type="button" aria-label="المضرب الأيسر">
@@ -701,7 +710,8 @@ function layout() {
   var W = cv.width, H = cv.height;
   var top = F.ty - (showBar ? F.bar : 0), th = F.th + (showBar ? F.bar : 0);
   var tabRatio = (th * H) / (F.tw * W);                 // ارتفاع الطاولة لكل وحدة عرض
-  var land = innerWidth > innerHeight, G = 6, w, h;
+  var land = innerWidth > innerHeight, G = 6, w, h, P = 0;
+  var PMIN = 46;                                        // أدنى ارتفاعٍ تبقى فيه اللوحتان مقروءتين
 
   if (land) {
     stage.style.padding = '4px 0';
@@ -713,13 +723,19 @@ function layout() {
     w = Math.min(h / tabRatio, innerWidth - 376);
     h = w * tabRatio;
   } else {
-    // صفّ الأزرار وشارة الكرات أعلى الشاشة، ورقع التحكّم أسفلها
-    var topBar = 52, padH = $('pad').offsetHeight + 6;
-    stage.style.padding = topBar + 'px 0 ' + padH + 'px';
-    var availH = innerHeight - topBar - padH - G * 2;
-    // ‎w*tabRatio + ((w-8)/2)*RAT.msg <= availH‎
-    var k = tabRatio + RAT.msg / 2;
-    w = Math.min(innerWidth, (availH + 4 * RAT.msg) / k);
+    /* الشارة نزلت إلى صفّ المقابض، فلم يبقَ أعلى الشاشة إلا صفُّ الأزرار
+       واللوحتان. والترتيب بالأولوية لا بالتقسيم: تأخذ الطاولة عرض الشاشة
+       كاملاً ما دام الباقي يسع اللوحتين؛ فإن ضاق قُلِّصت اللوحتان إلى ‎PMIN‎
+       والطاولة على عرضها؛ فإن لم يكفِ ذلك قُلِّصت الطاولة وحدها بعده. فلا
+       تُترك فجوةٌ يمنةً ويسرةً إلا حين لا يبقى بدٌّ منها. */
+    var railH = 48, padH = $('pad').offsetHeight + 6;
+    stage.style.padding = railH + 'px 0 ' + padH + 'px';
+    var avail = innerHeight - railH - padH - G * 2;
+    var byW = (innerWidth - 8) / (1 / RAT.score + 1 / RAT.msg);   // ما يسمح به العرض
+    var tH = innerWidth * tabRatio;
+    if (tH + byW <= avail) { w = innerWidth; P = byW; }
+    else if (tH + PMIN <= avail) { w = innerWidth; P = avail - tH; }
+    else { P = PMIN; w = Math.min(innerWidth, (avail - PMIN) / tabRatio); }
     h = w * tabRatio;
   }
   w = Math.max(80, Math.floor(w)); h = Math.max(80, Math.floor(h));
@@ -741,12 +757,13 @@ function layout() {
     bl.style.width = lw + 'px'; bl.style.left = '66px';
     bl.style.right = 'auto'; bl.style.top = Math.round(12 + lw * RAT.score) + 'px';
   } else {
-    var half = Math.floor((w - 8) / 2);
+    // اللوحتان بارتفاعٍ واحد، فعرض كلٍّ من نسبتها هي
     info.style.display = 'flex';
-    sc.style.width = half + 'px'; ms.style.width = half + 'px';
+    sc.style.width = Math.round(P / RAT.score) + 'px';
+    ms.style.width = Math.round(P / RAT.msg) + 'px';
     sc.style.left = ms.style.left = sc.style.top = ms.style.top = '';
-    bl.style.width = Math.round(Math.min(132, innerWidth * 0.33)) + 'px';
-    bl.style.left = 'auto'; bl.style.right = '6px'; bl.style.top = '5px';
+    // الشارة تعود إلى تدفّق صفّ المقابض، فيتولّى العرضَ ‎flex‎ لا الحساب
+    bl.style.width = ''; bl.style.left = ''; bl.style.right = ''; bl.style.top = '';
   }
 }
 /* كلّ قطعة رقعةٌ مستقلّة تُنسخ إليها منطقتها من إطار المحرّك */
