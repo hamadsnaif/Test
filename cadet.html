@@ -117,8 +117,16 @@ body {
   background:transparent; color:var(--ink); cursor:pointer;
   display:flex; align-items:center; justify-content:center; }
 #rail button::before { content:""; position:absolute; top:6px; left:6px; width:32px; height:32px;
-  border-radius:9px; z-index:-1; background:var(--btn); box-shadow:inset 0 0 0 1px var(--line); }
-#rail button:active::before { background:var(--btn-on); }
+  border-radius:9px; z-index:-1;
+  background:linear-gradient(180deg, #333 0%, #232323 55%, #191919 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(212,204,204,.26),
+    inset 0 0 0 1px rgba(172,172,172,.20),
+    0 2px 0 #0b0b0b, 0 3px 6px rgba(0,0,0,.5); }
+#rail button:active::before { transform:translateY(2px);
+  background:linear-gradient(180deg, #666 0%, #444 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3), inset 0 2px 5px rgba(0,0,0,.45); }
+#rail button .g svg { filter:drop-shadow(0 1px 0 rgba(0,0,0,.6)); }
 #rail button .g { position:relative; z-index:1; display:flex; line-height:0; }
 #rail button .g svg { width:17px; height:17px; display:block; }
 
@@ -143,14 +151,34 @@ body {
 #hBall { display:block; height:auto; image-rendering:pixelated; border-radius:3px; }
 #hBall[hidden] { display:none; }
 #pad[hidden] { display:none; }
-#pad button { pointer-events:auto; border:0; padding:0; cursor:pointer; color:var(--ink);
+/* الرقعة لوحٌ مشطوف الحافّة على لغة المحرّك نفسه: لوحاته مشطوفة — ضياءٌ في
+   الأعلى وظلٌّ في الأسفل — ودرجاتها ‎٢١٢,٢٠٤,٢٠٤‎ للضياء و‎٣٦,٣٦,٣٦‎ للمتن.
+   فبدل لونٍ واحد مسطّح: تدرّجٌ خفيف، وخيط ضوء أعلى، وحافّة غائرة أسفل، وسُمكٌ
+   تحتها. وعند الضغط تغوص بكسلين وينقلب الظلّ إلى الداخل، كما تغوص مفاتيح
+   الكرة الحمراء — فالفعل يُرى لا يُخمَّن. */
+#pad button { pointer-events:auto; border:0; padding:0; cursor:pointer; color:#dcdcdc;
   border-radius:14px; font:800 12px/1.15 var(--font-ui); letter-spacing:.2px;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  background:var(--btn); box-shadow:inset 0 0 0 1px var(--line); }
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  background:linear-gradient(180deg, #343434 0%, #262626 46%, #1b1b1b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(212,204,204,.30),
+    inset 0 0 0 1px rgba(172,172,172,.20),
+    inset 0 -2px 0 rgba(0,0,0,.50),
+    0 2px 0 #0c0c0c,
+    0 4px 8px rgba(0,0,0,.55); }
+#pad button span:not(.ic) { color:#b4b4b4; text-shadow:0 1px 0 rgba(0,0,0,.7); }
+#pad button .ic svg { filter:drop-shadow(0 1px 0 rgba(0,0,0,.6)); }
 #pad button .ic { display:flex; line-height:0; }
 #pad button .ic svg { width:42px; height:42px; display:block; }
 #bumps button .ic svg { width:24px; height:24px; }
-#pad button.on { background:var(--btn-on); box-shadow:inset 0 0 0 1px rgba(172,172,172,.75); }
+#pad button.on {
+  transform:translateY(2px);
+  background:linear-gradient(180deg, #6e6e6e 0%, #4c4c4c 58%, #3a3a3a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.35),
+    inset 0 0 0 1px rgba(172,172,172,.55),
+    inset 0 3px 6px rgba(0,0,0,.45),
+    0 0 0 #0c0c0c; }
 .flip { flex:1 1 0; min-width:72px; height:var(--padh); border-radius:14px; }
 #bumps { pointer-events:none; display:flex; gap:6px; flex:none; }
 #bumps button { width:48px; height:48px; border-radius:14px; font-size:11px; }
@@ -748,9 +776,13 @@ function layout() {
 
        وما يفضل بعد ذلك لا يُترك سواداً بين الطاولة والمقابض: يُضاف إلى ارتفاع
        الرقع فتمتدّ إليه. */
+    /* ارتفاع صفّ المقابض يُقاس ولا يُفترض: فيه صفّ الدفعات والفواصل **وحافّة
+       الأمان السفلى** (‏‎env(safe-area-inset-bottom)‎‏)، وهي صفرٌ على المتصفّح
+       المكتبي وثلاثون ونيّف على جوّالٍ بشريط الصفحة الرئيسة. وكانت مفترضةً
+       بالأرقام فنقص المحجوز بقدرها، فصعدت الرقع على الطاولة وقصّت أسفلها. */
     var FLIPMIN = 64;
-    var padBase = 48 + G + FLIPMIN + G;                  // الدفعات + المضارب + هامش
-    var room = innerHeight - padBase - G * 2;
+    var overhead = Math.max(0, $('pad').offsetHeight - ($('flipL').offsetHeight || FLIPMIN));
+    var room = innerHeight - overhead - FLIPMIN - G * 3;
     P = (innerWidth - 8) / (1 / RAT.score + 1 / RAT.msg);
     var avail = room - P;
     w = Math.min(innerWidth, avail / tabRatio);
@@ -764,7 +796,7 @@ function layout() {
     var slack = Math.max(0, Math.min(avail - h, 150));
     var flipH = Math.round(FLIPMIN + slack);
     document.documentElement.style.setProperty('--padh', flipH + 'px');
-    stage.style.padding = '0 0 ' + (padBase + flipH - FLIPMIN) + 'px';
+    stage.style.padding = '0 0 ' + (overhead + flipH + G) + 'px';
   }
   w = Math.max(80, Math.floor(w)); h = Math.max(80, Math.floor(h));
   var s = w / (F.tw * W);
