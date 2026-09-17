@@ -374,7 +374,13 @@ catch (e) { document.documentElement.className += ' framed'; }
   #kLeft::after  { inset:-14px 0 -14px -14px; }
   #kRight::after { inset:-14px -14px -14px 0; }
   #kDown::after  { inset:0 -14px -16px -14px; }
-  .acts .big::after, .acts .small::after { inset:-12px; }
+  /* وجهة الرقعة تتبع موضع المفتاح في الحوض: الإسقاط في الزاوية العليا
+     اليسرى فتمتدّ رقعته أعلى ويساراً، والتدوير في السفلى اليمنى فأسفل
+     ويميناً — لا يلتقيان في القطر. وكان `inset:-12px` يمدّهما في كل الجهات
+     فتزحف رقعة التدوير على زاوية الإسقاط (قِيست: نقطةٌ داخل صندوقه على
+     عرض ٣٢٠). والعقد يقول «إلى الفراغ لا نحو جاره». */
+  .acts .small::after { inset:-12px 0 0 -12px; }
+  .acts .big::after   { inset:0 -12px -12px 0; }
   /* اللوحة كلها سطح تحكّم حيّ: السحب عليها في أي موضع يحرّك القطعة، فلا يبحث
      الإبهام عن مفتاح. المفاتيح تبقى فوقه وتعمل بالنقر لمن يريدها */
   /* معلّق لا يشغل مكاناً في الصفّ: حين كان عنصراً عادياً دفع زرّ التدوير خارج
@@ -473,7 +479,14 @@ catch (e) { document.documentElement.className += ' framed'; }
     .pod.R{grid-area:1/4;}
     /* عموداً: DROP فوق ROTATE والفجوة بينهما ٢٦ بكسل، وهي نفسها مسافة الحافتين هنا */
     .acts{width:auto;height:auto;display:flex;flex-direction:column;align-items:center;gap:26px;}
-    .acts .big,.acts .small{position:static;}
+    /* `relative` لا `static`: المفتاح يعود إلى الصفّ في الحالتين، لكن
+       `static` يُلغي كونه حاضناً لرقعته فتُقاس من جدٍّ أعلى وتغطّي ما حولها —
+       فكان مركز DROP يبتلعه ROTATE هنا، أي أن نقرة الإسقاط تُدوّر. */
+    .acts .big,.acts .small{position:relative;}
+    /* وعموداً: كلٌّ يمتدّ إلى جهته وحدها، فلا يمسّ جارَه فوقه ولا مفتاح
+       الإيقاف في العمود الذي يساره */
+    .acts .small::after { inset:-12px 0 0 0; }
+    .acts .big::after   { inset:0 0 -12px 0; }
     /* الزجاج الأضيق (١٣٨ بكسل في إطار المشغّل): صفوف الإعداد أضيق حشوةً وخطاً كي لا يلتفّ نصّها */
     .go{padding:0 8px;font-size:11px;gap:6px;} .go i{font-size:9px;}
     .overlay, #ovMsg, #ovSetup{gap:4px;}

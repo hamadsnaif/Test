@@ -1,6 +1,6 @@
 /* العقد الذي تلتزم به كل صفحة لعبة في المجموعة.
  *
- *   node src/tests/contract.js bounce.html snake.html tetris.html cadet.html
+ *   node src/tests/contract.js bounce.html snake.html tetris.html cadet.html frozen.html
  *   node src/tests/contract.js --port 8611 mygame.html
  *
  * يشغّل خادماً على جذر المستودع ثم يفتح كل صفحة على عشرة مقاسات: خمسة أجهزة،
@@ -17,7 +17,7 @@ const args = process.argv.slice(2);
 let PORT = 8611;
 const pi = args.indexOf('--port');
 if (pi >= 0) { PORT = parseInt(args[pi + 1], 10); args.splice(pi, 2); }
-const PAGES = args.length ? args : ['bounce.html', 'snake.html', 'tetris.html', 'cadet.html'];
+const PAGES = args.length ? args : ['bounce.html', 'snake.html', 'tetris.html', 'cadet.html', 'frozen.html'];
 
 const VIEWS = [
   ['iPhone12', 390, 844, 3], ['SE', 375, 667, 2], ['w320', 320, 568, 2],
@@ -48,8 +48,42 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
           await sleep(1200);
           const m = await p.evaluate(() => {
             const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
-            const keys = [...document.querySelectorAll('button')].filter(vis)
+            const btns = [...document.querySelectorAll('button')].filter(vis);
+            const keys = btns
               .map(e => ({ id: e.id || e.className.split(' ')[0], min: Math.round(Math.min(e.getBoundingClientRect().width, e.getBoundingClientRect().height)) }));
+            /* العقد يقول: «لكل مفتاح رقعة لمس تمتدّ خارجه إلى الفراغ لا نحو
+               جاره». وهذا يُفحص هنا بالأثر: تُمسح رقعةُ كل مفتاح من الداخل
+               ويُسأل المتصفّح مَن يلتقط كل نقطة. فإن كان المالك مفتاحاً آخر
+               فقد زحف جارٌ على جاره — وذلك عطبٌ يُميت مفتاحاً كاملاً بلا أن
+               يبين في الصورة: وقع فعلاً في زوج تصويب الفقاعات، إذ كانت رقعتا
+               اللمس تُقاسان من حاضنهما لا من مفتاحيهما فغطّت كلٌّ الزرّين
+               وابتلعت الأخيرةُ الأولى. وما لا يملكه مفتاحٌ أصلاً لا يُحسب
+               (لسبيس كاديت طبقةٌ شفّافة تعلو رقعها بقصد). */
+            const own = (x, y) => {
+              const e = document.elementFromPoint(x, y);
+              if (!e) return null;
+              const b = e.closest('button');
+              return b && btns.includes(b) ? b : null;
+            };
+            const name = e => e.id || e.className.split(' ')[0];
+            const steal = [];
+            for (const b of btns) {
+              const r = b.getBoundingClientRect();
+              if (r.width < 8 || r.height < 8) continue;
+              const thieves = {};
+              for (let y = r.top + 3; y <= r.bottom - 3; y += 4) {
+                for (let x = r.left + 3; x <= r.right - 3; x += 4) {
+                  const o = own(x, y);
+                  if (o && o !== b) thieves[name(o)] = (thieves[name(o)] || 0) + 1;
+                }
+              }
+              const c = own(r.left + r.width / 2, r.top + r.height / 2);
+              const centreWrong = c && c !== b ? name(c) : null;
+              const t = Object.keys(thieves);
+              if (t.length || centreWrong)
+                steal.push({ id: name(b), centre: centreWrong,
+                             by: t.map(k => k + '\u00d7' + thieves[k]).join(' ') });
+            }
             const canvases = [...document.querySelectorAll('canvas')].filter(vis)
               .map(c => c.id + ':' + Math.round(c.getBoundingClientRect().width) + 'x' + Math.round(c.getBoundingClientRect().height));
             const rows = ['.cap', '.deck', '.pads', '.field', '.top'].map(s => document.querySelector(s))
@@ -62,6 +96,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
               ovX: document.documentElement.scrollWidth > innerWidth + 1,
               ovY: document.documentElement.scrollHeight > innerHeight + 1,
               small: keys.filter(k => k.min < 44),
+              steal,
               canvases, rows,
               layers: getComputedStyle(document.body).backgroundImage.split('gradient').length - 1,
               bgMatch: document.body.dataset.bg === 'match',
@@ -75,6 +110,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
           if (m.ovX) fails.push('overflows sideways');
           if (m.ovY) fails.push('overflows down');
           if (m.small.length) fails.push('under 44: ' + m.small.map(k => k.id + ':' + k.min).join(' '));
+          if (m.steal.length) fails.push('a key overlaps its neighbour: ' + m.steal
+            .map(s => s.id + (s.centre ? ' centre taken by ' + s.centre : '') + (s.by ? ' (' + s.by + ')' : ''))
+            .join(' | '));
           if (errs.length) fails.push('page error: ' + errs[0]);
           if (ext.length) fails.push('external request: ' + ext[0]);
           /* لعبة تُشغّل محرّكاً يحتاج ملفّات اللاعب لا لوح لها ترسمه قبل أن
