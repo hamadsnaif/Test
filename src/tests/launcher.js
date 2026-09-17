@@ -42,8 +42,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       const info = await p.evaluate(() => {
         const f = document.getElementById('frame'); const d = f.contentDocument;
         if (!d) return { ok: false, why: 'the frame has no document' };
-        const live = [...d.querySelectorAll('canvas')].filter(c => c.getBoundingClientRect().width > 0)
+        const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+        const live = [...d.querySelectorAll('canvas')].filter(vis)
           .map(c => c.id + ':' + Math.round(c.getBoundingClientRect().width) + 'x' + Math.round(c.getBoundingClientRect().height));
+        /* لعبة تُشغّل محرّكاً يحتاج ملفّات اللاعب لا لوح لها قبل أن يجلبها،
+           فيقوم مقامه واجهة استقبال فيها زرّ ظاهر. الإعفاء يشترط الإعلان
+           ‎body[data-needs-assets]‎ ووجود الزرّ معاً، فلا تمرّ صفحة فارغة. */
+        const needs = d.body.dataset.needsAssets !== undefined;
+        const intake = [...d.querySelectorAll('.sheet')].filter(sh => !sh.hidden && vis(sh))
+          .reduce((n, sh) => n + [...sh.querySelectorAll('button')].filter(vis).length, 0);
+        if (!live.length && needs && intake) return { ok: true, live: ['intake:' + intake + ' buttons'], buttons: d.querySelectorAll('button').length };
+        if (!live.length && needs) return { ok: false, why: 'needs assets yet offers no way to supply them' };
         return { ok: !!live.length, live, buttons: d.querySelectorAll('button').length };
       });
       if (!info.ok) { bad++; console.log('FAIL ' + names[i - 1] + ': ' + (info.why || 'nothing drawn')); }

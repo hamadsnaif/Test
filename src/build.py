@@ -124,7 +124,7 @@ DOC_HEAD = ('<!DOCTYPE html>\n<html lang="ar">\n<head>\n<meta charset="UTF-8">\n
 bounce_doc = DOC_HEAD + bounce_frag.replace('</style>\n\n<div id="shell">',
                                             '</style>\n</head>\n<body>\n<div id="shell">') + '</body>\n</html>\n'
 emit(os.path.join(REPO, 'bounce.html'), with_app_head(bounce_doc, 'Bounce'))
-TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'pinball': 'Pinball'}
+TITLES = {'snake': 'Snake II', 'tetris': 'Tetris', 'pinball': 'Pinball', 'cadet': 'Space Cadet'}
 for e in ENTRIES:
     if e['id'] == 'bounce':
         continue                                    # built from source above

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>سبيس كاديت الأصلية</title>
+<meta name="apple-mobile-web-app-title" content="Cadet">
+<meta name="theme-color" content="#0b0616">
+<style>
+/* ==========================================================================
+   سبيس كاديت الأصلية — المحرّك الحقيقي لا تقليداً له.
+   --------------------------------------------------------------------------
+   هذه الصفحة لا ترسم طاولة. هي غلافٌ يشغّل محرّك ‎3D Pinball – Space Cadet‎
+   نفسه: الهندسة العكسية المفتوحة (رخصة MIT) لمشروع SpaceCadetPinball، مترجمةً
+   إلى WebAssembly.
+
+   وموارد اللعبة ليست هنا ولن تكون: ‎PINBALL.DAT‎ وملفّات الصوت ملكُ أصحابها
+   (Cinematronics و Maxis و Microsoft)، والمشروع المفتوح نفسه لا يوزّعها.
+   فاللاعب يختار نسخته هو مرّة واحدة، فتُحفظ في متصفّحه (IndexedDB) على جهازه،
+   وتُركَّب عند كل تشغيل في مسار ‎/game_resources/‎ الذي يقرأ منه المحرّك.
+   لا يُرفع منها شيء، ولا يُخدَم منها شيء من هذا الموقع.
+
+   والاستثناء من عقد المظهر هو استثناء البينبول نفسه: شاشة كاملة بلا هيكل،
+   والمضربان نصفا الشاشة. وما يبقى من العقد كما هو: بلا إنترنت خارجي، ولا هدف
+   لمس تحت ٤٤ بكسلاً.
+   ========================================================================== */
+:root { --ink:#f4ecff; --neon:#c46bff; --neon-2:#5de1ff; --amber:#ffc24d;
+  --font-ui:"Helvetica Neue", Helvetica, Arial, Tahoma, "Segoe UI", sans-serif; }
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family:var(--font-ui); color:var(--ink);
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  touch-action:none; overscroll-behavior:none; -webkit-text-size-adjust:100%;
+  background:
+    radial-gradient(120% 80% at 18% 4%, rgba(150,80,220,.26), rgba(150,80,220,0) 55%),
+    radial-gradient(90% 70% at 88% 24%, rgba(60,170,230,.14), rgba(60,170,230,0) 60%),
+    radial-gradient(140% 100% at 50% 108%, #23103f 0%, #140a26 42%, #080413 100%);
+}
+#wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:1; }
+#canvas { display:block; max-width:100%; max-height:100%; image-rendering:pixelated;
+  background:#000; outline:none; }
+#canvas[hidden] { display:none; }
+
+#rail { position:fixed; z-index:6; direction:ltr; display:flex; flex-direction:column; gap:2px;
+  top:calc(env(safe-area-inset-top, 0px) + 2px); left:calc(env(safe-area-inset-left, 0px) + 2px); }
+#rail button { position:relative; width:44px; height:44px; flex:none; padding:0; border:0;
+  background:transparent; color:var(--ink); display:flex; align-items:center; justify-content:center;
+  font:600 13px/1 var(--font-ui); cursor:pointer; }
+#rail button::before { content:""; position:absolute; top:7px; left:7px; width:30px; height:30px;
+  border-radius:50%; z-index:-1;
+  background:radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.22), rgba(255,255,255,0) 60%),
+             linear-gradient(165deg, rgba(90,50,140,.9), rgba(24,12,46,.92));
+  box-shadow:inset 0 0 0 1px rgba(196,107,255,.45), 0 2px 6px rgba(0,0,0,.55); }
+#rail button::after { content:""; position:absolute; top:0; bottom:0; left:-6px; right:-2px; }
+#rail button .g { position:relative; z-index:1; font-size:15px; line-height:1; }
+
+/* القاذف: رقعة في الزاوية السفلى اليمنى، خارج نصفَي المضربين بصرياً لكنها
+   تعلوهما في اللمس. ٦٤×٦٤ فهي فوق الحدّ الأدنى بكثير. */
+#plunge { position:fixed; z-index:6; width:64px; height:64px; border:0; padding:0; cursor:pointer;
+  right:calc(env(safe-area-inset-right, 0px) + 10px);
+  bottom:calc(env(safe-area-inset-bottom, 0px) + 10px);
+  border-radius:50%; color:var(--ink); font:800 11px/1.2 var(--font-ui);
+  background:radial-gradient(70% 70% at 32% 26%, rgba(255,255,255,.18), rgba(255,255,255,0) 60%),
+             linear-gradient(165deg, rgba(150,80,220,.55), rgba(24,12,46,.9));
+  box-shadow:inset 0 0 0 1.5px rgba(196,107,255,.5), 0 2px 8px rgba(0,0,0,.55); }
+#plunge.on { background:linear-gradient(165deg, rgba(255,194,77,.8), rgba(120,60,10,.9)); }
+#plunge[hidden] { display:none; }
+
+.sheet { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:13px; text-align:center; overflow-y:auto;
+  padding:calc(env(safe-area-inset-top, 0px) + 18px) 20px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  background:radial-gradient(90% 60% at 50% 22%, rgba(196,107,255,.22), rgba(196,107,255,0) 62%),
+             linear-gradient(180deg, rgba(6,3,14,.92), rgba(6,3,14,.975));
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); }
+.sheet[hidden] { display:none; }
+.logo { font:800 clamp(24px, 7vw, 40px)/1.05 var(--font-ui); letter-spacing:.5px;
+  background:linear-gradient(180deg, #fff 0%, var(--neon) 58%, #6a2ea8 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent; }
+.sub { font:600 13px/1.8 var(--font-ui); color:#b9a6d8; max-width:34ch; }
+.go { appearance:none; -webkit-appearance:none; min-width:200px; min-height:48px; padding:0 22px;
+  border-radius:26px; border:1.5px solid rgba(196,107,255,.6); cursor:pointer;
+  background:linear-gradient(180deg, rgba(150,80,220,.5), rgba(60,24,110,.6));
+  color:var(--ink); font:800 15px/1 var(--font-ui);
+  box-shadow:0 0 18px rgba(196,107,255,.22), inset 0 1px 0 rgba(255,255,255,.22); }
+.ghost { background:transparent; border-color:rgba(196,107,255,.3); box-shadow:none;
+  font-weight:700; min-height:44px; min-width:140px; }
+.hint { font:600 12px/1.9 var(--font-ui); color:#9d8cbb; max-width:38ch;
+  border-top:1px solid rgba(196,107,255,.2); padding-top:12px; }
+.hint b { color:var(--neon-2); font-weight:800; }
+.warn { color:#ffb0b0; font:700 13px/1.6 var(--font-ui); max-width:34ch; }
+.files { font:600 12px/1.7 var(--font-ui); color:#8cf0a8; }
+input[type=file] { display:none; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body data-layout="fullscreen" data-needs-assets>
+
+<div id="wrap"><canvas id="canvas" hidden tabindex="-1"></canvas></div>
+
+<div id="rail">
+  <button id="menuBtn" type="button" aria-label="القائمة"><span class="g">&#9776;</span></button>
+  <button id="newBtn" type="button" aria-label="جولة جديدة"><span class="g">&#8635;</span></button>
+  <button id="filesBtn" type="button" aria-label="ملفّات اللعبة"><span class="g">&#9723;</span></button>
+</div>
+
+<button id="plunge" type="button" hidden aria-label="القاذف">اسحب<br>وأفلت</button>
+
+<div class="sheet" id="introSheet">
+  <div class="logo">سبيس كاديت</div>
+  <div class="sub">
+    هذه ليست محاكاةً للّعبة، بل <b>محرّكها نفسه</b>: الهندسة العكسية المفتوحة
+    لـ‎3D Pinball – Space Cadet‎ مترجمةً إلى WebAssembly.
+  </div>
+  <div class="sub">
+    لكنّ <b>ملفّات اللعبة</b> ليست جزءاً من هذا الموقع ولن تكون — فهي ملك
+    Cinematronics و Maxis و Microsoft. اختر نسختك أنت مرّة واحدة، وتبقى محفوظة
+    في متصفّح هذا الجهاز وحده.
+  </div>
+  <button class="go" id="pickBtn" type="button">اختر مجلّد اللعبة</button>
+  <button class="go ghost" id="pickFilesBtn" type="button">أو اختر الملفّات</button>
+  <div class="files" id="pickMsg"></div>
+  <div class="hint">
+    الملفّات المطلوبة من تثبيت اللعبة الأصلي: <b>PINBALL.DAT</b> وملفّات
+    <b>‎.WAV‎</b> المجاورة له. المحرّك مفتوح المصدر برخصة MIT —
+    <a href="./cadet-LICENSE.txt" style="color:var(--neon-2)">نصّ الرخصة</a>.
+  </div>
+</div>
+
+<div class="sheet" id="loadSheet" hidden>
+  <div class="logo">تُحمَّل…</div>
+  <div class="sub" id="loadMsg">يُجهَّز المحرّك</div>
+</div>
+
+<div class="sheet" id="errSheet" hidden>
+  <div class="logo">تعذّر التشغيل</div>
+  <div class="warn" id="errMsg"></div>
+  <button class="go" id="retryBtn" type="button">اختر الملفّات من جديد</button>
+</div>
+
+<input type="file" id="fileDir" webkitdirectory directory multiple>
+<input type="file" id="fileAny" multiple>
+
+<script>
+"use strict";
+/* ---------- تخزين ملفّات اللاعب في متصفّحه ---------- */
+var DBN = 'cadet-data', STORE = 'files';
+function db() {
+  return new Promise(function (res, rej) {
+    var r = indexedDB.open(DBN, 1);
+    r.onupgradeneeded = function () { r.result.createObjectStore(STORE); };
+    r.onsuccess = function () { res(r.result); };
+    r.onerror = function () { rej(r.error); };
+  });
+}
+function tx(mode, fn) {
+  return db().then(function (d) {
+    return new Promise(function (res, rej) {
+      var t = d.transaction(STORE, mode), s = t.objectStore(STORE), out = fn(s);
+      t.oncomplete = function () { res(out && out.result !== undefined ? out.result : out); };
+      t.onerror = function () { rej(t.error); };
+    });
+  });
+}
+function readAll() {
+  return db().then(function (d) {
+    return new Promise(function (res, rej) {
+      var t = d.transaction(STORE, 'readonly'), s = t.objectStore(STORE), out = [];
+      var c = s.openCursor();
+      c.onsuccess = function (e) {
+        var cur = e.target.result;
+        if (!cur) { res(out); return; }
+        out.push({ name: cur.key, data: cur.value });
+        cur.continue();
+      };
+      c.onerror = function () { rej(c.error); };
+    });
+  });
+}
+function writeAll(list) {
+  return tx('readwrite', function (s) { s.clear(); list.forEach(function (f) { s.put(f.data, f.name); }); });
+}
+
+/* ---------- الواجهة ---------- */
+var $ = function (id) { return document.getElementById(id); };
+var intro = $('introSheet'), loadS = $('loadSheet'), errS = $('errSheet');
+function show(el) { [intro, loadS, errS].forEach(function (s) { s.hidden = s !== el; }); }
+function fail(msg) { $('errMsg').textContent = msg; show(errS); }
+
+/* ---------- استقبال الملفّات ---------- */
+function takeFiles(fileList) {
+  var files = Array.prototype.slice.call(fileList || []);
+  if (!files.length) return;
+  $('pickMsg').textContent = 'تُقرأ ' + files.length + ' ملفّاً…';
+  var wanted = files.filter(function (f) {
+    var n = f.name.toUpperCase();
+    return /\.(DAT|WAV|MID|BMP|INF)$/.test(n);
+  });
+  if (!wanted.length) wanted = files;
+  var hasDat = wanted.some(function (f) { return /PINBALL\.DAT$/i.test(f.name); });
+  if (!hasDat) { $('pickMsg').textContent = 'لم أجد PINBALL.DAT بين ما اخترت.'; return; }
+  Promise.all(wanted.map(function (f) {
+    return f.arrayBuffer().then(function (b) {
+      return { name: f.name.toUpperCase(), data: new Uint8Array(b) };
+    });
+  })).then(function (list) {
+    return writeAll(list).then(function () { boot(); });
+  }).catch(function (e) { fail('تعذّر حفظ الملفّات: ' + e); });
+}
+$('fileDir').addEventListener('change', function (e) { takeFiles(e.target.files); });
+$('fileAny').addEventListener('change', function (e) { takeFiles(e.target.files); });
+$('pickBtn').addEventListener('click', function () { $('fileDir').click(); });
+$('pickFilesBtn').addEventListener('click', function () { $('fileAny').click(); });
+$('retryBtn').addEventListener('click', function () { show(intro); });
+$('filesBtn').addEventListener('click', function () {
+  if (confirm('تُنسى ملفّات اللعبة من هذا الجهاز وتختار غيرها؟')) {
+    tx('readwrite', function (s) { s.clear(); }).then(function () { location.reload(); });
+  }
+});
+$('menuBtn').addEventListener('click', function () { location.href = './index.html'; });
+
+/* ---------- المفاتيح التي يفهمها المحرّك ----------
+   ‎options.cpp‎: المضرب الأيسر ‎z‎، والأيمن ‎/‎، والقاذف ‎space‎، وجولة جديدة ‎F2‎.
+   اللمس يُترجم إلى هذه المفاتيح نفسها، فلا يحتاج المحرّك أي تعديل. */
+var KEYS = {
+  left:  { key: 'z', code: 'KeyZ', keyCode: 90 },
+  right: { key: '/', code: 'Slash', keyCode: 191 },
+  plunge:{ key: ' ', code: 'Space', keyCode: 32 },
+  newg:  { key: 'F2', code: 'F2', keyCode: 113 }
+};
+function sendKey(type, k) {
+  var e = new KeyboardEvent(type, { key: k.key, code: k.code, bubbles: true, cancelable: true });
+  // SDL يقرأ keyCode، وهو للقراءة فقط في المُنشئ فيُعرَّف هنا
+  Object.defineProperty(e, 'keyCode', { get: function () { return k.keyCode; } });
+  Object.defineProperty(e, 'which', { get: function () { return k.keyCode; } });
+  (document.getElementById('canvas') || document).dispatchEvent(e);
+  document.dispatchEvent(e);
+}
+function tap(k) { sendKey('keydown', k); setTimeout(function () { sendKey('keyup', k); }, 60); }
+$('newBtn').addEventListener('click', function () { tap(KEYS.newg); });
+
+/* نصفا الشاشة مضربان، وتعمل الإصبعان معاً */
+/* clientX فيزيائي لا منطقي، فنصف الشاشة الأيسر هو المضرب الأيسر مهما كان
+   اتجاه الصفحة — وهذا ما يتوقّعه الإبهام لا ما يتوقّعه النصّ. */
+var held = {};
+function down(e) {
+  if (e.target.closest && e.target.closest('#rail, #plunge, .sheet')) return;
+  var side = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+  held[e.pointerId] = side; sendKey('keydown', KEYS[side]);
+}
+function up(e) {
+  var side = held[e.pointerId];
+  if (!side) return;
+  delete held[e.pointerId];
+  if (Object.keys(held).every(function (id) { return held[id] !== side; })) sendKey('keyup', KEYS[side]);
+}
+addEventListener('pointerdown', down);
+addEventListener('pointerup', up);
+addEventListener('pointercancel', up);
+
+/* القاذف: امسك لتشحن وأفلت لتقذف — وهو سلوك مفتاح المسافة في المحرّك */
+var pl = $('plunge');
+pl.addEventListener('pointerdown', function (e) {
+  e.preventDefault(); e.stopPropagation(); pl.classList.add('on'); sendKey('keydown', KEYS.plunge);
+});
+function plungeUp(e) {
+  if (!pl.classList.contains('on')) return;
+  if (e) e.stopPropagation();
+  pl.classList.remove('on'); sendKey('keyup', KEYS.plunge);
+}
+pl.addEventListener('pointerup', plungeUp);
+pl.addEventListener('pointercancel', plungeUp);
+
+/* ---------- الإقلاع ---------- */
+var started = false;
+function loadScript(src) {
+  return new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = function () { rej(new Error('تعذّر تحميل ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+function boot() {
+  if (started) return;
+  readAll().then(function (files) {
+    if (!files.length) { show(intro); return; }
+    started = true;
+    show(loadS);
+    $('loadMsg').textContent = 'يُحمَّل المحرّك (٤٫٦ ميغابايت، مرّة واحدة)';
+    return loadScript('./cadet.js').then(function () {
+      var canvas = $('canvas');
+      canvas.hidden = false;
+      var cfg = {
+        canvas: canvas,
+        printErr: function (t) { if (window.console) console.warn(t); },
+        preRun: [function () {
+          var F = cfg.FS;
+          try { F.mkdir('/game_resources'); } catch (e) {}
+          files.forEach(function (f) { F.writeFile('/game_resources/' + f.name, f.data); });
+        }]
+      };
+      $('loadMsg').textContent = 'يبدأ المحرّك';
+      return CadetModule(cfg).then(function (M) {
+        [intro, loadS, errS].forEach(function (s) { s.hidden = true; });
+        pl.hidden = false;
+        M.callMain([]);
+      });
+    });
+  }).catch(function (e) {
+    started = false;
+    fail(String(e && e.message || e));
+  });
+}
+boot();
+</script>
+</body>
+</html>

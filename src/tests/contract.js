@@ -54,8 +54,11 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
               .map(c => c.id + ':' + Math.round(c.getBoundingClientRect().width) + 'x' + Math.round(c.getBoundingClientRect().height));
             const rows = ['.cap', '.deck', '.pads', '.field', '.top'].map(s => document.querySelector(s))
               .filter(Boolean).map(e => getComputedStyle(e).direction);
+            const openSheet = [...document.querySelectorAll('.sheet')].filter(e => !e.hidden && vis(e));
             return {
               fullscreen: document.body.dataset.layout === 'fullscreen',
+              needsAssets: document.body.dataset.needsAssets !== undefined,
+              intake: openSheet.reduce((n, sh) => n + [...sh.querySelectorAll('button')].filter(vis).length, 0),
               ovX: document.documentElement.scrollWidth > innerWidth + 1,
               ovY: document.documentElement.scrollHeight > innerHeight + 1,
               small: keys.filter(k => k.min < 44),
@@ -72,7 +75,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
           if (m.small.length) fails.push('under 44: ' + m.small.map(k => k.id + ':' + k.min).join(' '));
           if (errs.length) fails.push('page error: ' + errs[0]);
           if (ext.length) fails.push('external request: ' + ext[0]);
-          if (!m.canvases.length) fails.push('no visible canvas');
+          /* لعبة تُشغّل محرّكاً يحتاج ملفّات اللاعب لا لوح لها ترسمه قبل أن
+             يجلبها — سبيس كاديت تبتدئ بشاشة استقبال، ولا تُقلع إلا بملفّات
+             نسخته هو. تُعفى من شرط اللوح المرئي وحده، وبشرطين يشدّان الفحص لا
+             يُرخيانه: أن تُعلن ذلك عن نفسها بـ‎body[data-needs-assets]‎، وأن
+             تعرض مكانه واجهةً فيها زرّ ظاهر يستدعي الملفّات. فلا تمرّ صفحة
+             فارغة بحجّة أنها تنتظر شيئاً، ولا تمرّ لعبةٌ عاديةٌ فقدت لوحها. */
+          if (!m.canvases.length) {
+            if (!m.needsAssets) fails.push('no visible canvas');
+            else if (!m.intake) fails.push('needs assets yet offers no way to supply them');
+          }
           /* صفوف الجهاز المادية يجب أن تكون ltr وإلا انقلبت الأسهم مع اتجاه
              الصفحة العربي. لكن ليست كل لعبة جهازاً: طاولة البينبول تملأ الشاشة
              بلا هيكل ولا لوحة مفاتيح — المضربان نصفا الشاشة نفسها — فلا صفّ

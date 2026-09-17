@@ -24,6 +24,7 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 | `games/snake.html` | `snake.html` |
 | `games/tetris.html` | `tetris.html` |
 | `games/pinball.html` | `pinball.html` |
+| `games/cadet.html` | `cadet.html` |
 | `build.py` نفسه | `sw.js` و`manifest.webmanifest` |
 
 ألعاب `games/` تمرّ بـ`with_app_head` التي تضيف روابط الأيقونات ووسوم تطبيق الويب إلى رأس الصفحة فقط، دون أن تمسّ طريقة اللعب. لهذا `games/snake.html` و`snake.html` متشابهان عدا الرأس.
@@ -64,6 +65,23 @@ python3 src/build.py --check    يخبرك فقط هل المنشور مطابق
 ```
 node src/sky/make-sky.js
 SKY_W=700 SKY_H=1140 SKY_Q=0.62 node src/sky/make-sky.js   للموازنة بين الوضوح والحجم
+```
+
+## `cadet/`
+
+`build.sh` يبني محرّك ‎Space Cadet‎ المفتوح (رخصة MIT) إلى WebAssembly، فيكتب
+`cadet.js` و`cadet.wasm` و`cadet-LICENSE.txt` في جذر المستودع.
+
+وهو يعدّل إعدادات المنفذ قبل البناء ليحذف `--preload-file`، فلا تُخبز في
+الملفّ الناتج أي مواردَ للعبة — لأن `PINBALL.DAT` والأصوات ملك أصحابها ولا
+تُوزَّع من هنا. اللاعب يجلب نسخته فتُحفظ في متصفّحه، ويكتبها الغلاف في
+`/game_resources/` قبل إقلاع المحرّك، ولذلك يُبنى بـ`INVOKE_RUN=0`.
+
+هو خارج `build.py` كـ`icons/` و`sky/`: يحتاج `emsdk` وشبكةً، و`build.py` يجب
+أن يعمل بلا كليهما. والناتج محفوظ في المستودع فلا يحتاجه أحد لتشغيل اللعبة.
+
+```
+bash src/cadet/build.sh     ثم: python3 src/build.py
 ```
 
 ## لماذا `--check`
