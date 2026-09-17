@@ -115,9 +115,19 @@
     picked so a cleared level outweighs any single lucky shot.  All three are
     mine; none is in the source.
 
-    Drag aiming.  The original only ever turns the launcher at 0.03 rad a
-    tick.  The arrow keys here do exactly that; a drag sets the angle
-    outright, because there is no other honest way to aim with a thumb.
+    The turn rate.  The original turns the launcher at 0.03 rad a tick; the
+    sustained turn here runs at half that, 0.015, in both control schemes,
+    because the owner asked for it -- aiming is calmer and finer that way.
+    It is the one number taken from the source and then deliberately
+    changed, so TURN is still written beside it as the original's value.
+    The step a single press gives is NOT halved: it stays one original tick,
+    about 1.7 degrees, because half of it is 0.86 degrees and an instant tap
+    would read as dead again -- which is the fault that step was added to
+    fix. Slower movement, not a deadened tap.
+
+    Drag aiming.  The original only ever turns the launcher at a fixed rate.
+    A drag here sets the angle outright, because there is no other honest way
+    to aim with a thumb.
 
     Nothing.  The drawing is the original's own artwork now -- see below.
 
@@ -658,7 +668,11 @@ body.stick .stickwrap { display:flex; }
      ‎top_limit + 12×ROW_SIZE‎ = ٣٨٠ بالضبط، وهي حدّ الخسارة نفسه. */
   var DANGER_Y = TOP + ROWS * ROW;     // 380
   var SPEED = 10;              // $BUBBLE_SPEED
-  var TURN = 0.03;             // $LAUNCHER_SPEED
+  var TURN = 0.03;             // $LAUNCHER_SPEED — معدّل الأصل، للمرجع
+  /* المعدّل المستعمل: نصفُ معدّل الأصل بطلب صاحب المستودع، في النظامين —
+     العصا والأسهم — فالتصويب أهدأ وأدقّ. وهو الرقم الوحيد المأخوذ من
+     الأصل ثم غُيِّر عن عمد، ولذلك بقي `TURN` مكتوباً إلى جانبه. */
+  var AIM = TURN / 2;
   var A_MIN = 0.1, A_MAX = Math.PI - 0.1;
   var HIT2 = (BS * 0.82) * (BS * 0.82);  // is_collision
   var GRAV = 0.5;              // $FREE_FALL_CONSTANT
@@ -924,12 +938,13 @@ body.stick .stickwrap { display:flex; }
 
     if (S.phase !== 'play') return;
 
-    /* دوران القاذف بسرعة الأصل، والمفاتيح وحدها تدور — السحب يضع الزاوية */
-    if (S.act.left) S.angle += TURN;
-    if (S.act.right) S.angle -= TURN;
+    /* دوران القاذف بـ`AIM` — نصفُ معدّل الأصل، بطلب صاحب المستودع، في
+       النظامين كليهما. والسحب على الملعب يضع الزاوية مباشرةً فلا معدّل له. */
+    if (S.act.left) S.angle += AIM;
+    if (S.act.right) S.angle -= AIM;
     if (S.act.centre) {
-      if (S.angle >= Math.PI / 2 - TURN && S.angle <= Math.PI / 2 + TURN) S.angle = Math.PI / 2;
-      else S.angle += (S.angle < Math.PI / 2) ? TURN : -TURN;
+      if (S.angle >= Math.PI / 2 - AIM && S.angle <= Math.PI / 2 + AIM) S.angle = Math.PI / 2;
+      else S.angle += (S.angle < Math.PI / 2) ? AIM : -AIM;
     }
     if (S.angle < A_MIN) S.angle = A_MIN;
     if (S.angle > A_MAX) S.angle = A_MAX;
@@ -1314,10 +1329,15 @@ body.stick .stickwrap { display:flex; }
   /* الضغطة تلتفت خطوةً واحدة على الأقل — وهي خطوة نبضةٍ واحدة بسرعة الأصل
      نفسها. وهذا لأن الدوران في الأصل يقع أثناء الضغط وحده، فاللمسة السريعة
      على الجوّال تنقضي قبل أن تمرّ نبضة فلا يتحرّك القاذف شيئاً — قِيس ذلك
-     على الموقع الحيّ بلمسةٍ حقيقية فجاءت ‎٩٠° → ٩٠°‎. والضغط المطوّل يبقى
-     على سرعة الأصل، وهذه خطوةٌ واحدة في أوّله لا تغيير في المعدّل. */
+     على الموقع الحيّ بلمسةٍ حقيقية فجاءت ‎٩٠° → ٩٠°‎. والضغط المطوّل يجري
+     على `AIM` (نصفُ معدّل الأصل)، وهذه خطوةٌ واحدة في أوّله لا تغيير في
+     المعدّل. */
   function step(dir) {
     if (S.phase !== 'play') return;
+    /* خطوة الضغطة تبقى نبضةً بمعدّل الأصل (‏٠٫٠٣‏ راديان ≈ ‏١٫٧°‏) لا نصفها:
+       المطلوب إبطاء **حركة** القاذف لا إبطال اللمسة، ونصفُ الخطوة
+       ‎٠٫٨٦°‎ لا يكاد يُرى — وهو عين العطب الذي وُضعت هذه الخطوة لرفعه.
+       فالإبطاء على الدوران المستمرّ (`AIM`) وحده. */
     S.angle += dir * TURN;
     if (S.angle < A_MIN) S.angle = A_MIN;
     if (S.angle > A_MAX) S.angle = A_MAX;
