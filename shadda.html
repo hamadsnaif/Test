@@ -267,8 +267,8 @@
     to see the table's base, so the felt is shallower (100cqh - 34cqw) and
     the wooden rim sits above the fan, the cards overlapping it a little.
 
-    Words pop up in the middle, not at the edges.  The status line and log
-    stay, but what a player must notice — «دورك», «اختر اللون», «فلان وقف
+    Words pop up in the middle, not at the edges.  The status line stays
+    (the log did not — see below), but what a player must notice — «دورك», «اختر اللون», «فلان وقف
     دوره», a refused move — pops up as a toast over the table with a light
     blur behind it and leaves on its own (0.95s, 1.4s for the challenge) so
     the rhythm holds.  A change of hands is a window, not a toast: when the
@@ -291,9 +291,9 @@
     and the seat must press «خذ»), and the words say who draws how many and
     that they stand.  The same for the rest: عكس with «انعكس الاتجاه», وقّف
     with «فلان وقف دوره», a wild with the colour chosen shown as a disc
-    under it, a jump-in, and the seven and the zero of the house rule.  A
-    «stood» that merely follows a penalty draw (or a reverse between two)
-    is folded into that notice instead of a second one.  The owner asked
+    under it, a jump-in, and the seven and the zero of the house rule.  A «stood» or a «penalised» that merely follows a penalty draw (or a
+    reverse between two) is folded into that notice instead of a second
+    one: «فلان يسحب ٢ ويقف دوره», «فلان نسي «واحدة» ويسحب ٢».  The owner asked
     for the draw card first and then for all of them (2026-09-22).
 
     Drawn cards are shown before they are held.  A draw by the seat holding
@@ -383,14 +383,31 @@
     so in this stage the hand simply switches when the turn does.
 
     The layout has two shapes.  When the play area is taller than 1.39 of
-    its width (every phone held upright) the status and log sit ABOVE the
-    table and the action keys below it, the table keeping the approved
-    1:1.08 frame.  Otherwise (landscape, desktop) the table takes the
-    height on the right and status, log and keys share a column beside it.
-    The threshold is a container query on the play area, not the window.
+    its width (every phone held upright) the status sits ABOVE the table
+    and the action keys below it, the table keeping the approved 1:1.08
+    frame.  Otherwise (landscape, desktop) the table takes the height on
+    the right and status and keys share a column beside it.  The threshold
+    is a container query on the play area, not the window.
+
+    No log.  The stage-2 panel kept a scrolling transcript of every event
+    under the status line; the owner saw no use for it (2026-09-22) and it
+    is gone, with its and .  Its place goes to the status
+    itself: «حمد، دورك» is now big (clamp 22px..34px), centred in the
+    panel, in the accent colour, and pops (a 600ms scale-in) whenever the
+    text changes, so the one line a player must read is the one they cannot
+    miss.  The colour chip and the hint sit under it, small and centred.
+    Everything the log used to say is still said where it happens: as a
+    toast, on the discard pile, on the winner's panel.
+
+    A pause to see what happened.  The owner saw the hand-off window come
+    up before the card had reached the table even with the 900ms wait, and
+    asked for a general dwell: a moment to see what was done, then the
+    windows.  So the hand-off waits 1800ms after the last action (the
+    560ms flight and a good second of looking at the result), and, when
+    notices are queued, 500ms after the last of them has gone.
 
     Prose numbers are Arabic-Indic.  Counts and points in the Arabic status
-    and log use ٠-٩ as the cards do; the ltr top bar keeps Latin digits as
+    use ٠-٩ as the cards do; the ltr top bar keeps Latin digits as
     the other games' bars do.  A caller can pin the deal with ?seed=N, and
     every later match in that session takes seed+1, so a session is
     reproducible from its URL.
@@ -496,30 +513,27 @@ button:disabled{cursor:default}
 .panel{grid-area:1/1/2/2;min-height:0;display:flex;flex-direction:column;gap:4px;direction:rtl}
 .acts{grid-area:2/1/3/2}
 .scenewrap{grid-area:1/2/3/3;container-type:size;width:min(calc(100cqh / 1.08), 62cqw);height:100cqh;align-self:center}
-/* الجوّال واقفاً: الحالة والسجلّ فوق الطاولة والمفاتيح تحتها، والطاولة بإطارها
+/* الجوّال واقفاً: الحالة فوق الطاولة والمفاتيح تحتها، والطاولة بإطارها
    المعتمد ‎1:1.08‎ لا تتمدّد. العتبة ‎1.39‎ من العرض تُبقي ‎320×474‎ واقفاً. */
 @container (max-aspect-ratio: 0.72){
   .wrap{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto;gap:4px 0}
   .panel{grid-area:1/1/2/2}
-  /* الطاولة تأخذ ما بين ‎108‎ و‎150‎ من عرضها، والباقي للحالة والسجلّ (‏٩٦‏ بكسلاً
-     فأكثر): على جوّالٍ طويل تتعمّق الطاولة لا يتّسع السجلّ. */
+  /* الطاولة تأخذ ما بين ‎108‎ و‎150‎ من عرضها، والباقي للحالة (‏٩٦‏ بكسلاً
+     فأكثر): على جوّالٍ طويل تتعمّق الطاولة لا تتّسع الحالة. */
   .scenewrap{grid-area:2/1/3/2;width:100%;height:clamp(108cqw, calc(100cqh - 156px), 140cqw);margin:0 auto}
   .acts{grid-area:3/1/4/2}
 }
 
-/* ---------- الحالة والسجلّ ---------- */
-.panel .status{display:flex;align-items:center;gap:8px;flex:none;min-height:28px;padding:0 2px}
-.panel .turn{font-weight:800;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ---------- الحالة: «فلان، دورك» كبيرةً في منتصف ما كان للسجلّ ---------- */
+.panel .turn{flex:1;min-height:0;display:grid;place-items:center;text-align:center;padding:0 6px;overflow:hidden;
+  font-weight:900;font-size:clamp(22px, 7.5cqw, 34px);line-height:1.15;color:var(--acc-hi);
+  text-shadow:0 2px 0 rgba(0,0,0,.5), 0 0 24px rgba(255,190,80,.22)}
+.panel .turn.pop{animation:pop .6s cubic-bezier(.22,.61,.36,1)}
+@keyframes pop{0%{transform:scale(.82);opacity:.3}60%{transform:scale(1.05)}100%{transform:none;opacity:1}}
+.panel .status{display:flex;justify-content:center;align-items:center;flex:none;min-height:24px}
 .panel .clr{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;background:rgba(255,255,255,.06);white-space:nowrap;flex:none}
 .panel .clr i{width:12px;height:12px;border-radius:50%;background:var(--cur,transparent);box-shadow:0 0 0 1px rgba(255,255,255,.25),0 0 6px var(--cur,transparent);flex:none}
-.panel .hint{flex:none;font-size:12px;color:var(--acc-hi);min-height:16px;line-height:1.35;padding:0 2px}
-.panel .log{
-  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  font-size:12px;line-height:1.5;color:#dcd2bd;
-  padding:4px 8px;border-radius:10px;background:rgba(0,0,0,.26);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
-}
-.log div{padding:1px 0}
-.log div.hi{color:var(--acc-hi);font-weight:700}
+.panel .hint{flex:none;font-size:12px;color:var(--ivory-deep);min-height:16px;line-height:1.35;padding:0 2px;text-align:center}
 
 /* ---------- المفاتيح العاجية: مادة المجموعة ---------- */
 .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-content:flex-start;direction:rtl;padding-top:4px;min-height:54px}
@@ -761,9 +775,9 @@ button:disabled{cursor:default}
 
 <div class="wrap">
   <div class="panel">
-    <div class="status"><div class="turn" id="turn"></div><div class="clr" id="clr"></div></div>
+    <div class="turn" id="turn"></div>
+    <div class="status"><div class="clr" id="clr"></div></div>
     <div class="hint" id="hint"></div>
-    <div class="log" id="log"></div>
   </div>
   <div class="scenewrap">
     <div class="scene" data-table id="scene">
@@ -1406,7 +1420,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'log', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy'].forEach(function (id) {
+  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
   });
   var scenewrap = el.scene.parentElement;
@@ -1415,13 +1429,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var G = null, V = null;               // حالة المحرّك، ورؤية المقعد صاحب الموقف
   var seats = 3, house = { stack: false, jumpIn: false, sevenZero: false };
   var nameVals = ['', '', '', '', ''], names = [];
-  var lines = [], sel = null, armOne = false, lastDrawn = null, hintText = '';
+  var sel = null, armOne = false, lastDrawn = null, hintText = '';
   var privacy = true, shownSeat = null, lastPrompt = '';   // المقعد الذي يرى الجوّالُ يدَه، وآخر نداءٍ نُودي
   var handoffAt = 0, handoffTimer = null;                 // متى تُرفع نافذة التسليم: بعد أن تحطّ الورقة
   var reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   /* ---------- الإيقاع: أبطأ وأنعم، والتنويه يبقى حتى يُقرأ (طلب المالك) ---------- */
-  var FLY_MS = 560, HANDOFF_WAIT = 900, TOAST_GAP = 200, TOAST_OUT = 300;
+  var FLY_MS = 560, HANDOFF_WAIT = 1800, AFTER_TOAST = 500, TOAST_GAP = 200, TOAST_OUT = 300;
 
   /* ---------- التنبيهات المنبثقة: طابورٌ يعرض كلمةً ثم يطويها وحده ---------- */
   var toastQ = [], toastTimer = null, toastUntil = 0;   // ومتى يُطوى المعروض منها
@@ -1531,8 +1545,14 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function actorOf(st) { return st.phase === 'colour' ? st.chooser : st.phase === 'challenge' ? st.challenge.target : st.turn; }
   function nameOf(i) { return names[i] || ('المقعد ' + fmt(i + 1)); }
 
-  /* ---------- السجلّ ---------- */
-  function say(text, hi) { lines.push({ text: text, hi: !!hi }); if (lines.length > 80) lines.shift(); }
+  /* ---------- الحالة الكبيرة: تنطّ حين يتبدّل نصّها ---------- */
+  function setTurn(text) {
+    if (el.turn.textContent === text) return;
+    el.turn.textContent = text;
+    el.turn.classList.remove('pop'); el.turn.getBoundingClientRect(); el.turn.classList.add('pop');
+  }
+
+  /* ---------- الأحداث: ما يجب أن يُلاحَظ يُنادى؛ ولا سجلّ (قرار المالك) ---------- */
   var lastPlayed = null, revealIds = null;              // آخر ورقةٍ لُعبت، وما سُحب لمن يمسك الجوّال
   /* الورقة التي أحدثت الأثر تُعرض مع تنويهه — إن كانت آخرُ ما لُعب من نوعه */
   function effectCard(kinds) { return lastPlayed !== null && kinds.indexOf(S.card(lastPlayed).kind) >= 0 ? lastPlayed : null; }
@@ -1540,39 +1560,37 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var quiet = {};                                      // «وقف دوره» الذي قاله تنويهٌ قبله لا يُعاد
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.t === 'dealt') say('وُزّعت ' + fmt(e.each) + ' لكل لاعب، و' + nameOf(e.first) + ' يبدأ.', true);
-      else if (e.t === 'flipped') { say('المكشوفة: ' + label(e.card) + '.'); lastPlayed = e.card; }   // المكشوفة قد تكون عقوبةً على البادئ
-      else if (e.t === 'played') { say(nameOf(e.seat) + ' لعب ' + label(e.card) + '.'); lastPlayed = e.card; }
+      if (e.t === 'flipped') lastPlayed = e.card;   // المكشوفة قد تكون عقوبةً على البادئ
+      else if (e.t === 'played') lastPlayed = e.card;
       else if (e.t === 'drew' && e.n) {
-        say(nameOf(e.seat) + ' سحب ' + fmt(e.n) + '.');
         if (e.seat === me) lastDrawn = e.cards[e.cards.length - 1];
         if (e.seat === shownSeat) revealIds = e.cards.slice();
         if (e.n > 1) {
-          /* الوقوف الذي يتبع عقوبة السحب يُقال في تنويهها لا في تنويهٍ ثانٍ */
-          var stops = false;
-          for (var j = i + 1; j < events.length && j <= i + 2; j++) if (events[j].t === 'skipped' && events[j].seat === e.seat) { quiet[j] = true; stops = true; }
-          toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
+          /* الوقوف والعقوبة اللذان يتبعان السحب يُقالان في تنويهه لا في تنويهٍ ثانٍ */
+          var stops = false, why = null;
+          for (var j = i + 1; j < events.length && j <= i + 2; j++) {
+            if (events[j].seat !== e.seat) continue;
+            if (events[j].t === 'skipped') { quiet[j] = true; stops = true; }
+            else if (events[j].t === 'penalised' && events[j].why !== 'bluff' && events[j].why !== 'badChallenge') { quiet[j] = true; why = events[j].why; }
+          }
+          toast(nameOf(e.seat) + (why === 'noOne' ? ' نسي «واحدة» ويسحب ' : ' يسحب ') + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
         }
       }
-      else if (e.t === 'colourChosen') { say(nameOf(e.seat) + ' اختار ' + CLR[e.colour] + '.'); toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour); }
-      else if (e.t === 'skipped') { say(nameOf(e.seat) + ' وقف دوره.'); if (!quiet[i]) toast(nameOf(e.seat) + ' وقف دوره', false, false, effectCard(['skip'])); }
+      else if (e.t === 'colourChosen') toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour);
+      else if (e.t === 'skipped') { if (!quiet[i]) toast(nameOf(e.seat) + ' وقف دوره', false, false, effectCard(['skip'])); }
       else if (e.t === 'directionReversed') {
-        say('انعكس الاتجاه.');
         /* في اثنين يعمل العكس عمل «وقّف»، والوقوف يُقال هنا لا في تنويهٍ ثانٍ */
         var nx = events[i + 1] && events[i + 1].t === 'skipped' ? events[i + 1] : null;
         if (nx) quiet[i + 1] = true;
         toast(nx ? 'انعكس الاتجاه — ' + nameOf(nx.seat) + ' يقف' : 'انعكس الاتجاه', false, false, effectCard(['reverse']));
       }
-      else if (e.t === 'saidOne') { say(nameOf(e.seat) + ' قال «واحدة».', true); toast(nameOf(e.seat) + ': «واحدة»!', true); }
-      else if (e.t === 'challenged') { var ch = nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'); say(ch, true); toast(ch, true); }
-      else if (e.t === 'penalised') { say(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards) + '.', true); if (e.why !== 'bluff' && e.why !== 'badChallenge') toast(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards)); }
-      else if (e.t === 'stockReshuffled') { say('نفد المسحب، فأُعيد خلط المرميّ (' + fmt(e.cards) + ').'); toast('أُعيد خلط المرميّ'); }
-      else if (e.t === 'handsSwapped') { say(nameOf(e.a) + ' بدّل يده مع ' + nameOf(e.b) + '.'); toast('تبادلت الأيدي', false, false, effectCard(['number'])); }
-      else if (e.t === 'handsRotated') { say('دارت الأيدي.'); toast('دارت الأيدي', false, false, effectCard(['number'])); }
-      else if (e.t === 'jumpedIn') { say(nameOf(e.seat) + ' قفز بـ' + label(e.card) + '.'); lastPlayed = e.card; toast(nameOf(e.seat) + ' قفز!', false, false, e.card); }
-      else if (e.t === 'roundStarted') say('— الجولة ' + fmt(e.round) + ' —', true);
-      else if (e.t === 'roundEnded') say('انتهت الجولة: فاز ' + nameOf(e.winner) + ' بـ' + fmt(e.points) + ' نقطة.', true);
-      else if (e.t === 'matchEnded') say('انتهت المباراة: ' + nameOf(e.winner) + ' يفوز.', true);
+      else if (e.t === 'saidOne') toast(nameOf(e.seat) + ': «واحدة»!', true);
+      else if (e.t === 'challenged') toast(nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'), true);
+      else if (e.t === 'penalised') { if (!quiet[i] && e.why !== 'bluff' && e.why !== 'badChallenge') toast(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards)); }
+      else if (e.t === 'stockReshuffled') toast('أُعيد خلط المرميّ');
+      else if (e.t === 'handsSwapped') toast('تبادلت الأيدي', false, false, effectCard(['number']));
+      else if (e.t === 'handsRotated') toast('دارت الأيدي', false, false, effectCard(['number']));
+      else if (e.t === 'jumpedIn') { lastPlayed = e.card; toast(nameOf(e.seat) + ' قفز!', false, false, e.card); }
       else if (e.t === 'turnPassed') lastDrawn = null;
     }
   }
@@ -1586,7 +1604,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     hintText = '';
     /* إن انتقل الموقف إلى مقعدٍ آخر أُمهلت النافذة حتى تصل الورقة الطائرة وتستقرّ،
        وحتى يُقرأ كلُّ تنويهٍ في الطابور (المالك: «النافذة تذهب بسرعة») */
-    if (privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Math.max(Date.now() + (reduced ? 0 : HANDOFF_WAIT), toastEndsAt());
+    if (privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Math.max(Date.now() + (reduced ? 0 : HANDOFF_WAIT), toastEndsAt() + AFTER_TOAST);
     render();
     return true;
   }
@@ -1743,28 +1761,28 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var can = v.phase === 'play' ? S.legalMoves(v) : [], hint = hintText;
 
     if (waiting) {
-      el.turn.textContent = 'الدور لـ' + nameOf(me);
+      setTurn('الدور لـ' + nameOf(me));
       el.hint.textContent = '';
       el.handoff.hidden = true;
-      drawLog();
+      
       return;
     }
     if (handoff) {
       /* نافذة تبديل الأدوار: لا يدَ ولا مفاتيح حتى يقول التالي إنه هو */
-      el.turn.textContent = 'الدور لـ' + nameOf(me);
+      setTurn('الدور لـ' + nameOf(me));
       el.hint.textContent = 'مرّر الجوّال إلى ' + nameOf(me) + '.';
       el.hoAv.textContent = nameOf(me).charAt(0);
       el.hoWho.textContent = 'مرّر الجوّال إلى ' + nameOf(me);
       el.handoffok.textContent = 'أنا ' + nameOf(me) + ' — أرني ورقي';
       el.handoff.hidden = false;
-      clearToasts();                                 // ما قيل قبل التسليم قاله من مضى، والتالي يقرأ السجلّ
-      drawLog();
+      clearToasts();                                 // ما قيل قبل التسليم قاله من مضى
+      
       return;
     }
     el.handoff.hidden = true;
 
     if (v.phase === 'over') {
-      el.turn.textContent = v.over ? 'انتهت المباراة' : 'انتهت الجولة';
+      setTurn(v.over ? 'انتهت المباراة' : 'انتهت الجولة');
       var sc = '';
       for (var i = 0; i < v.seats; i++) sc += '<span class="' + (i === v.winner ? 'w' : '') + '">' + esc(nameOf(i)) + ' ' + fmt(v.scores[i]) + '</span>';
       el.over.innerHTML = '<b>' + (v.over ? 'انتهت المباراة: ' + esc(nameOf(v.winner)) + ' يفوز' : 'فاز ' + esc(nameOf(v.winner)) + ' بالجولة') + '</b><div class="sc">' + sc + '</div>';
@@ -1777,13 +1795,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       }));
       if (!hint) hint = v.over ? 'النقاط إلى ' + fmt(v.target) + ' تحسم المباراة.' : 'الفائز يأخذ ما بقي في أيدي الآخرين.';
     } else if (v.phase === 'colour') {
-      el.turn.textContent = nameOf(me) + '، اختر اللون';
+      setTurn(nameOf(me) + '، اختر اللون');
       S.COLOURS.forEach(function (c) {
         el.acts.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }, { 'data-c': c }));
       });
       if (!hint) hint = 'اللون الذي تختاره هو ما يُطابَق بعدك.';
     } else if (v.phase === 'challenge') {
-      el.turn.textContent = nameOf(me) + '، «سحب أربعة» عليك';
+      setTurn(nameOf(me) + '، «سحب أربعة» عليك');
       var takeFly = function (action) {
         revealIds = null;
         if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 1600;   // حدٌّ أعلى؛ الحطّ الدقيق في landIn
@@ -1795,7 +1813,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       el.acts.appendChild(btn('اقبل الأربع', '', function () { takeFly({ type: 'accept' }); }));
       if (!hint) hint = 'إن كان ' + nameOf(v.challenge.from) + ' يملك اللون الجاري فقد كذب ويسحب أربعاً — وإن صدق سحبتَ ستّاً.';
     } else {
-      el.turn.textContent = nameOf(me) + '، دورك';
+      setTurn(nameOf(me) + '، دورك');
       var drawFly = function () {
         var from = rect(el.felt.querySelector('.stock .card:last-child'));
         revealIds = null;
@@ -1824,7 +1842,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       }
     }
     el.hint.textContent = hint;
-    drawLog();
+    
 
     /* نداءُ الموقف يُنادى مرّةً واحدة لكل موقفٍ جديد */
     var key = me + ':' + v.phase + ':' + v.round;
@@ -1835,16 +1853,6 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ أو خذ', true, true, top, v.pending);
       else toast('دورك يا ' + nameOf(me), false, true);
     }
-  }
-  function drawLog() {
-    el.log.textContent = '';
-    for (var j = 0; j < lines.length; j++) {
-      var d = document.createElement('div');
-      if (lines[j].hi) d.className = 'hi';
-      d.textContent = lines[j].text;
-      el.log.appendChild(d);
-    }
-    el.log.scrollTop = el.log.scrollHeight;
   }
 
   /* ---------- اليد: نقرةٌ ترفع، وثانيةٌ تلعب ---------- */
@@ -1908,7 +1916,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     for (var i = 0; i < seats; i++) names.push((nameVals[i] || '').trim() || ('اللاعب ' + fmt(i + 1)));
     var out = S.createGame({ seats: seats, seed: seed, house: house });
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
-    G = out.state; lines = []; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
+    G = out.state; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
     shownSeat = actorOf(G); handoffAt = 0;           // من يمسك الجوّال الآن هو البادئ
     clearToasts();
     tell(out.events, actorOf(G));

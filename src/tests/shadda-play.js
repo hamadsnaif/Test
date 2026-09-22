@@ -34,7 +34,7 @@ const num = s => parseInt(String(s).replace(/[٠-٩]/g, d => AR.indexOf(d)), 10)
 
 /* كل ما يلي يقرأ المرسوم وحده */
 const texts = (p, sel) => p.$$eval(sel, es => es.map(e => e.textContent.trim()));
-const logText = p => p.$eval('#log', e => e.innerText);
+const overText = p => p.$eval('#over', e => e.hidden ? '' : e.innerText);
 const capText = p => p.$eval('#cap-n', e => e.textContent.trim());
 const turnText = p => p.$eval('#turn', e => e.textContent.trim());
 const hintText = p => p.$eval('#hint', e => e.textContent.trim());
@@ -78,6 +78,7 @@ async function oneMove(p, sayOne) {
     if (sayOne && (await handCards(p)).length === 2 && acts.indexOf('واحدة!') >= 0) {
       const pressed = await p.$eval('#acts button[aria-pressed]', b => b.getAttribute('aria-pressed'));
       if (pressed !== 'true') await clickByText(p, '#acts button', 'واحدة!');
+      if (await playFirstLive(p)) return 'one';
     }
     if (await playFirstLive(p)) return 'play';
   }
@@ -158,7 +159,7 @@ async function open(browser, w, h, query) {
     await p.click('#startbtn');
     await sleep(150);
     ok('pressing start hides the sheet and deals a round, and the log says so',
-      await p.$eval('#start', e => e.hidden) && /وُزّعت ٧ لكل لاعب/.test(await logText(p)), (await logText(p)).slice(0, 80));
+      await p.$eval('#start', e => e.hidden) && (await handCards(p)).length >= 7 && /دورك$/.test(await turnText(p)), await turnText(p));
     let tg = await tags(p), shown = tg.join(' ') + ' ' + await turnText(p);
     ok('two opponents stand on the felt, and the typed names are among the three',
       tg.length === 2 && ['سارة', 'خالد', 'اللاعب ٣'].every(n => shown.indexOf(n) >= 0), shown);
@@ -172,7 +173,7 @@ async function open(browser, w, h, query) {
     console.log('     fan on 390 with ' + patches.length + ' cards: each card owns at least ' + minPatch + 'px (' + patches.map(q => q.w + 'x' + q.h).join(' ') + ')');
     ok('on a 390px screen every fanned card owns a 44x44 patch alone', patches.length > 0 && minPatch >= 44, 'min=' + minPatch);
 
-    /* ---- نقرةٌ ترفع وثانيةٌ تلعب، والأثر في السجلّ ---- */
+    /* ---- نقرةٌ ترفع وثانيةٌ تلعب، وشريحة اللون تسمّي ما على المرمى ---- */
     let moved = false;
     for (let k = 0; k < 30 && !moved; k++) {
       const live = await liveCards(p);
@@ -182,9 +183,8 @@ async function open(browser, w, h, query) {
         ok('the first tap raises the card and the hint says to tap again',
           !!(await p.$('#hand button.card.up')) && /مرّةً أخرى/.test(await hintText(p)), await hintText(p));
         await (await p.$('#hand button.card.up')).click(); await sleep(20);
-        ok('the second tap plays it, and the log names the card that was played',
-          new RegExp(' لعب ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.').test(await logText(p)),
-          (await logText(p)).split('\n').slice(-1)[0]);
+        ok('the second tap plays it, and the colour chip names the card now on the pile',
+          (await p.$eval('#clr', e => e.textContent)).indexOf(name) >= 0, await p.$eval('#clr', e => e.textContent));
         moved = true;
       } else if (!(await oneMove(p, true))) break;
     }
@@ -216,29 +216,31 @@ async function open(browser, w, h, query) {
     /* ---- جولةٌ كاملة بالنقر وحده، و«واحدة» تُقال حين تبقى ورقتان ---- */
     let moves = 0, kinds = {};
     while (moves < 800) {
-      if (/انتهت الجولة/.test(await logText(p))) break;
+      if (await overText(p)) break;
       const what = await oneMove(p, true);
       if (!what) break;
       kinds[what] = (kinds[what] || 0) + 1;
       moves++;
     }
-    const log = await logText(p);
-    const m = log.match(/انتهت الجولة: فاز (.+?) بـ([٠-٩]+) نقطة/);
+    const over = await overText(p);
+    const m = over.match(/^فاز (.+?) بالجولة/);
     ok('a whole round is played through to a winner, by tapping only', !!m,
-      moves + ' moves, last line: ' + log.split('\n').slice(-1)[0]);
+      moves + ' moves, panel: ' + over.replace(/\n/g, ' / '));
     ok('the round took real play, not one lucky card', moves > 6, 'moves=' + moves + ' ' + JSON.stringify(kinds));
-    ok('«واحدة» was said on the way, and the log recorded it', /قال «واحدة»/.test(log));
+    ok('«واحدة» was pressed on the way, with two cards in hand', kinds.one > 0, JSON.stringify(kinds));
     if (m) {
       const cap = await capText(p);
-      ok('the score on the bar matches the points in the log', cap.indexOf(String(num(m[2]))) >= 0, cap + ' vs ' + m[2]);
-      ok('the winner\'s panel names the same winner', (await p.$eval('#over', e => !e.hidden && e.textContent)).indexOf(m[1]) >= 0);
+      const w = await p.$eval('#over .sc .w', e => e.textContent.trim());          // «فلان ٤٢»
+      const pts = w.split(' ').slice(-1)[0];
+      ok('the winner\'s line in the panel is the winner named above it', w.indexOf(m[1]) === 0, w);
+      ok('the score on the bar matches the winner\'s points in the panel', cap.indexOf(String(num(pts))) >= 0, cap + ' vs ' + pts);
       ok('the hand is cleared when the round is over', (await handCards(p)).length === 0);
     }
     ok('the round offers a way on', (await texts(p, '#acts button')).indexOf('الجولة التالية') >= 0);
     await clickByText(p, '#acts button', 'الجولة التالية');
     await sleep(150);
     ok('the next round deals again and keeps the score',
-      /— الجولة ٢ —/.test(await logText(p)) && (await capText(p)).indexOf('round 2') >= 0, await capText(p));
+      (await capText(p)).indexOf('round 2') >= 0 && ((await handCards(p)).length > 0 || await p.$eval('#handoff', e => !e.hidden)), await capText(p));
 
     /* ---- «واحدة» منسيّة: مفتاح النداء يظهر، والعقوبة ورقتان — من الشاشة ---- */
     let called = false;
@@ -252,8 +254,12 @@ async function open(browser, w, h, query) {
       if (!(await oneMove(p, false))) break;
     }
     ok('forgetting «واحدة» puts a call-out key on the screen', called);
-    if (called) ok('and the call-out is punished with two cards, in words on the screen',
-      /عوقب بـ٢/.test(await logText(p)), (await logText(p)).split('\n').slice(-2).join(' / '));
+    if (called) {
+      let pt = '';
+      /* التنويه قد ينتظر خلف تنويهين قبله (نحو أربع ثوانٍ) */
+      for (let k = 0; k < 80 && !/نسي «واحدة» ويسحب ٢/.test(pt); k++) { pt = await p.$eval('#toast', e => e.classList.contains('on') ? e.textContent.trim() : ''); if (!/نسي «واحدة»/.test(pt)) await sleep(80); }
+      ok('and the call-out is punished with two cards, said on the screen', /نسي «واحدة» ويسحب ٢/.test(pt), pt);
+    }
 
     /* ---- القائمة تعود إلى البداية، والعودة تعود إلى الطاولة نفسها ---- */
     const before = await capText(p);
