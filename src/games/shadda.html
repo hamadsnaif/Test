@@ -284,6 +284,26 @@
     prefers-reduced-motion nothing flies and the toasts appear without
     their fade.
 
+    The hand reflows instead of redrawing.  When a card leaves or arrives
+    the fan's buttons are kept and only their positions change, so the
+    remaining cards slide to their new places (a 250ms transition on the
+    transform); a card that arrives fades and scales in where it will sit,
+    timed to the end of its flight from the stock.  A hand shown for a
+    different seat is rebuilt outright.  The owner asked for this after the
+    second look (2026-09-22).
+
+    The face, third form.  The owner asked for the numeral and the corner
+    index to share one colour, and for one uniform panel behind the centre
+    symbol in the spirit of that family's cards but not its ellipse: a
+    square whose two opposite corners are nearly sharp (10%) and the other
+    two deeply rounded (48%) — a leaf.  So the centre is an ivory leaf 60%
+    of the card's width, the corner indices are ivory leaves 24% wide, and
+    every numeral and symbol on them is inked in the card's own colour (a
+    darker amber #a8760a on yellow, since yellow on ivory cannot be read;
+    the wild's ink is its face's dark).  The name stays above the leaf, in
+    cream on the colour.  Contrast of ink on the ivory: red 4.6, blue 5.3,
+    green 5.2, amber 3.7, wild 12 to one.
+
     The fan step is 48px, not 8 degrees, and the tilt is 3 degrees at most.
     The samples fanned seven cards at (i-3)x8deg about a pivot 240% below,
     which exposes about 30px of each card on a 320px screen — and the
@@ -477,18 +497,33 @@ button:disabled{cursor:default}
 }
 /* وسط الورقة عمودٌ: الاسم ثم الرمز، والمجموعة في المنتصف — فموضع الاسم واحدٌ
    في كل ورقة، للأرقام والأفعال جميعاً (قرار المالك، المرحلة ١). */
-.card .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--w)*.02)}
+.card .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--w)*.035)}
 .card .cname{
   font-size:calc(var(--w)*.15);line-height:1.15;font-weight:800;letter-spacing:.01em;
   white-space:nowrap;direction:rtl;opacity:.95;text-shadow:0 .05em 0 var(--lo);
 }
 .card .cname.act{font-size:calc(var(--w)*.115);letter-spacing:0}
-.card .num{font-size:calc(var(--w)*.64);line-height:1;text-shadow:0 .06em 0 var(--lo), 0 .12em .14em rgba(0,0,0,.35)}
-.card .mid > svg{width:62%;height:auto;flex:none;filter:drop-shadow(0 .04em 0 var(--lo)) drop-shadow(0 .1em .1em rgba(0,0,0,.35))}
-.card .idx{position:absolute;font-size:calc(var(--w)*.19);line-height:1;display:flex;align-items:center;gap:.05em;text-shadow:0 .06em 0 var(--lo)}
-.card .idx svg{width:1em;height:1em;filter:drop-shadow(0 .06em 0 var(--lo))}
-.card .idx.a{top:5%;right:8%}
-.card .idx.b{bottom:5%;left:8%;transform:rotate(180deg)}
+/* الورقة العاجية: لوحٌ موحَّد المقاس خلف الرقم أو الرمز، زاويتان متقابلتان شبه
+   حادّتين وأخريان مقوّستان بشدّة، والحبر بلون الورقة في المنتصف والزاويتين معاً.
+   الشكل نفسه مقلوباً ‎180°‎ هو نفسه، فالزاوية السفلية تُدار بلا تغيير. */
+.card .leaf{
+  width:60%;aspect-ratio:1;flex:none;display:grid;place-items:center;color:var(--nk);
+  border-radius:10% 48% 10% 48%;
+  background:linear-gradient(160deg,var(--ivory-hi),var(--ivory) 60%,var(--ivory-lo));
+  box-shadow:inset 0 1px 0 #fff, 0 0 0 1px rgba(0,0,0,.2), 0 calc(var(--w)*.025) calc(var(--w)*.05) rgba(0,0,0,.35);
+}
+.card .leaf .num{font-size:calc(var(--w)*.48);line-height:1;text-shadow:0 .04em 0 rgba(0,0,0,.14)}
+.card .leaf > svg{width:66%;height:auto;display:block}
+.card .idx{
+  position:absolute;width:calc(var(--w)*.24);aspect-ratio:1;display:grid;place-items:center;color:var(--nk);
+  border-radius:10% 48% 10% 48%;font-size:calc(var(--w)*.15);line-height:1;
+  background:linear-gradient(160deg,var(--ivory-hi),var(--ivory-lo));
+  box-shadow:0 0 0 1px rgba(0,0,0,.2), 0 1px 2px rgba(0,0,0,.3);
+}
+.card .idx .pl{font-size:calc(var(--w)*.12);letter-spacing:-.02em}
+.card .idx svg{width:68%;height:68%;display:block}
+.card .idx.a{top:4.5%;right:6%}
+.card .idx.b{bottom:4.5%;left:6%;transform:rotate(180deg)}
 .card.back .face{
   background:
     repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0 2px, rgba(0,0,0,0) 2px 7px),
@@ -571,8 +606,10 @@ button:disabled{cursor:default}
   --tx:0px;--ty:0px;--a:0deg;--lift:0cqw;
   position:absolute;left:50%;bottom:-8cqw;transform-origin:50% 50%;
   transform:translate(var(--tx), var(--ty)) translateY(var(--lift)) rotate(var(--a));
-  transition:transform .18s ease, filter .18s ease;cursor:pointer;
+  transition:transform .25s ease, opacity .2s ease, filter .18s ease;cursor:pointer;
 }
+/* ورقةٌ تصل إلى اليد: تظهر في موضعها متأخّرةً عن نسختها الطائرة */
+.hand .card.in{opacity:0;transform:translate(var(--tx), calc(var(--ty) + 6cqw)) rotate(var(--a)) scale(.7)}
 .hand .card.up{--lift:-6cqw}
 .hand .card:disabled{filter:saturate(.45) brightness(.62);cursor:default}
 .hand .card.fresh .face{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 0 calc(var(--w)*.12) rgba(0,0,0,.18), inset 0 0 0 calc(var(--w)*.04) var(--acc)}
@@ -1228,11 +1265,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var cssv = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
   var HEX = { red: cssv('--red'), blue: cssv('--blue'), green: cssv('--green'), yellow: cssv('--yellow') };
   var SUIT = {
-    red: { c: 'var(--red)', hi: 'var(--red-hi)', lo: 'var(--red-lo)', fg: 'var(--cream)' },
-    blue: { c: 'var(--blue)', hi: 'var(--blue-hi)', lo: 'var(--blue-lo)', fg: 'var(--cream)' },
-    green: { c: 'var(--green)', hi: 'var(--green-hi)', lo: 'var(--green-lo)', fg: 'var(--cream)' },
-    yellow: { c: 'var(--yellow)', hi: 'var(--yellow-hi)', lo: 'var(--yellow-lo)', fg: '#3a2a08' },
-    wild: { c: '#2a2731', hi: '#443f4d', lo: '#0e0d12', fg: 'var(--cream)' }
+    /* nk: حبر الرقم والرمز على اللوح العاجي — لون الورقة نفسه، والأصفر كهرمانٌ
+       أغمق لأن الأصفر على العاجي لا يُقرأ. */
+    red: { c: 'var(--red)', hi: 'var(--red-hi)', lo: 'var(--red-lo)', fg: 'var(--cream)', nk: 'var(--red)' },
+    blue: { c: 'var(--blue)', hi: 'var(--blue-hi)', lo: 'var(--blue-lo)', fg: 'var(--cream)', nk: 'var(--blue)' },
+    green: { c: 'var(--green)', hi: 'var(--green-hi)', lo: 'var(--green-lo)', fg: 'var(--cream)', nk: 'var(--green)' },
+    yellow: { c: 'var(--yellow)', hi: 'var(--yellow-hi)', lo: 'var(--yellow-lo)', fg: '#3a2a08', nk: '#a8760a' },
+    wild: { c: '#2a2731', hi: '#443f4d', lo: '#0e0d12', fg: 'var(--cream)', nk: '#2a2731' }
   };
 
   /* الأرقام نصّ النظام كما في العيّنات — المالك ردّ المسارات المرسومة من الجوّال */
@@ -1277,16 +1316,16 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (!act) { mid = digitText(c.value); idx = fmt(c.value); name = NUM[c.value]; }
     else {
       name = KIND[c.kind];
-      if (c.kind === 'draw2') { mid = ICON.draw2; idx = '+' + fmt(2); }
-      else if (c.kind === 'wild4') { mid = ICON.draw4; idx = '+' + fmt(4); }
+      if (c.kind === 'draw2') { mid = ICON.draw2; idx = '<span class="pl">+' + fmt(2) + '</span>'; }
+      else if (c.kind === 'wild4') { mid = ICON.draw4; idx = '<span class="pl">+' + fmt(4) + '</span>'; }
       else if (c.kind === 'wild') { mid = ICON.wild; idx = ICON.dot; }
       else if (c.kind === 'skip') { mid = ICON.skip; idx = ICON.skip; }
       else { mid = ICON.reverse; idx = ICON.reverse; }
     }
     var tag = o.tag || 'div';
-    return '<' + tag + ' class="card' + (o.cls ? ' ' + o.cls : '') + '" style="--c:' + s.c + ';--hi:' + s.hi + ';--lo:' + s.lo + ';--fg:' + s.fg + ';' + (o.style || '') + '"' +
+    return '<' + tag + ' class="card' + (o.cls ? ' ' + o.cls : '') + '" style="--c:' + s.c + ';--hi:' + s.hi + ';--lo:' + s.lo + ';--fg:' + s.fg + ';--nk:' + s.nk + ';' + (o.style || '') + '"' +
       (o.attrs || '') + ' aria-label="' + label(id) + '">' +
-      '<span class="face"><span class="idx a">' + idx + '</span><span class="mid"><span class="cname' + (act ? ' act' : '') + '">' + name + '</span>' + mid + '</span><span class="idx b">' + idx + '</span></span></' + tag + '>';
+      '<span class="face"><span class="idx a">' + idx + '</span><span class="mid"><span class="cname' + (act ? ' act' : '') + '">' + name + '</span><span class="leaf">' + mid + '</span></span><span class="idx b">' + idx + '</span></span></' + tag + '>';
   }
   function backHTML(o) {
     o = o || {};
@@ -1336,9 +1375,11 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
 
   /* ---------- الورقة الطائرة ---------- */
+  var flightUntil = 0;                                   // متى تحطّ آخر ورقةٍ طائرة
   function rect(e) { return e ? e.getBoundingClientRect() : null; }
   function fly(from, to, html) {
     if (reduced || !from || !to || !from.width || !to.width) return;
+    flightUntil = Date.now() + 380;
     var f = document.createElement('div');
     f.className = 'fly'; f.innerHTML = html;
     f.style.left = from.left + 'px'; f.style.top = from.top + 'px';
@@ -1434,7 +1475,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
   /* اليد: خطوةٌ لا تقلّ عن ‎50px‎ فتملك كل ورقةٍ طرفها، والزاوية تتبع الخطوة؛
      وإن لم تتّسع الخطوات للعرض بطل القوس وانزلقت اليد. */
-  function handHTML(v, me, W) {
+  function layoutHand(v, me, W) {
     var hand = v.hand, n = hand.length;
     var can = v.phase === 'play' && v.turn === me ? S.legalMoves(v) : [];
     var minStep = 48, pad = 4, fan = true;
@@ -1445,18 +1486,52 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var step = n > 1 ? (fan ? Math.max(minStep, Math.min(cw * .62, (W - 2 * pad - cw) / (n - 1))) : minStep) : 0;
     /* الدوران لا يزيد على ‎3°‎: فحص العقد يقيس مستطيلاً موازياً للشاشة، وشريطٌ
        عرضه ‎48‎ مائلٌ ‎20°‎ لا يسع إلا ‎38‎ منه. والقوس هبوطٌ خفيف ‎dx²/2R‎. */
-    var total = (n - 1) * step + cw + 2 * pad, Rv = 12 * cw, html = '';
+    var total = (n - 1) * step + cw + 2 * pad, Rv = 12 * cw, items = [];
     for (var i = 0; i < n; i++) {
       var dx = (i - (n - 1) / 2) * step, a = fan ? Math.max(-3, Math.min(3, dx / Rv * 180 / Math.PI)) : 0, dy = fan ? dx * dx / (2 * Rv) : 0;
-      var id = hand[i], ok = can.indexOf(id) >= 0;
-      html += cardHTML(id, {
-        tag: 'button',
-        cls: (ok ? 'ok' : '') + (id === sel ? ' up' : '') + (id === lastDrawn ? ' fresh' : ''),
-        style: '--cw:' + cw.toFixed(1) + 'px;--tx:' + (dx - cw / 2).toFixed(1) + 'px;--ty:' + dy.toFixed(1) + 'px;--a:' + a.toFixed(2) + 'deg;z-index:' + (n - i),
-        attrs: ' data-id="' + id + '"' + (ok ? '' : ' disabled')
-      });
+      var id = hand[i];
+      items.push({ id: id, cw: cw, tx: dx - cw / 2, ty: dy, a: a, z: n - i, ok: can.indexOf(id) >= 0, up: id === sel, fresh: id === lastDrawn });
     }
-    return '<div class="fanrow" style="width:' + Math.max(W, Math.ceil(total)) + 'px">' + html + '</div>';
+    return { items: items, width: Math.max(W, Math.ceil(total)) };
+  }
+  /* اليد لا تُعاد كتابتها: الأزرار الباقية تُبقى وتُحرَّك مواضعُها فتنزلق،
+     والمغادرة تُحذف، والواصلة تُضاف وتظهر في موضعها بعد أن تصل نسختها الطائرة. */
+  function syncHand(lay, owner) {
+    var row = el.hand.firstElementChild;
+    if (!row || row.getAttribute('data-owner') !== String(owner)) {
+      el.hand.innerHTML = '<div class="fanrow" data-owner="' + owner + '"></div>';
+      row = el.hand.firstElementChild;
+    }
+    row.style.width = lay.width + 'px';
+    var keep = {}, i;
+    for (i = 0; i < lay.items.length; i++) keep[lay.items[i].id] = true;
+    var old = row.children, gone = [];
+    for (i = 0; i < old.length; i++) if (!keep[old[i].getAttribute('data-id')]) gone.push(old[i]);
+    for (i = 0; i < gone.length; i++) row.removeChild(gone[i]);
+    var prev = null;
+    lay.items.forEach(function (it) {
+      var b = row.querySelector('.card[data-id="' + it.id + '"]'), born = false;
+      if (!b) {
+        var tmp = document.createElement('div');
+        tmp.innerHTML = cardHTML(it.id, { tag: 'button', attrs: ' data-id="' + it.id + '"' });
+        b = tmp.firstElementChild; born = true;
+        if (!reduced) b.classList.add('in');
+      }
+      var want = prev ? prev.nextSibling : row.firstChild;
+      if (want !== b) row.insertBefore(b, want);
+      b.style.setProperty('--cw', it.cw.toFixed(1) + 'px');
+      b.style.setProperty('--tx', it.tx.toFixed(1) + 'px');
+      b.style.setProperty('--ty', it.ty.toFixed(1) + 'px');
+      b.style.setProperty('--a', it.a.toFixed(2) + 'deg');
+      b.style.zIndex = it.z;
+      b.classList.toggle('ok', it.ok); b.classList.toggle('up', it.up); b.classList.toggle('fresh', it.fresh);
+      b.disabled = !it.ok;
+      if (born && !reduced) {
+        b.getBoundingClientRect();                                 // يثبّت حال «in» قبل الانتقال
+        setTimeout(function () { b.classList.remove('in'); }, Math.max(20, flightUntil - Date.now()));
+      }
+      prev = b;
+    });
   }
 
   /* بطاقات الأسماء: تُقرأ مراسي المقاعد مُسقَطةً على الشاشة بعد الرسم، وتوضع
@@ -1501,7 +1576,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var W = scenewrap.clientWidth || 360, sl = el.hand.scrollLeft;
     if (sel !== null && v.hand.indexOf(sel) < 0) sel = null;
     /* في المهلة تبقى يدُ من لعب على الشاشة معطّلةً كلّها، حتى تحطّ الورقة */
-    el.hand.innerHTML = v.phase === 'over' ? '' : waiting ? handHTML(S.viewFor(G, shownSeat), -1, W) : handoff ? '' : handHTML(v, me, W);
+    if (v.phase === 'over' || (handoff && !waiting)) el.hand.innerHTML = '';
+    else if (waiting) syncHand(layoutHand(S.viewFor(G, shownSeat), -1, W), shownSeat);
+    else syncHand(layoutHand(v, me, W), me);
     el.hand.scrollLeft = sl;
 
     var top = v.discard[v.discard.length - 1];
