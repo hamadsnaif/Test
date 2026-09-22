@@ -404,7 +404,13 @@
     asked for a general dwell: a moment to see what was done, then the
     windows.  So the hand-off waits 1800ms after the last action (the
     560ms flight and a good second of looking at the result), and, when
-    notices are queued, 500ms after the last of them has gone.
+    notices are queued, 500ms after the last of them has gone.  Then the
+    owner still saw it on some cards and not others: the effect cards.
+    Their notice popped the instant the card was tapped, while it was
+    still in the air, and blurred the table under it.  So no notice is
+    shown before the flight has landed (toastHoldUntil, FLY_MS + 200ms):
+    the card arrives, is seen, and then its effect is announced; the
+    hand-off counts from the end of that.
 
     Prose numbers are Arabic-Indic.  Counts and points in the Arabic status
     use ٠-٩ as the cards do; the ltr top bar keeps Latin digits as
@@ -1427,6 +1433,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- التنبيهات المنبثقة: طابورٌ يعرض كلمةً ثم يطويها وحده ---------- */
   var toastQ = [], toastTimer = null, toastUntil = 0;   // ومتى يُطوى المعروض منها
+  var toastHoldUntil = 0;                                // لا تنويه قبل أن تحطّ الورقة الطائرة
   /* نداءُ الموقف يحلّ محلّ أي نداءٍ قبله لم يُعرض بعد، والطابور لا يطول عن ثلاثة:
      لاعبٌ سريع لا يُطارَد بكلماتٍ فات وقتها. والورقة إن حُملت، وتحتها مجموعٌ (عدد)
      أو لونٌ مختار (اسمه). */
@@ -1439,13 +1446,16 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function toastDur(t) { return t.card !== null ? 2400 : t.big ? 1800 : 1300; }
   /* متى ينتهي آخر ما في الطابور — نافذة التسليم لا تُرفع قبله */
   function toastEndsAt() {
-    var t = toastTimer ? toastUntil : Date.now();
+    var t = toastTimer ? toastUntil : Math.max(Date.now(), toastHoldUntil);
     for (var i = 0; i < toastQ.length; i++) t += toastDur(toastQ[i]) + TOAST_GAP + TOAST_OUT;
     return t;
   }
   function nextToast() {
+    if (!toastQ.length) { el.toast.classList.remove('on'); el.veil.classList.remove('on'); toastTimer = null; return; }
+    /* الورقة تصل أوّلاً وتُرى، ثم يُنادى بأثرها (المالك: النافذة أسرع من الورقة) */
+    var hold = toastHoldUntil - Date.now();
+    if (hold > 0 && !el.toast.classList.contains('on')) { toastUntil = toastHoldUntil; toastTimer = setTimeout(nextToast, hold); return; }
     var t = toastQ.shift();
-    if (!t) { el.toast.classList.remove('on'); el.veil.classList.remove('on'); toastTimer = null; return; }
     el.toast.textContent = '';
     var span = document.createElement('span'); span.textContent = t.text; el.toast.appendChild(span);
     if (t.card !== null) {
@@ -1585,7 +1595,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   function send(seat, action) {
     var out = S.applyAction(G, seat, action, null);
-    if (out.error) { hintText = ERR[out.error] || out.error; toast(hintText); render(); return false; }
+    if (out.error) { hintText = ERR[out.error] || out.error; toastHoldUntil = 0; toast(hintText); render(); return false; }
     var wasSeat = shownSeat;
     G = out.state;
     tell(out.events, actorOf(G));
@@ -1853,6 +1863,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (V && V.hand.length === 2 && armOne) a.sayOne = true;
     sel = null; armOne = false;
     var from = rect(b), html = cardHTML(id, {});
+    if (!reduced) toastHoldUntil = Date.now() + FLY_MS + 200;   // أثر الورقة يُنادى بعد أن تحطّ وتُرى
     if (send(me, a)) fly(from, rect(el.felt.querySelector('.pile .tc')), html);
   });
   el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; flightUntil = 0; render(); } });
