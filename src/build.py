@@ -104,16 +104,16 @@ G = os.path.join(HERE, 'games')
 # The shelf reads games.json at runtime, and this build only bakes a copy of it
 # in as the offline fallback. Everything downstream — which pages get an app
 # head, what the worker keeps offline — follows from that one file.
-REGISTRY = json.load(open(os.path.join(REPO, 'games.json')))
+REGISTRY = json.load(open(os.path.join(REPO, 'games.json'), encoding='utf-8'))
 ENTRIES = REGISTRY['games']
 
 
 # ---------- 1. the Bounce page (same engine, built as a standalone document)
-head = open(os.path.join(HERE, 'bounce', 'shell.html')).read()
-eng = open(os.path.join(HERE, 'bounce', 'engine.js')).read()
-sheet = open(os.path.join(HERE, 'bounce', 'sheet.b64')).read().strip()
-splash = open(os.path.join(HERE, 'bounce', 'splash.b64')).read().strip()
-levels = open(os.path.join(HERE, 'bounce', 'levels.js')).read()
+head = open(os.path.join(HERE, 'bounce', 'shell.html'), encoding='utf-8').read()
+eng = open(os.path.join(HERE, 'bounce', 'engine.js'), encoding='utf-8').read()
+sheet = open(os.path.join(HERE, 'bounce', 'sheet.b64'), encoding='utf-8').read().strip()
+splash = open(os.path.join(HERE, 'bounce', 'splash.b64'), encoding='utf-8').read().strip()
+levels = open(os.path.join(HERE, 'bounce', 'levels.js'), encoding='utf-8').read()
 bounce_frag = head + eng.replace('__SHEET__', sheet).replace('__SPLASH__', splash).replace('__LEVELS__', levels)
 bounce_frag = bounce_frag.replace('نوكيا، المرحلة الأولى الأصلية', 'نوكيا، المراحل الإحدى عشرة الأصلية')
 emit(os.path.join(BUILD_DIR, 'bounce.html'), bounce_frag)   # the game on its own
@@ -136,7 +136,7 @@ FROZEN_ASSETS = os.path.join(HERE, 'frozen', 'assets.b64.json')
 
 def fill_game(html, entry):
     if entry['id'] == 'frozen' and '__FROZEN_ASSETS__' in html:
-        blob = open(FROZEN_ASSETS).read().strip()
+        blob = open(FROZEN_ASSETS, encoding='utf-8').read().strip()
         html = html.replace('__FROZEN_ASSETS__', blob)
     return html
 
@@ -148,11 +148,11 @@ for e in ENTRIES:
     if not os.path.exists(src):
         continue                                    # a page added straight to the repo
     emit(os.path.join(REPO, e['file']),
-         with_app_head(fill_game(open(src).read(), e),
+         with_app_head(fill_game(open(src, encoding='utf-8').read(), e),
                        TITLES.get(e['id'], e.get('en') or e['id'])))
 
 # ---------- 2. the launcher
-hub = open(os.path.join(HERE, 'launcher.html')).read()
+hub = open(os.path.join(HERE, 'launcher.html'), encoding='utf-8').read()
 
 # repo build: the games are real files next to the launcher, so the shelf needs
 # no inline copies and can read games.json live
