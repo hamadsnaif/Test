@@ -5,10 +5,11 @@
   its own artwork, its own code.  Nothing here is copied from that game's
   materials, and the name and badge are deliberately unlike its trade dress.
 
-  Stage 1 of six builds the ENGINE and its checks.  The table comes in stage 2.
-  What sits below the engine is a plain text harness, not the game's face: it
-  exists so the collection's contract has something real to test, and it is
-  replaced wholesale in stage 2 without the engine changing a line.
+  Stage 1 of six built the ENGINE and its checks.  Stage 2 — this page —
+  builds the TABLE: a CSS 3D card table drawn in DOM and SVG, with no WebGL,
+  no library and no bitmap, sitting on top of the engine, which did not
+  change by a character (src/tests/shadda.js still runs its 108 checks on
+  the slice between the two ENGINE markers below).
 
   THE ENGINE TOUCHES NOTHING BUT ITS OWN STATE
 
@@ -171,6 +172,122 @@
     carries the revealed hand — stage 4 must deliver that one event to the two
     seats involved and to nobody else.
 
+  THE TABLE  (stage 2)
+
+    Everything on the screen is DOM: the felt is a rotated, perspective-
+    projected ellipse of CSS gradients, the cards are elements with SVG faces,
+    the opponents' name tags are billboards that undo the table's tilt so
+    they read upright.  No canvas, no WebGL, no library: the collection's
+    contract forbids an external script, three.js embedded would cost ~600KB
+    against a 500KB page budget, DOM text is sharper than any texture, and
+    the contract's own probe (elementFromPoint) cannot see into a WebGL
+    surface.  The drawing layer reads only what Shadda.viewFor gives the
+    seat that is acting, and writes only through Shadda.applyAction — so the
+    layer can be replaced without the rules noticing.
+
+    WHERE THE TABLE'S NUMBERS CAME FROM
+
+    Every measure below was fixed in the stage-0 samples page
+    (samples/index.html, outside the repository) and approved by the owner
+    from a phone on 2026-09-22.  Carried over as they were:
+
+      colours         --red #cf2138 / --blue #2263d1 / --green #137a41 /
+                      --yellow #f2b526 with -hi and -lo shades, measured for
+                      contrast: every shade a digit sits on is >= 3:1 and the
+                      bases >= 4.5:1 against --cream (yellow against #3a2a08).
+                      The wild face is #2a2731 / #443f4d / #0e0d12.  The
+                      script reads them back from CSS, never writes them twice.
+      the card        5:7 (poker proportion — a choice; this family's card
+                      is 9:14).  Corner radius .12w, face inset .065w with
+                      radius .075w; the name above the symbol in one column,
+                      gap .02w; a number's name .15w and an action's .115w;
+                      the corner index .19w at top 5% right 8%, mirrored at
+                      bottom 5% left 8%; the centre symbol 62% wide, the back
+                      fan 74%.  Face: radial 120% 70% at 25% 0% rgba(255,
+                      255,255,.30) to 55% over linear 165deg hi, c 48%, lo.
+      the badge       viewBox 220: circle r102 at (110,110) stroked #f3ecd9
+                      6, inner ring r90 at .22, radial gradient cx35% cy15%
+                      r90% #3a3444 -> #1d1a23 (.6) -> #0d0b10; the fan at
+                      (110,156): four rects 48x72 rx8 at -42/-14/14/42 in
+                      yellow, green, blue, red, stroked #f3ecd9 4; medallion
+                      r36 #f3ecd9 stroked #0d0b10 3; the letter 60x60 in
+                      #1d1a23.  The gradient is written once, for the badge.
+      the letter ش    one path, three teeth (peaks 83, 65, 47) on baseline
+                      y=62, amplitude 20, pen 9 — so the gap between teeth is
+                      10, a whole pen, and they never fill in.  Dots above
+                      at cy 24 / 24 / 12.
+      the table       --tilt 54deg; perspective 130cqw with the container on
+                      a WRAPPER around the scene (cqw written on the container
+                      itself measures the container's own ancestor);
+                      perspective-origin 50% 22%; felt left -8cqw top 8cqw
+                      116x84cqw, radius 42cqw/28cqw, transform-origin 50% 58%.
+      the seats       on an ellipse rx 33% ry 36% of the felt; in a five-seat
+                      game the two edge seats get ry+4 and scale .84; a seat
+                      turns by 270-deg and its name tag turns back by the
+                      same and by -tilt so it stands on the screen.
+                      Angles {2:[90], 3:[150,30], 4:[172,90,8],
+                      5:[168,118,62,12]} — 150 and 30 are "ten and two
+                      o'clock" literally, an hour being 30 degrees.
+      the hand        --cw 20cqw, bottom -9cqw, a lift of -6cqw when a card
+                      is raised, z-index falling left to right so each card
+                      shows its RIGHT edge — which is why the index sits at
+                      the top right.
+
+    CHOSEN IN STAGE 2, NOT MEASURED  (mine, and argued)
+
+    The digits are paths.  System text draws ٠ as a diamond on Windows and a
+    dot on iPhone, so the ten numerals ٠-٩ are drawn here as SVG strokes in
+    the manner of the ش: one round-capped pen of width 11 in a 100-box,
+    traced against the Tahoma and Segoe UI forms and read at 26px, 44px and
+    100px before being kept.  Card NAMES stay text: every Arabic face draws
+    «صفر» legibly; the structural disagreement is in the numerals alone.
+
+    The fan step is 48px, not 8 degrees, and the tilt is 3 degrees at most.
+    The samples fanned seven cards at (i-3)x8deg about a pivot 240% below,
+    which exposes about 30px of each card on a 320px screen — and the
+    contract demands that every fanned card own, alone, an unbroken 44x44
+    patch, measured as a rectangle parallel to the screen.  A 48px strip
+    tilted 20deg holds only a 38px square of that kind, so the tilt is
+    capped at 3deg (a 48px strip then holds 45px) and the arc is a gentle
+    drop of dx^2/2R with R twelve card widths.  The step between neighbours
+    is at least 48px; cards shrink from 20cqw down to 16cqw so seven still
+    fit a 375px phone; and when 48px steps no longer fit the width the hand
+    lies flat and SCROLLS sideways instead.  Measured in
+    src/tests/shadda-play.js: on 390px with seven cards, and on 320px with
+    fifteen, every fully visible card owns at least a 46x46 patch.
+
+    The discard is bigger and stands up a little.  In the samples the top of
+    the discard was 12cqw wide and its name 6.3px on a phone — at the edge
+    of reading.  Here it is 18cqw, and both piles lean back 36deg out of the
+    felt (rotateX(-36deg) on a table tilted 54deg leaves them 18deg off the
+    screen plane), so a number's name is ~10px and «تغيير اللون» ~8px on a
+    390px phone, and the colour in play glows in a ring under the pile
+    because after a wild the top card is black.
+
+    The view is the actor's.  On one device the table always shows the seat
+    that must act: its hand at the bottom, the others around the arc in
+    play order — the next seat to the left, because play passes clockwise.
+    The privacy screen between turns («مرّر الجوّال إلى فلان») is stage 3's,
+    so in this stage the hand simply switches when the turn does.
+
+    The layout has two shapes.  When the play area is taller than 1.39 of
+    its width (every phone held upright) the status and log sit ABOVE the
+    table and the action keys below it, the table keeping the approved
+    1:1.08 frame.  Otherwise (landscape, desktop) the table takes the
+    height on the right and status, log and keys share a column beside it.
+    The threshold is a container query on the play area, not the window.
+
+    Prose numbers are Arabic-Indic.  Counts and points in the Arabic status
+    and log use ٠-٩ as the cards do; the ltr top bar keeps Latin digits as
+    the other games' bars do.  A caller can pin the deal with ?seed=N, and
+    every later match in that session takes seed+1, so a session is
+    reproducible from its URL.
+
+    Reserved class names.  The contract requires .cap .deck .pads .field .top
+    to read left-to-right.  This page uses .cap for its top bar, as the
+    other four games do, and none of the rest: the piles are .stock and
+    .pile (its cards .tc and .uc), the hand is .hand [data-fan].
+
   THE PAGE ITSELF, AND THE COLLECTION'S CONTRACT
 
     src/tests/contract.js wants a visible <canvas> in every game.  A card
@@ -181,24 +298,15 @@
     declared `[data-table]` element of real size — a tenth of the viewport in
     both directions.  An empty page still fails; an ordinary game that lost
     its canvas still fails.  src/tests/launcher.js carries the same clause.
-
-    The same file reserves .cap .deck .pads .field .top as chassis rows that
-    must read left to right.  This page uses .cap for its top bar, as the
-    other four games do, and touches none of the rest: the piles here are
-    .pile and .stock, and the hand is .handrow.
+    Here the declared element is the scene itself, which is laid out and
+    sized before a game starts — the start menu is a sheet over it, and the
+    felt shows through.
 
     A fanned hand overlaps on purpose, which the contract's touch-theft scan
     reads as one key eating its neighbour.  A single declared `[data-fan]`
     region is excused that scan and held to a stricter one in its place: every
     card in it must own, alone, an unbroken patch of at least 44 by 44 points.
-    A buried card fails.  Stage 1 has no fan — the hand here is a plain
-    wrapped row — but the clause is in the contract now, and was verified
-    against a page built to fail it.
-
-    Digits.  The owner settled that the ten numerals are drawn as SVG paths in
-    stage 2, the way the ش of the badge is drawn, because system text renders
-    ٠ as a diamond on Windows and a dot on iPhone.  This harness sidesteps it
-    entirely: it names cards in words.
+    A buried card fails.  The hand here is that one region.
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -212,17 +320,20 @@
   --ivory-hi:#f7f2e7; --ivory:#e9e2d1; --ivory-lo:#d5ccb7; --ivory-edge:#b9ae97; --ivory-deep:#a3977e;
   --ink:#2a2723; --engrave:#6e6555;
   --mat:#1a1714; --mat-hi:#2f2a24;
+  --badge:#1d1a23; --badge-hi:#332e3d; --badge-lo:#0d0b10;
   --cream:#f3ecd9;
   /* الدرجات مقيسة في عيّنات المرحلة صفر: كل درجةٍ يقع عليها رقمٌ لا تنزل عن
-     ‏٣:١‏، والأساسات ‏٤٫٥:١‏ فأعلى مقابل ‎--cream‎ (والأصفر مقابل ‎#3a2a08‎). */
+     ‏٣:١‏، والأساسات ‏٤٫٥:١‏ فأعلى مقابل ‎--cream‎ (والأصفر مقابل ‎#3a2a08‎).
+     لا تفتّحها بلا إعادة قياس. */
   --red:#cf2138; --red-hi:#e84a5e; --red-lo:#8a0f22;
   --blue:#2263d1; --blue-hi:#4a82e2; --blue-lo:#0f3d8c;
   --green:#137a41; --green-hi:#1f9350; --green-lo:#0d5f32;
   --yellow:#f2b526; --yellow-hi:#ffd760; --yellow-lo:#c08a12;
   --felt:#1e6a45; --felt-hi:#2c8a5b; --felt-lo:#0f3f29;
-  --wood-lo:#33190b;
+  --wood:#6a3d20; --wood-hi:#a2663a; --wood-lo:#33190b;
   --acc:#e0a45e; --acc-hi:#ffd39a; --acc-lo:#9a6424;
   --font:-apple-system,"SF Pro Text","SF Arabic","Segoe UI",Roboto,"Helvetica Neue",Arial,Tahoma,sans-serif;
+  --tilt:54deg;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -236,90 +347,278 @@ body{
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   -webkit-user-select:none;user-select:none;
 }
-/* الشريط العلوي — صفّ الجهاز الذي يشترطه العقد، ومحتواه لاتينيٌّ فعلاً */
+button{appearance:none;-webkit-appearance:none;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:inherit}
+button:disabled{cursor:default}
+[hidden]{display:none !important}
+
+/* ---------- الشريط العلوي: صفّ الهيكل الذي يشترطه العقد، ومحتواه لاتيني ---------- */
 .cap{
   direction:ltr;flex:none;display:flex;align-items:center;gap:10px;
-  height:40px;padding:0 12px;
+  height:44px;padding:0 0 0 12px;
   background:linear-gradient(180deg, var(--ivory-hi), var(--ivory) 60%, var(--ivory-lo));
   color:var(--ink);border-bottom:1px solid var(--ivory-edge);
   font-weight:800;font-size:13px;letter-spacing:.14em;
 }
 .cap .n{margin-left:auto;letter-spacing:0;font-weight:700;font-size:12px;color:var(--engrave);white-space:nowrap}
-.wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;padding:7px 9px}
-/* الطاولة — العنصر المُعلَن الذي يقوم مقام اللوح */
-.table{
-  flex:1;min-height:76px;display:flex;flex-direction:column;gap:6px;
-  border-radius:14px;padding:8px;
-  background:
-    radial-gradient(120% 80% at 50% -10%, var(--felt-hi), rgba(0,0,0,0) 60%),
-    linear-gradient(180deg, var(--felt), var(--felt-lo));
-  box-shadow:inset 0 0 0 2px var(--wood-lo), inset 0 0 24px rgba(0,0,0,.45);
+.cap .menu{width:44px;height:44px;display:grid;place-items:center;color:var(--ink)}
+.cap .menu svg{width:22px;height:22px}
+
+/* ---------- الجسم: شبكةٌ بشكلين، والحاوية هي منطقة اللعب لا النافذة ---------- */
+.wrap{
+  flex:1;min-height:0;position:relative;container-type:size;overflow:hidden;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) auto;
+  gap:0 8px;padding:6px 8px;
 }
-.piles{display:flex;gap:8px;align-items:stretch;flex:none}
-.pile,.stock{
-  flex:1;min-width:0;border-radius:10px;padding:6px 8px;text-align:center;
-  background:linear-gradient(165deg, rgba(0,0,0,.22), rgba(0,0,0,.42));
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+.panel{grid-area:1/1/2/2;min-height:0;display:flex;flex-direction:column;gap:4px;direction:rtl}
+.acts{grid-area:2/1/3/2}
+.scenewrap{grid-area:1/2/3/3;container-type:size;width:min(calc(100cqh / 1.08), 62cqw);height:100cqh;align-self:center}
+/* الجوّال واقفاً: الحالة والسجلّ فوق الطاولة والمفاتيح تحتها، والطاولة بإطارها
+   المعتمد ‎1:1.08‎ لا تتمدّد. العتبة ‎1.39‎ من العرض تُبقي ‎320×474‎ واقفاً. */
+@container (max-aspect-ratio: 0.72){
+  .wrap{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto auto;gap:4px 0}
+  .panel{grid-area:1/1/2/2}
+  /* الطاولة تأخذ ما بين ‎108‎ و‎150‎ من عرضها، والباقي للحالة والسجلّ (‏٩٦‏ بكسلاً
+     فأكثر): على جوّالٍ طويل تتعمّق الطاولة لا يتّسع السجلّ. */
+  .scenewrap{grid-area:2/1/3/2;width:100%;height:clamp(108cqw, calc(100cqh - 156px), 140cqw);margin:0 auto}
+  .acts{grid-area:3/1/4/2}
 }
-.pile b,.stock b{display:block;font-size:14px;font-weight:900;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pile small,.stock small{display:block;font-size:10px;color:#cfe6d8;letter-spacing:.02em}
-.pile[data-c="red"]{background:linear-gradient(165deg,var(--red-hi),var(--red) 48%,var(--red-lo))}
-.pile[data-c="blue"]{background:linear-gradient(165deg,var(--blue-hi),var(--blue) 48%,var(--blue-lo))}
-.pile[data-c="green"]{background:linear-gradient(165deg,var(--green-hi),var(--green) 48%,var(--green-lo))}
-.pile[data-c="yellow"]{background:linear-gradient(165deg,var(--yellow-hi),var(--yellow) 48%,var(--yellow-lo));color:#3a2a08}
-.pile[data-c="yellow"] small{color:#5a4410}
-.seats{display:flex;flex-wrap:wrap;gap:4px;font-size:11px;flex:none}
-.seat{padding:3px 7px;border-radius:8px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);white-space:nowrap}
-.seat.now{background:var(--acc);color:#2a1a05;font-weight:800}
-.log{
-  flex:1;min-height:26px;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  font-size:11px;line-height:1.5;color:#dcf0e5;
-  background:rgba(0,0,0,.26);border-radius:10px;padding:5px 7px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+
+/* ---------- الحالة والسجلّ ---------- */
+.panel .status{display:flex;align-items:center;gap:8px;flex:none;min-height:28px;padding:0 2px}
+.panel .turn{font-weight:800;font-size:16px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel .clr{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px;background:rgba(255,255,255,.06);white-space:nowrap;flex:none}
+.panel .clr i{width:12px;height:12px;border-radius:50%;background:var(--cur,transparent);box-shadow:0 0 0 1px rgba(255,255,255,.25),0 0 6px var(--cur,transparent);flex:none}
+.panel .hint{flex:none;font-size:12px;color:var(--acc-hi);min-height:16px;line-height:1.35;padding:0 2px}
+.panel .log{
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  font-size:12px;line-height:1.5;color:#dcd2bd;
+  padding:4px 8px;border-radius:10px;background:rgba(0,0,0,.26);box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
 }
 .log div{padding:1px 0}
 .log div.hi{color:var(--acc-hi);font-weight:700}
-.handrow,.acts,.setup{display:flex;flex-wrap:wrap;gap:6px;flex:none}
-.handrow{max-height:29vh;overflow-y:auto;-webkit-overflow-scrolling:touch;align-content:flex-start}
-button{
-  appearance:none;-webkit-appearance:none;border:0;cursor:pointer;
-  font:800 13px/1.15 var(--font);color:var(--ink);
-  min-height:44px;min-width:44px;padding:5px 9px;border-radius:11px;
-  background:linear-gradient(180deg, var(--ivory-hi), var(--ivory) 55%, var(--ivory-lo));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 0 0 1px var(--ivory-edge), 0 2px 5px rgba(0,0,0,.45);
+
+/* ---------- المفاتيح العاجية: مادة المجموعة ---------- */
+.acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-content:flex-start;direction:rtl;padding-top:4px;min-height:54px}
+.key{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;min-width:48px;padding:0 14px;
+  color:var(--ink);font:700 15px/1.2 var(--font);border-radius:14px;
+  background:radial-gradient(90% 70% at 35% 22%, rgba(255,255,255,.95), rgba(255,255,255,0) 60%), linear-gradient(180deg, var(--ivory-hi), var(--ivory-lo));
+  box-shadow:inset 0 1px 0 #fff, inset 0 -2px 3px rgba(90,70,40,.22), 0 0 0 1px var(--ivory-edge), 0 3px 0 var(--ivory-deep), 0 3px 0 1px rgba(0,0,0,.22), 0 6px 8px rgba(0,0,0,.28);
 }
-button[disabled]{opacity:.4;cursor:default}
-button.c{color:var(--cream);min-width:62px}
-button.c[data-c="red"]{background:linear-gradient(180deg,var(--red-hi),var(--red) 48%,var(--red-lo))}
-button.c[data-c="blue"]{background:linear-gradient(180deg,var(--blue-hi),var(--blue) 48%,var(--blue-lo))}
-button.c[data-c="green"]{background:linear-gradient(180deg,var(--green-hi),var(--green) 48%,var(--green-lo))}
-button.c[data-c="yellow"]{background:linear-gradient(180deg,var(--yellow-hi),var(--yellow) 48%,var(--yellow-lo));color:#3a2a08}
-button.c[data-c="wild"]{background:linear-gradient(180deg,#443f4d,#2a2731 48%,#0e0d12);color:var(--cream)}
-button.go{background:linear-gradient(180deg,var(--acc-hi),var(--acc) 55%,var(--acc-lo));color:#2a1a05}
-.setup{direction:rtl;font-size:12px;align-items:center;color:var(--ivory-deep)}
-.setup span{padding:0 2px;white-space:nowrap}
-.setup button{min-width:44px;font-size:13px}
-.setup button.on{background:linear-gradient(180deg,var(--acc-hi),var(--acc) 55%,var(--acc-lo));color:#2a1a05}
-.hint{flex:none;font-size:10.5px;color:var(--ivory-deep);line-height:1.45}
+.key:active{transform:translateY(2px);box-shadow:inset 0 1px 0 #fff, inset 0 2px 4px rgba(60,45,20,.22), 0 0 0 1px var(--ivory-edge), 0 1px 0 var(--ivory-deep), 0 2px 3px rgba(0,0,0,.25)}
+.key.acc{color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.3);
+  background:radial-gradient(90% 70% at 35% 22%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%), linear-gradient(180deg, var(--acc-hi), var(--acc) 55%, var(--acc-lo));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -2px 3px rgba(0,0,0,.28), 0 0 0 1px var(--acc-lo), 0 3px 0 var(--acc-lo), 0 3px 0 1px rgba(0,0,0,.28), 0 6px 8px rgba(0,0,0,.32)}
+.key.on{box-shadow:inset 0 1px 0 #fff, inset 0 -2px 3px rgba(90,70,40,.22), 0 0 0 1px var(--ivory-edge), 0 3px 0 var(--ivory-deep), 0 3px 0 1px rgba(0,0,0,.22), 0 6px 8px rgba(0,0,0,.28), 0 0 0 3px var(--acc)}
+.key:disabled{opacity:.45;transform:none}
+.key.c{color:var(--cream);text-shadow:0 1px 0 rgba(0,0,0,.45);min-width:72px}
+.key.c[data-c="red"]{background:linear-gradient(180deg,var(--red-hi),var(--red) 50%,var(--red-lo));box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 1px var(--red-lo), 0 3px 0 var(--red-lo), 0 6px 8px rgba(0,0,0,.3)}
+.key.c[data-c="blue"]{background:linear-gradient(180deg,var(--blue-hi),var(--blue) 50%,var(--blue-lo));box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 1px var(--blue-lo), 0 3px 0 var(--blue-lo), 0 6px 8px rgba(0,0,0,.3)}
+.key.c[data-c="green"]{background:linear-gradient(180deg,var(--green-hi),var(--green) 50%,var(--green-lo));box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 1px var(--green-lo), 0 3px 0 var(--green-lo), 0 6px 8px rgba(0,0,0,.3)}
+.key.c[data-c="yellow"]{background:linear-gradient(180deg,var(--yellow-hi),var(--yellow) 50%,var(--yellow-lo));color:#3a2a08;text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 0 0 1px var(--yellow-lo), 0 3px 0 var(--yellow-lo), 0 6px 8px rgba(0,0,0,.3)}
+
+/* ---------- الورقة (من العيّنات، بدلالة عرضها --w) ---------- */
+.card{
+  --w:var(--cw,72px);
+  width:var(--w);aspect-ratio:5/7;flex:none;position:relative;direction:ltr;display:block;
+  border-radius:calc(var(--w)*.12);
+  background:linear-gradient(160deg,var(--ivory-hi),var(--ivory) 55%,var(--ivory-lo));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(0,0,0,.45), 0 calc(var(--w)*.05) calc(var(--w)*.14) rgba(0,0,0,.5);
+  font-family:var(--font);font-weight:900;color:var(--fg,var(--cream));
+}
+.card .face{
+  position:absolute;inset:calc(var(--w)*.065);border-radius:calc(var(--w)*.075);overflow:hidden;display:block;
+  background:
+    radial-gradient(120% 70% at 25% 0%, rgba(255,255,255,.30), rgba(255,255,255,0) 55%),
+    linear-gradient(165deg, var(--hi), var(--c) 48%, var(--lo));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 0 calc(var(--w)*.12) rgba(0,0,0,.18);
+}
+/* وسط الورقة عمودٌ: الاسم ثم الرمز، والمجموعة في المنتصف — فموضع الاسم واحدٌ
+   في كل ورقة، للأرقام والأفعال جميعاً (قرار المالك، المرحلة ١). */
+.card .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--w)*.02)}
+.card .cname{
+  font-size:calc(var(--w)*.15);line-height:1.15;font-weight:800;letter-spacing:.01em;
+  white-space:nowrap;direction:rtl;opacity:.95;text-shadow:0 .05em 0 var(--lo);
+}
+.card .cname.act{font-size:calc(var(--w)*.115);letter-spacing:0}
+.card .mid > svg{width:62%;height:auto;flex:none;filter:drop-shadow(0 .04em 0 var(--lo)) drop-shadow(0 .1em .1em rgba(0,0,0,.35))}
+.card .idx{position:absolute;font-size:calc(var(--w)*.19);line-height:1;display:flex;align-items:center;gap:.05em;text-shadow:0 .06em 0 var(--lo)}
+.card .idx svg{width:1em;height:1em;filter:drop-shadow(0 .06em 0 var(--lo))}
+.card .idx.a{top:5%;right:8%}
+.card .idx.b{bottom:5%;left:8%;transform:rotate(180deg)}
+.card.back .face{
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0 2px, rgba(0,0,0,0) 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,.045) 0 2px, rgba(0,0,0,0) 2px 7px),
+    radial-gradient(110% 80% at 50% 0%, var(--badge-hi), var(--badge) 55%, var(--badge-lo));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14), inset 0 0 0 calc(var(--w)*.045) var(--badge-lo), inset 0 0 0 calc(var(--w)*.06) rgba(243,236,217,.35);
+}
+.card.back .mid svg{width:74%;height:auto}
+
+/* ---------- الطاولة ---------- */
+/* الغلاف هو الحاوية لا المشهد: ‎cqw‎ مكتوبةً على الحاوية نفسها تقيس أقربَ
+   حاويةٍ فوقها، فلو كان ‎perspective:130cqw‎ على ‎.scene‎ وهو الحاوية لقاس
+   منطقةَ اللعب لا نفسه. بالغلاف يقيس المنظورُ المشهدَ. */
+.scene{
+  position:relative;width:100%;height:100%;overflow:hidden;direction:ltr;
+  border-radius:16px;background:radial-gradient(100% 60% at 50% 0%, #2a2521, #141110 70%);
+  perspective:130cqw;perspective-origin:50% 22%;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), 0 10px 30px rgba(0,0,0,.5);
+}
+.felt{
+  /* في إطار ‎1:1.08‎ الارتفاع ‎84cqw‎ كما في العيّنات؛ وفي مشهدٍ أطول يتعمّق الجوخ
+     نحو اللاعب بالفرق كلّه، فتبقى الحافّة البعيدة قريبةً من رأس المشهد. */
+  position:absolute;left:-8cqw;top:calc(8cqw - (100cqh - 108cqw) * .4);width:116cqw;height:calc(100cqh - 24cqw);border-radius:42cqw / 28cqw;
+  transform:rotateX(var(--tilt));transform-origin:50% 58%;transform-style:preserve-3d;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, rgba(0,0,0,0) 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, rgba(0,0,0,0) 1px 3px),
+    radial-gradient(70% 60% at 50% 45%, var(--felt-hi), var(--felt) 55%, var(--felt-lo));
+  box-shadow:
+    inset 0 0 8cqw rgba(0,0,0,.45),
+    0 0 0 2.6cqw var(--wood-hi), 0 0 0 3.2cqw var(--wood), 0 0 0 4cqw var(--wood-lo),
+    0 2cqw 6cqw rgba(0,0,0,.6);
+}
+.felt::before{content:"";position:absolute;inset:8%;border-radius:inherit;border:1px solid rgba(255,255,255,.08);pointer-events:none}
+/* شارةٌ باهتة وسط الجوخ قبل أن تُوزَّع الورق */
+.felt .idle{position:absolute;left:50%;top:50%;width:26cqw;height:26cqw;transform:translate(-50%,-50%);opacity:.18}
+.felt .idle svg{width:100%;height:100%;display:block}
+.seat{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot)) scale(var(--sc,1));transform-style:preserve-3d;width:30cqw;height:26cqw}
+.oppfan{position:absolute;left:50%;top:0;width:0;height:0}
+.oppfan .card{--cw:9cqw;position:absolute;left:0;top:0;transform-origin:50% 140%;transform:translate(-50%,-60%) rotate(var(--a))}
+.ntag{
+  position:absolute;left:50%;top:50%;transform-origin:0 0;
+  transform:rotate(calc(var(--rot) * -1)) rotateX(calc(var(--tilt) * -1)) translate(-50%,-100%);
+  display:flex;align-items:center;gap:1.4cqw;direction:rtl;white-space:nowrap;
+  padding:.8cqw 2cqw .8cqw 1.2cqw;border-radius:5cqw;background:rgba(20,17,16,.86);color:var(--cream);
+  box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 1.5cqw 3cqw rgba(0,0,0,.5);font-size:3.3cqw;font-weight:800;
+}
+.ntag .av{width:6.4cqw;height:6.4cqw;border-radius:50%;display:grid;place-items:center;background:var(--ivory);color:var(--ink);font-size:3.6cqw;flex:none}
+.ntag .nm{max-width:22cqw;overflow:hidden;text-overflow:ellipsis}
+.ntag .cnt{background:var(--acc);color:#2a1a05;border-radius:3cqw;padding:.4cqw 1.6cqw;font-size:3.2cqw}
+.ntag .cnt.one{background:var(--cream);box-shadow:0 0 0 .5cqw var(--acc), 0 0 3cqw var(--acc-hi)}
+.seat.turn .ntag .av{box-shadow:0 0 0 .8cqw var(--acc), 0 0 3cqw var(--acc-hi)}
+.piles{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:44cqw;height:22cqw;transform-style:preserve-3d}
+/* المرمى أكبر ممّا في العيّنات (‎18cqw‎ لا ‎12‎) والكومتان تتّكئان إلى الخلف
+   ‎36°‎ خارج الجوخ، فيبقى الاسم يُقرأ: انظر رأس الملفّ. */
+/* الورقتان تُرسمان بضعف مقاسهما ثم تُصغَّران بـ‎scale(.5)‎: كروم يرسم طبقةَ العنصر
+   ثلاثيّ الأبعاد بمقاسه قبل التحويل ثم يكبّرها بالمنظور فتتشوّش الكلمة، والرسم
+   بضعف المقاس يُبقيها حادّة. */
+.piles .card{position:absolute;top:50%;transform-origin:50% 100%}
+.piles .stock{position:absolute;left:22%;top:78%;width:0;height:0;transform-style:preserve-3d}
+.piles .stock .card{--cw:26cqw;transform:translate(-50%,-100%) translate(calc(var(--i) * -.6cqw), calc(var(--i) * -.6cqw)) rotateX(-36deg) scale(.5)}
+.piles .pile{position:absolute;left:70%;top:78%;width:0;height:0;transform-style:preserve-3d}
+.piles .pile .card{--cw:36cqw;transform:translate(-50%,-100%) rotateX(-36deg) rotate(var(--r)) scale(.5)}
+.piles .pile .uc{filter:brightness(.8)}
+.piles .glow{position:absolute;left:50%;top:0;width:24cqw;height:24cqw;border-radius:50%;transform:translate(-50%,-50%) translateZ(-.5px);
+  background:radial-gradient(closest-side, var(--cur), rgba(0,0,0,0));opacity:.8;pointer-events:none}
+.dir{position:absolute;left:50%;top:52%;width:56cqw;height:32cqw;transform:translate(-50%,-50%);pointer-events:none;opacity:.5}
+.dir.ccw{transform:translate(-50%,-50%) scaleX(-1)}
+.dir svg{width:100%;height:100%;display:block}
+
+/* ---------- اليد: منطقة ‎[data-fan]‎ الواحدة، وتنزلق حين لا يتّسع خطوها ---------- */
+.hand{position:absolute;left:0;right:0;bottom:0;height:46cqw;z-index:2;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;direction:ltr}
+.hand::-webkit-scrollbar{display:none}
+.fanrow{position:relative;height:100%;margin:0 auto}
+.hand .card{
+  --dx:0px;--dy:0px;--a:0deg;--lift:0cqw;
+  position:absolute;left:50%;bottom:-5cqw;transform-origin:50% 50%;
+  transform:translateX(calc(-50% + var(--dx))) translateY(calc(var(--dy) + var(--lift))) rotate(var(--a));
+  transition:transform .18s ease, filter .18s ease;cursor:pointer;
+}
+.hand .card.up{--lift:-6cqw}
+.hand .card:disabled{filter:saturate(.45) brightness(.62);cursor:default}
+.hand .card.fresh .face{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 0 calc(var(--w)*.12) rgba(0,0,0,.18), inset 0 0 0 calc(var(--w)*.04) var(--acc)}
+.hand .card.up{box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(0,0,0,.45), 0 0 0 3px var(--acc), 0 calc(var(--w)*.08) calc(var(--w)*.2) rgba(0,0,0,.55)}
+
+/* ---------- نهاية الجولة ---------- */
+.over{position:absolute;left:8%;right:8%;top:20%;z-index:3;direction:rtl;text-align:center;padding:14px 12px;border-radius:16px;
+  background:rgba(20,17,16,.92);box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 12px 30px rgba(0,0,0,.6)}
+.over b{display:block;font-size:19px;font-weight:900;line-height:1.3}
+.over .sc{font-size:13px;color:#dcd2bd;margin-top:8px;line-height:1.7}
+.over .sc span{display:inline-block;padding:0 6px}
+.over .sc .w{color:var(--acc-hi);font-weight:800}
+
+/* ---------- شاشة البداية: ورقةٌ فوق الطاولة، والجوخ يبين من خلفها ---------- */
+.start{position:absolute;inset:0;z-index:30;overflow-y:auto;-webkit-overflow-scrolling:touch;direction:rtl;
+  background:rgba(20,17,16,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  padding:12px 14px max(16px, env(safe-area-inset-bottom))}
+.start .box{max-width:430px;margin:0 auto}
+.start .head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.start .head svg{width:48px;height:48px;flex:none}
+.start .head b{font-size:24px;font-weight:900;display:block;line-height:1.1}
+.start .head small{display:block;font-size:11.5px;color:var(--ivory-deep);margin-top:2px}
+.modes{display:grid;gap:9px}
+.modes .key{justify-content:flex-start;min-height:56px;text-align:start;padding:0 12px}
+.modes .key svg{width:28px;height:28px;flex:none}
+.modes .key small{display:block;font-size:11.5px;font-weight:600;color:var(--engrave)}
+.lbl{font-size:12px;color:var(--ivory-deep);margin:12px 0 6px;font-weight:700}
+/* صفّ الاختيار يقرأ كما تُقرأ الصفحة: ٢ من اليمين. */
+.count{display:flex;gap:8px;justify-content:center;direction:rtl}
+.count .key{width:52px;padding:0;font-size:18px}
+.namelist{display:grid;gap:6px}
+.namelist .in{display:flex;align-items:center;gap:10px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);padding:0 10px}
+.namelist .av{width:26px;height:26px;border-radius:50%;background:var(--ivory);color:var(--ink);display:grid;place-items:center;font-weight:900;font-size:13px;flex:none}
+.namelist input{flex:1;min-width:0;height:42px;background:none;border:0;color:var(--cream);font:600 16px/1 var(--font);outline:none}
+.namelist input::placeholder{color:rgba(243,236,217,.4)}
+/* المفتاح منطقيّ الاتجاه: يبدأ المقبض من اليمين ويمضي يساراً كمفاتيح النظام
+   في واجهةٍ عربية — ‎inset-inline-start‎ لا ‎left‎، وإزاحةٌ بعلامتين. */
+.toggle{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:0 4px;font-size:14px;font-weight:700;color:var(--cream)}
+.sw{width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);position:relative;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:var(--ivory);transition:transform .15s}
+.toggle[aria-checked="true"] .sw{background:var(--acc)}
+.toggle[aria-checked="true"] .sw::after{transform:translateX(-20px)}
+.subs{display:grid;gap:2px;padding:0 6px;transition:opacity .15s}
+.subs .toggle{font-weight:600;color:var(--ivory)}
+.subs.dim{opacity:.4}
+.startbtn{margin-top:14px;width:100%;font-size:18px;min-height:52px}
+.resume{margin-top:8px;width:100%}
+.start .note{font-size:11.5px;color:#b8ad98;line-height:1.6;margin-top:10px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none !important;animation:none !important}}
 </style>
 </head>
 <body data-render="dom">
 
-<div class="cap">SHADDA<span class="n" id="cap-n"></span></div>
+<div class="cap">SHADDA<span class="n" id="cap-n"></span><button class="menu" id="menu" aria-label="القائمة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 
 <div class="wrap">
-  <div class="table" data-table>
-    <div class="piles">
-      <div class="pile" id="pile"><b>—</b><small>المرمى</small></div>
-      <div class="stock" id="stock"><b>—</b><small>المسحب</small></div>
-    </div>
-    <div class="seats" id="seats"></div>
+  <div class="panel">
+    <div class="status"><div class="turn" id="turn"></div><div class="clr" id="clr"></div></div>
+    <div class="hint" id="hint"></div>
     <div class="log" id="log"></div>
   </div>
-  <div class="handrow" id="hand"></div>
+  <div class="scenewrap">
+    <div class="scene" data-table id="scene">
+      <div class="felt" id="felt"></div>
+      <div class="hand" data-fan id="hand"></div>
+      <div class="over" id="over" hidden></div>
+    </div>
+  </div>
   <div class="acts" id="acts"></div>
-  <div class="setup" id="setup"></div>
-  <div class="hint" id="hint"></div>
+
+  <div class="start" id="start">
+    <div class="box">
+      <div class="head"><span id="badge"></span><div><b>شدّة</b><small>لعبة ورقٍ لاثنين حتى خمسة</small></div></div>
+      <div class="modes">
+        <button class="key mode on" data-m="local"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="12" height="26" rx="3"/><path d="M14 26h4"/><path d="M4 12a6 6 0 0 1 4-5M28 20a6 6 0 0 1-4 5"/><path d="M8 4v3H5M24 28v-3h3"/></svg><span>على هذا الجهاز<small>تسليم الجوّال بين اللاعبين</small></span></button>
+        <button class="key mode" data-m="online" disabled><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="16" cy="16" r="12"/><path d="M4 16h24M16 4c-4 4-4 20 0 24M16 4c4 4 4 20 0 24M6 10h20M6 22h20"/></svg><span>أونلاين<small>أنشئ غرفة أو انضم برمز — يأتي في المرحلة ٤</small></span></button>
+        <button class="key mode" data-m="cpu" disabled><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="18" height="18" rx="3"/><rect x="12" y="12" width="8" height="8" rx="1"/><path d="M11 3v4M16 3v4M21 3v4M11 25v4M16 25v4M21 25v4M3 11h4M3 16h4M3 21h4M25 11h4M25 16h4M25 21h4"/></svg><span>ضد الحاسب<small>خصومٌ آليّون — يأتي في المرحلة ٣</small></span></button>
+      </div>
+      <div class="lbl">عدد اللاعبين</div>
+      <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div>
+      <div class="lbl">الأسماء</div>
+      <div class="namelist" id="namelist"></div>
+      <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد البيت</span><span class="sw"></span></button>
+      <div class="subs dim" id="housesubs">
+        <button class="toggle" role="switch" aria-checked="false" data-k="stack" disabled><span>تكديس سحب ثنتين</span><span class="sw"></span></button>
+        <button class="toggle" role="switch" aria-checked="false" data-k="jumpIn" disabled><span>القفز بالورقة المطابقة (jump-in)</span><span class="sw"></span></button>
+        <button class="toggle" role="switch" aria-checked="false" data-k="sevenZero" disabled><span>٧ تبادل و٠ تدوير</span><span class="sw"></span></button>
+      </div>
+      <button class="key acc startbtn" id="startbtn">ابدأ</button>
+      <button class="key resume" id="resume" hidden>عودة إلى الطاولة</button>
+      <p class="note">القواعد الرسمية كاملة: ١٠٨ ورقة، وسبعٌ لكل لاعب، و«عكس» تعمل عمل «وقّف» في لعبة اثنين، والاعتراض على «سحب أربعة»، وعقوبة من لم يقل «واحدة» ورقتان. وقواعد البيت مطفأةٌ لأنها ليست من الرسمية.</p>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -826,211 +1125,379 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 </script>
 
 <script>
-/* واجهةُ المرحلة الأولى — نصّيةٌ بحتة، وكل ما فيها رسمٌ لا منطق. تقرأ من
-   Shadda.viewFor فلا ترى إلا ما يراه المقعد صاحب الدور، وتكتب بـapplyAction.
-   الطاولة تحلّ محلّها في المرحلة ٢، والمحرّك لا يتغيّر بسببها حرفاً. */
+/* طبقة الرسم — الطاولة. كل ما فيها رسمٌ لا منطق: تقرأ من Shadda.viewFor فلا
+   ترى إلا ما يراه المقعد صاحب الموقف، وتكتب بـShadda.applyAction وحدها. ما
+   بين علامتَي المحرّك أعلاه لا يُمسّ من هنا. */
 (function () {
   'use strict';
   var S = Shadda;
 
-  /* الأسماء رسمٌ لا منطق، فهي هنا لا في المحرّك. وهي أسماء القسم ٣. */
+  /* ---------- نصوصٌ عربية: الأسماء رسمٌ لا منطق فهي هنا لا في المحرّك ---------- */
+  var AR = '٠١٢٣٤٥٦٧٨٩';
+  function fmt(n) { return String(n).replace(/\d/g, function (d) { return AR[d]; }); }
   var NUM = ['صفر', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
   var KIND = { skip: 'وقّف', reverse: 'عكس', draw2: 'سحب ثنتين', wild: 'تغيير اللون', wild4: 'سحب أربعة' };
   var CLR = { red: 'أحمر', blue: 'أزرق', green: 'أخضر', yellow: 'أصفر' };
-  var SEATNAME = ['أنت', 'الثاني', 'الثالث', 'الرابع', 'الخامس'];
+  var ERR = {
+    notYourTurn: 'ليس دورك.', notInHand: 'الورقة ليست في يدك.', cardDoesNotMatch: 'هذه لا تطابق اللون ولا الرقم.',
+    noSuchCard: 'لا ورقة بهذا الرقم.', noSuchSeat: 'لا مقعد بهذا الرقم.', unknownAction: 'فعلٌ غير معروف.',
+    wrongPhase: 'ليس هذا وقته.', noSuchColour: 'لا لون بهذا الاسم.', alreadyDrew: 'سحبت مرّةً في هذا الدور.',
+    drawFirst: 'اسحب أوّلاً ثم مرّر.', mustTakeThePile: 'ردّ بسحب ثنتين أو خذ الكومة.', needSwapTarget: 'اختر من تبادله يدك.',
+    nothingToCall: 'لا أحد يُنادى عليه.', cannotCallYourself: 'لا تنادِ على نفسك.', notAtOne: 'ليست بيدك ورقةٌ واحدة.',
+    cannotJumpWithWild: 'لا قفز بورقةٍ حرّة.', notIdentical: 'القفز بالورقة المطابقة تماماً وحدها.',
+    roundOver: 'انتهت الجولة.', gameOver: 'انتهت المباراة.', roundNotOver: 'الجولة لم تنتهِ.', noState: 'لا لعبة.',
+    seatsOutOfRange: 'اللاعبون من اثنين إلى خمسة.'
+  };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
+  /* ---------- الألوان تُقرأ من CSS ولا تُكتب مرّتين ---------- */
+  var cssv = function (n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); };
+  var HEX = { red: cssv('--red'), blue: cssv('--blue'), green: cssv('--green'), yellow: cssv('--yellow') };
+  var SUIT = {
+    red: { c: 'var(--red)', hi: 'var(--red-hi)', lo: 'var(--red-lo)', fg: 'var(--cream)' },
+    blue: { c: 'var(--blue)', hi: 'var(--blue-hi)', lo: 'var(--blue-lo)', fg: 'var(--cream)' },
+    green: { c: 'var(--green)', hi: 'var(--green-hi)', lo: 'var(--green-lo)', fg: 'var(--cream)' },
+    yellow: { c: 'var(--yellow)', hi: 'var(--yellow-hi)', lo: 'var(--yellow-lo)', fg: '#3a2a08' },
+    wild: { c: '#2a2731', hi: '#443f4d', lo: '#0e0d12', fg: 'var(--cream)' }
+  };
+
+  /* ---------- الأرقام العشرة مساراتٌ على عرف حرف ش: قلمٌ واحد ‏١١‏ في صندوق 100 ---------- */
+  var DIGIT = [
+    '<circle cx="50" cy="56" r="10" fill="currentColor" stroke="none"/>',
+    '<path d="M54 14 L46 88"/>',
+    '<path d="M84 20 C86 34 78 42 68 34 C62 29 54 27 50 28 C45 30 44 34 44 40 L44 88"/>',
+    '<path d="M90 22 L80 40 L70 24 L60 40 L50 24 C45 26 44 32 44 40 L44 88"/>',
+    '<path d="M36 14 L72 14 L34 46 L68 46 C46 50 28 62 32 76 C36 90 60 90 78 82"/>',
+    '<path d="M46 22 C66 20 78 38 76 56 C74 74 62 84 50 84 C38 84 26 74 24 58 C22 40 34 24 46 22 Z"/>',
+    '<path d="M26 18 L74 18 C76 46 64 70 46 88"/>',
+    '<path d="M20 18 L50 84 L80 18"/>',
+    '<path d="M20 84 L50 18 L80 84"/>',
+    '<circle cx="45" cy="38" r="17"/><path d="M62 38 C64 56 62 72 58 88"/>'
+  ];
+  function digitSVG(d) {
+    return '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + DIGIT[d] + '</svg>';
+  }
+  /* حرف ش كما في العيّنات */
+  var SHEEN = '<path d="M92 62 L83 42 L74 62 L65 42 L56 62 L47 42 L38 62 C38 84 31 90 22 90 C13 90 8 82 10 64" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<circle cx="56" cy="24" r="5.5" fill="currentColor"/><circle cx="74" cy="24" r="5.5" fill="currentColor"/><circle cx="65" cy="12" r="5.5" fill="currentColor"/>';
+  var ICON = {
+    skip: '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="33" fill="none" stroke="currentColor" stroke-width="13"/><path d="M28 28 L72 72" stroke="currentColor" stroke-width="13" stroke-linecap="round"/></svg>',
+    reverse: '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M18 36 H60" stroke="currentColor" stroke-width="13" stroke-linecap="round"/><path d="M56 14 L88 36 L56 58 Z"/><path d="M82 64 H40" stroke="currentColor" stroke-width="13" stroke-linecap="round"/><path d="M44 42 L12 64 L44 86 Z"/></svg>',
+    draw2: '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><rect x="20" y="22" width="34" height="50" rx="6" opacity=".6" transform="rotate(-14 37 47)"/><rect x="44" y="28" width="34" height="50" rx="6" transform="rotate(8 61 53)" stroke="var(--lo)" stroke-width="2"/></svg>',
+    draw4: '<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="#f3ecd9" stroke-width="3"><rect x="10" y="30" width="26" height="40" rx="5" fill="' + HEX.yellow + '" transform="rotate(-24 23 50)"/><rect x="28" y="24" width="26" height="40" rx="5" fill="' + HEX.green + '" transform="rotate(-8 41 44)"/><rect x="46" y="24" width="26" height="40" rx="5" fill="' + HEX.blue + '" transform="rotate(8 59 44)"/><rect x="64" y="30" width="26" height="40" rx="5" fill="' + HEX.red + '" transform="rotate(24 77 50)"/></g></svg>',
+    wild: '<svg viewBox="0 0 100 100" aria-hidden="true"><g stroke="#f3ecd9" stroke-width="3"><path d="M50 50 L50 12 A38 38 0 0 1 88 50 Z" fill="' + HEX.red + '"/><path d="M50 50 L88 50 A38 38 0 0 1 50 88 Z" fill="' + HEX.yellow + '"/><path d="M50 50 L50 88 A38 38 0 0 1 12 50 Z" fill="' + HEX.green + '"/><path d="M50 50 L12 50 A38 38 0 0 1 50 12 Z" fill="' + HEX.blue + '"/></g></svg>',
+    dot: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 50 L50 12 A38 38 0 0 1 88 50 Z" fill="' + HEX.red + '"/><path d="M50 50 L88 50 A38 38 0 0 1 50 88 Z" fill="' + HEX.yellow + '"/><path d="M50 50 L50 88 A38 38 0 0 1 12 50 Z" fill="' + HEX.green + '"/><path d="M50 50 L12 50 A38 38 0 0 1 50 12 Z" fill="' + HEX.blue + '"/></svg>'
+  };
+  var DIRSVG = '<svg viewBox="0 0 200 110" fill="none" stroke="#f3ecd9" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M40 20 A80 45 0 0 1 160 20"/><path d="M150 12 L162 21 L150 30"/><path d="M160 90 A80 45 0 0 1 40 90"/><path d="M50 82 L38 91 L50 100"/></svg>';
+
+  /* ---------- المروحة: الشارة وظهر الورقة؛ والتدرّج يُكتب للشارة وحدها ---------- */
+  var COLS = [HEX.yellow, HEX.green, HEX.blue, HEX.red];
+  function fanSVG(badge) {
+    var cards = '', angles = [-42, -14, 14, 42];
+    for (var i = 0; i < 4; i++) cards += '<g transform="rotate(' + angles[i] + ')"><rect x="-24" y="-98" width="48" height="72" rx="8" fill="' + COLS[i] + '" stroke="#f3ecd9" stroke-width="4"/></g>';
+    return '<svg viewBox="0 0 220 220" aria-hidden="true">' +
+      (badge ? '<defs><radialGradient id="shbadge" cx="35%" cy="15%" r="90%"><stop offset="0" stop-color="#3a3444"/><stop offset=".6" stop-color="#1d1a23"/><stop offset="1" stop-color="#0d0b10"/></radialGradient></defs>' +
+        '<circle cx="110" cy="110" r="102" fill="url(#shbadge)" stroke="#f3ecd9" stroke-width="6"/><circle cx="110" cy="110" r="90" fill="none" stroke="#f3ecd9" stroke-opacity=".22" stroke-width="2"/>' : '') +
+      '<g transform="translate(110 156)">' + cards + '</g>' +
+      '<circle cx="110" cy="156" r="36" fill="#f3ecd9" stroke="#0d0b10" stroke-width="3"/>' +
+      '<g transform="translate(80 126)"><svg viewBox="0 0 100 100" width="60" height="60" style="color:#1d1a23">' + SHEEN + '</svg></g></svg>';
+  }
+  var MARK = fanSVG(false), BADGE = fanSVG(true);
+
+  /* ---------- الورقة ---------- */
   function label(id) {
     var c = S.card(id);
     if (c.kind === 'number') return NUM[c.value] + ' ' + CLR[c.colour];
     if (c.kind === 'wild' || c.kind === 'wild4') return KIND[c.kind];
     return KIND[c.kind] + ' ' + CLR[c.colour];
   }
-  function seatName(i) { return SEATNAME[i] || ('المقعد ' + (i + 1)); }
-
-  var el = {
-    capN: document.getElementById('cap-n'), pile: document.getElementById('pile'),
-    stock: document.getElementById('stock'), seats: document.getElementById('seats'),
-    log: document.getElementById('log'), hand: document.getElementById('hand'),
-    acts: document.getElementById('acts'), setup: document.getElementById('setup'),
-    hint: document.getElementById('hint')
-  };
-
-  var G = null, seats = 3, seed = 1, lines = [], autoOne = true;
-
-  function say(text, hi) {
-    lines.push({ text: text, hi: !!hi });
-    if (lines.length > 60) lines.shift();
+  function cardHTML(id, o) {
+    o = o || {};
+    var c = S.card(id), s = SUIT[c.colour || 'wild'], mid, idx, name, act = c.kind !== 'number';
+    if (!act) { mid = digitSVG(c.value); idx = digitSVG(c.value); name = NUM[c.value]; }
+    else {
+      name = KIND[c.kind];
+      if (c.kind === 'draw2') { mid = ICON.draw2; idx = '<span>+</span>' + digitSVG(2); }
+      else if (c.kind === 'wild4') { mid = ICON.draw4; idx = '<span>+</span>' + digitSVG(4); }
+      else if (c.kind === 'wild') { mid = ICON.wild; idx = ICON.dot; }
+      else if (c.kind === 'skip') { mid = ICON.skip; idx = ICON.skip; }
+      else { mid = ICON.reverse; idx = ICON.reverse; }
+    }
+    var tag = o.tag || 'div';
+    return '<' + tag + ' class="card' + (o.cls ? ' ' + o.cls : '') + '" style="--c:' + s.c + ';--hi:' + s.hi + ';--lo:' + s.lo + ';--fg:' + s.fg + ';' + (o.style || '') + '"' +
+      (o.attrs || '') + ' aria-label="' + label(id) + '">' +
+      '<span class="face"><span class="idx a">' + idx + '</span><span class="mid"><span class="cname' + (act ? ' act' : '') + '">' + name + '</span>' + mid + '</span><span class="idx b">' + idx + '</span></span></' + tag + '>';
+  }
+  function backHTML(o) {
+    o = o || {};
+    return '<div class="card back' + (o.cls ? ' ' + o.cls : '') + '" style="' + (o.style || '') + '" aria-hidden="true"><span class="face"><span class="mid">' + MARK + '</span></span></div>';
   }
 
-  function tell(events) {
+  /* ---------- العناصر ---------- */
+  var el = {};
+  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'log', 'scene', 'felt', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume'].forEach(function (id) {
+    el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
+  });
+  var scenewrap = el.scene.parentElement;
+
+  /* ---------- الحالة (الرسم) ---------- */
+  var G = null, V = null;               // حالة المحرّك، ورؤية المقعد صاحب الموقف
+  var seats = 3, house = { stack: false, jumpIn: false, sevenZero: false };
+  var nameVals = ['', '', '', '', ''], names = [];
+  var lines = [], sel = null, armOne = false, lastDrawn = null, hintText = '';
+  var q = new URLSearchParams(location.search), urlSeed = q.get('seed');
+  var seed = urlSeed !== null && /^-?\d+$/.test(urlSeed) ? (parseInt(urlSeed, 10) | 0) : ((Math.random() * 0x7fffffff) | 0);
+
+  function actorOf(st) { return st.phase === 'colour' ? st.chooser : st.phase === 'challenge' ? st.challenge.target : st.turn; }
+  function nameOf(i) { return names[i] || ('المقعد ' + fmt(i + 1)); }
+
+  /* ---------- السجلّ ---------- */
+  function say(text, hi) { lines.push({ text: text, hi: !!hi }); if (lines.length > 80) lines.shift(); }
+  function tell(events, me) {
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.t === 'dealt') say('وُزّعت ' + e.each + ' لكل لاعب، و' + seatName(e.first) + ' يبدأ.', true);
+      if (e.t === 'dealt') say('وُزّعت ' + fmt(e.each) + ' لكل لاعب، و' + nameOf(e.first) + ' يبدأ.', true);
       else if (e.t === 'flipped') say('المكشوفة: ' + label(e.card) + '.');
-      else if (e.t === 'played') say(seatName(e.seat) + ' لعب ' + label(e.card) + '.');
-      else if (e.t === 'drew' && e.n) say(seatName(e.seat) + ' سحب ' + e.n + '.');
-      else if (e.t === 'colourChosen') say(seatName(e.seat) + ' اختار ' + CLR[e.colour] + '.');
-      else if (e.t === 'skipped') say(seatName(e.seat) + ' وقف دوره.');
+      else if (e.t === 'played') say(nameOf(e.seat) + ' لعب ' + label(e.card) + '.');
+      else if (e.t === 'drew' && e.n) {
+        say(nameOf(e.seat) + ' سحب ' + fmt(e.n) + '.');
+        if (e.seat === me && e.n === 1) lastDrawn = e.cards[0];
+      }
+      else if (e.t === 'colourChosen') say(nameOf(e.seat) + ' اختار ' + CLR[e.colour] + '.');
+      else if (e.t === 'skipped') say(nameOf(e.seat) + ' وقف دوره.');
       else if (e.t === 'directionReversed') say('انعكس الاتجاه.');
-      else if (e.t === 'saidOne') say(seatName(e.seat) + ' قال «واحدة».', true);
-      else if (e.t === 'challenged') say(seatName(e.by) + ' اعترض على ' + seatName(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'), true);
-      else if (e.t === 'penalised') say(seatName(e.seat) + ' عوقب بـ' + e.cards + '.', true);
-      else if (e.t === 'stockReshuffled') say('نفد المسحب، فأُعيد خلط المرميّ (' + e.cards + ').');
-      else if (e.t === 'handsSwapped') say(seatName(e.a) + ' بدّل يده مع ' + seatName(e.b) + '.');
+      else if (e.t === 'saidOne') say(nameOf(e.seat) + ' قال «واحدة».', true);
+      else if (e.t === 'challenged') say(nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'), true);
+      else if (e.t === 'penalised') say(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards) + '.', true);
+      else if (e.t === 'stockReshuffled') say('نفد المسحب، فأُعيد خلط المرميّ (' + fmt(e.cards) + ').');
+      else if (e.t === 'handsSwapped') say(nameOf(e.a) + ' بدّل يده مع ' + nameOf(e.b) + '.');
       else if (e.t === 'handsRotated') say('دارت الأيدي.');
-      else if (e.t === 'jumpedIn') say(seatName(e.seat) + ' قفز بـ' + label(e.card) + '.');
-      else if (e.t === 'roundStarted') say('— الجولة ' + e.round + ' —', true);
-      else if (e.t === 'roundEnded') say('انتهت الجولة: فاز ' + seatName(e.winner) + ' بـ' + e.points + ' نقطة.', true);
-      else if (e.t === 'matchEnded') say('انتهت المباراة: ' + seatName(e.winner) + '.', true);
+      else if (e.t === 'jumpedIn') say(nameOf(e.seat) + ' قفز بـ' + label(e.card) + '.');
+      else if (e.t === 'roundStarted') say('— الجولة ' + fmt(e.round) + ' —', true);
+      else if (e.t === 'roundEnded') say('انتهت الجولة: فاز ' + nameOf(e.winner) + ' بـ' + fmt(e.points) + ' نقطة.', true);
+      else if (e.t === 'matchEnded') say('انتهت المباراة: ' + nameOf(e.winner) + ' يفوز.', true);
+      else if (e.t === 'turnPassed') lastDrawn = null;
     }
   }
 
   function send(seat, action) {
     var out = S.applyAction(G, seat, action, null);
-    if (out.error) { el.hint.textContent = 'رُفض الفعل: ' + out.error; return false; }
+    if (out.error) { hintText = ERR[out.error] || out.error; render(); return false; }
     G = out.state;
-    tell(out.events);
-    el.hint.textContent = '';
-    draw();
+    tell(out.events, actorOf(G));
+    hintText = '';
+    render();
     return true;
   }
 
-  function btn(text, cls, on, dis) {
+  /* ---------- الطاولة: المقاعد على القوس بترتيب اللعب، والتالي على اليسار ---------- */
+  var SEATS = { 2: [90], 3: [150, 30], 4: [172, 90, 8], 5: [168, 118, 62, 12] };
+  function seatsHTML(v, me) {
+    var n = v.seats, angles = SEATS[n], html = '', actor = actorOf(v);
+    for (var i = 0; i < angles.length; i++) {
+      var seat = (me + 1 + i) % n, deg = angles[i], th = deg * Math.PI / 180;
+      var edge = n === 5 && (deg < 30 || deg > 150);
+      var rx = 33, ry = 36 + (edge ? 4 : 0);
+      var x = 50 + rx * Math.cos(th), y = 50 - ry * Math.sin(th);
+      var rot = 270 - deg, sc = edge ? .84 : 1;
+      var cnt = v.counts[seat], m = Math.min(cnt, 7), backs = '';
+      for (var k = 0; k < m; k++) backs += backHTML({ style: '--a:' + ((k - (m - 1) / 2) * 10).toFixed(1) + 'deg' });
+      html += '<div class="seat' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;--rot:' + rot + 'deg;--sc:' + sc + '">' +
+        '<div class="oppfan">' + backs + '</div>' +
+        '<div class="ntag"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><b class="cnt' + (v.said[seat] ? ' one' : '') + '">' + fmt(cnt) + '</b></div></div>';
+    }
+    return html;
+  }
+  function pilesHTML(v) {
+    var top = v.discard[v.discard.length - 1], under = v.discard.length > 1 ? v.discard[v.discard.length - 2] : null;
+    var stock = v.stockCount > 20 ? 3 : v.stockCount > 5 ? 2 : v.stockCount > 0 ? 1 : 0, s = '';
+    for (var k = 0; k < stock; k++) s += backHTML({ style: '--i:' + k });
+    var rot = function (id) { return ((id * 37) % 13 - 6) + 'deg'; };
+    return '<div class="dir' + (v.dir < 0 ? ' ccw' : '') + '">' + DIRSVG + '</div>' +
+      '<div class="piles"><div class="stock">' + s + '</div>' +
+      '<div class="pile" style="--cur:' + (v.colour ? 'var(--' + v.colour + ')' : 'transparent') + '"><span class="glow"></span>' +
+      (under !== null ? cardHTML(under, { cls: 'uc', style: '--r:' + rot(under) }) : '') +
+      cardHTML(top, { cls: 'tc', style: '--r:' + rot(top) }) + '</div></div>';
+  }
+  /* اليد: خطوةٌ لا تقلّ عن ‎50px‎ فتملك كل ورقةٍ طرفها، والزاوية تتبع الخطوة؛
+     وإن لم تتّسع الخطوات للعرض بطل القوس وانزلقت اليد. */
+  function handHTML(v, me, W) {
+    var hand = v.hand, n = hand.length;
+    var can = v.phase === 'play' && v.turn === me ? S.legalMoves(v) : [];
+    var minStep = 48, pad = 4, fan = true;
+    /* عرض الورقة ‎20cqw‎، وينزل حتى ‎16cqw‎ كي تتّسع الخطوات للعرض؛ فإن لم تتّسع
+       بقيت الورقة على عرضها وانزلقت اليد. */
+    var cw = Math.min(W * .20, W - 2 * pad - (n - 1) * minStep);
+    if (cw < W * .16) { cw = W * .20; fan = false; }
+    var step = n > 1 ? (fan ? Math.max(minStep, Math.min(cw * .62, (W - 2 * pad - cw) / (n - 1))) : minStep) : 0;
+    /* الدوران لا يزيد على ‎3°‎: فحص العقد يقيس مستطيلاً موازياً للشاشة، وشريطٌ
+       عرضه ‎48‎ مائلٌ ‎20°‎ لا يسع إلا ‎38‎ منه. والقوس هبوطٌ خفيف ‎dx²/2R‎. */
+    var total = (n - 1) * step + cw + 2 * pad, Rv = 12 * cw, html = '';
+    for (var i = 0; i < n; i++) {
+      var dx = (i - (n - 1) / 2) * step, a = fan ? Math.max(-3, Math.min(3, dx / Rv * 180 / Math.PI)) : 0, dy = fan ? dx * dx / (2 * Rv) : 0;
+      var id = hand[i], ok = can.indexOf(id) >= 0;
+      html += cardHTML(id, {
+        tag: 'button',
+        cls: (ok ? 'ok' : '') + (id === sel ? ' up' : '') + (id === lastDrawn ? ' fresh' : ''),
+        style: '--cw:' + cw.toFixed(1) + 'px;--dx:' + dx.toFixed(1) + 'px;--dy:' + dy.toFixed(1) + 'px;--a:' + a.toFixed(2) + 'deg;z-index:' + (n - i),
+        attrs: ' data-id="' + id + '"' + (ok ? '' : ' disabled')
+      });
+    }
+    return '<div class="fanrow" style="width:' + Math.max(W, Math.ceil(total)) + 'px">' + html + '</div>';
+  }
+
+  function btn(text, cls, on, attrs) {
     var b = document.createElement('button');
+    b.className = 'key' + (cls ? ' ' + cls : '');
     b.textContent = text;
-    if (cls) b.className = cls;
-    if (dis) b.disabled = true; else b.addEventListener('click', on);
+    if (attrs) Object.keys(attrs).forEach(function (k) { b.setAttribute(k, attrs[k]); });
+    b.addEventListener('click', on);
     return b;
   }
 
-  function start() {
-    var out = S.createGame({ seats: seats, seed: seed });
-    lines = [];
-    G = out.state;
-    tell(out.events);
-    el.hint.textContent = '';
-    draw();
-  }
-
-  function draw() {
-    /* المقعد الذي يُعرض هو صاحب الموقف — وواجهةُ المرحلة ١ تعرض رؤيته وحدها،
-       فيُرى بالعين أن viewFor لا تسرّب يدَ غيره. */
-    var me = G.phase === 'colour' ? G.chooser : (G.phase === 'challenge' ? G.challenge.target : G.turn);
-    var v = S.viewFor(G, me);
-
+  /* ---------- الرسم كلّه من رؤية المقعد صاحب الموقف ---------- */
+  function render() {
+    if (!G) return;
+    var me = actorOf(G), v = V = S.viewFor(G, me);
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
+    el.felt.innerHTML = seatsHTML(v, me) + pilesHTML(v);
 
-    var topId = v.discard[v.discard.length - 1];
-    el.pile.querySelector('b').textContent = label(topId);
-    el.pile.querySelector('small').textContent = 'المرمى' + (v.colour ? ' · ' + CLR[v.colour] : '');
-    el.pile.setAttribute('data-c', v.colour || '');
-    el.stock.querySelector('b').textContent = v.stockCount;
-    el.stock.querySelector('small').textContent = 'المسحب · المرميّ ' + v.discard.length;
+    var W = scenewrap.clientWidth || 360, sl = el.hand.scrollLeft;
+    if (sel !== null && v.hand.indexOf(sel) < 0) sel = null;
+    el.hand.innerHTML = v.phase === 'over' ? '' : handHTML(v, me, W);
+    el.hand.scrollLeft = sl;
 
-    el.seats.textContent = '';
-    for (var i = 0; i < v.seats; i++) {
-      var d = document.createElement('div');
-      d.className = 'seat' + (i === v.turn ? ' now' : '');
-      d.textContent = seatName(i) + ' · ' + v.counts[i] + (v.said[i] ? ' ✓' : '');
-      el.seats.appendChild(d);
+    var top = v.discard[v.discard.length - 1];
+    el.clr.innerHTML = '<i style="--cur:' + (v.colour ? 'var(--' + v.colour + ')' : 'transparent') + '"></i>' + (v.colour ? CLR[v.colour] + ' · ' : '') + esc(label(top));
+
+    el.acts.textContent = '';
+    el.over.hidden = true;
+    var can = v.phase === 'play' ? S.legalMoves(v) : [], hint = hintText;
+
+    if (v.phase === 'over') {
+      el.turn.textContent = v.over ? 'انتهت المباراة' : 'انتهت الجولة';
+      var sc = '';
+      for (var i = 0; i < v.seats; i++) sc += '<span class="' + (i === v.winner ? 'w' : '') + '">' + esc(nameOf(i)) + ' ' + fmt(v.scores[i]) + '</span>';
+      el.over.innerHTML = '<b>' + (v.over ? 'انتهت المباراة: ' + esc(nameOf(v.winner)) + ' يفوز' : 'فاز ' + esc(nameOf(v.winner)) + ' بالجولة') + '</b><div class="sc">' + sc + '</div>';
+      el.over.hidden = false;
+      el.acts.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'acc', function () {
+        if (G.over) { seed = (seed + 1) | 0; startGame(); return; }
+        var out = S.nextRound(G, null);
+        if (out.error) return;
+        G = out.state; sel = null; lastDrawn = null; tell(out.events, actorOf(G)); render();
+      }));
+      if (!hint) hint = v.over ? 'النقاط إلى ' + fmt(v.target) + ' تحسم المباراة.' : 'الفائز يأخذ ما بقي في أيدي الآخرين.';
+    } else if (v.phase === 'colour') {
+      el.turn.textContent = nameOf(me) + '، اختر اللون';
+      S.COLOURS.forEach(function (c) {
+        el.acts.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }, { 'data-c': c }));
+      });
+      if (!hint) hint = 'اللون الذي تختاره هو ما يُطابَق بعدك.';
+    } else if (v.phase === 'challenge') {
+      el.turn.textContent = nameOf(me) + '، «سحب أربعة» عليك';
+      el.acts.appendChild(btn('اعترض', 'acc', function () { send(me, { type: 'challenge' }); }));
+      el.acts.appendChild(btn('اقبل الأربع', '', function () { send(me, { type: 'accept' }); }));
+      if (!hint) hint = 'إن كان ' + nameOf(v.challenge.from) + ' يملك اللون الجاري فقد كذب ويسحب أربعاً — وإن صدق سحبتَ ستّاً.';
+    } else {
+      el.turn.textContent = nameOf(me) + '، دورك';
+      if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', function () { send(me, { type: 'draw' }); }));
+      else if (!v.drew) el.acts.appendChild(btn('اسحب', '', function () { send(me, { type: 'draw' }); }));
+      else el.acts.appendChild(btn('مرّر', '', function () { send(me, { type: 'pass' }); }));
+      if (v.hand.length === 2) {
+        el.acts.appendChild(btn('واحدة!', armOne ? 'on' : '', function () { armOne = !armOne; render(); }, { 'aria-pressed': String(armOne) }));
+      } else if (v.hand.length === 1 && !v.said[me]) {
+        el.acts.appendChild(btn('واحدة!', 'acc', function () { send(me, { type: 'sayOne' }); }));
+      }
+      if (v.callable !== null && v.callable !== me) {
+        el.acts.appendChild(btn('نادِ على ' + nameOf(v.callable), '', function () { send(me, { type: 'callOut', on: v.callable }); }));
+      }
+      if (!hint) {
+        if (v.pending > 0) hint = 'عليك ' + fmt(v.pending) + ': ردّ بسحب ثنتين أو خذها.';
+        else if (sel !== null) hint = 'انقر الورقة مرّةً أخرى لتلعبها' + (v.hand.length === 2 ? (armOne ? ' — و«واحدة» معها.' : ' — ولا تنسَ «واحدة».') : '.');
+        else if (can.length) hint = 'اختر ورقةً تطابق اللون أو الرقم' + (v.drew ? '، أو مرّر.' : '، أو اسحب.');
+        else hint = v.drew ? 'لا ورقة تُلعب — مرّر.' : 'لا ورقة تُلعب — اسحب.';
+      }
     }
+    el.hint.textContent = hint;
 
     el.log.textContent = '';
     for (var j = 0; j < lines.length; j++) {
-      var q = document.createElement('div');
-      if (lines[j].hi) q.className = 'hi';
-      q.textContent = lines[j].text;
-      el.log.appendChild(q);
+      var d = document.createElement('div');
+      if (lines[j].hi) d.className = 'hi';
+      d.textContent = lines[j].text;
+      el.log.appendChild(d);
     }
     el.log.scrollTop = el.log.scrollHeight;
-
-    el.hand.textContent = '';
-    el.acts.textContent = '';
-
-    if (v.phase === 'over') {
-      el.acts.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'go', function () {
-        if (G.over) { seed += 1; start(); return; }
-        var out = S.nextRound(G, null);
-        if (out.error) return;
-        G = out.state; tell(out.events); draw();
-      }));
-      setup();
-      return;
-    }
-
-    if (v.phase === 'colour') {
-      for (var k = 0; k < S.COLOURS.length; k++) {
-        (function (c) {
-          el.acts.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }));
-          el.acts.lastChild.setAttribute('data-c', c);
-        })(S.COLOURS[k]);
-      }
-      el.hint.textContent = seatName(me) + ': اختر اللون.';
-      setup();
-      return;
-    }
-
-    if (v.phase === 'challenge') {
-      el.acts.appendChild(btn('اعترض', 'go', function () { send(me, { type: 'challenge' }); }));
-      el.acts.appendChild(btn('اقبل الأربع', '', function () { send(me, { type: 'accept' }); }));
-      el.hint.textContent = seatName(me) + ': سحب أربعة عليك — اعترض أو اقبل.';
-      setup();
-      return;
-    }
-
-    /* الطَّور play */
-    var can = S.legalMoves(v);
-    for (var h = 0; h < v.hand.length; h++) {
-      (function (id) {
-        var ok = can.indexOf(id) >= 0;
-        var c = S.card(id);
-        var b = btn(label(id), 'c', function () {
-          var a = { type: 'play', card: id };
-          if (v.hand.length === 2 && autoOne) a.sayOne = true;   // ثانيةُ الأخيرة
-          send(me, a);
-        }, !ok);
-        b.setAttribute('data-c', c.colour || 'wild');
-        el.hand.appendChild(b);
-      })(v.hand[h]);
-    }
-
-    if (v.pending > 0) {
-      el.acts.appendChild(btn('خذ ' + v.pending, 'go', function () { send(me, { type: 'draw' }); }));
-    } else if (!v.drew) {
-      el.acts.appendChild(btn('اسحب', 'go', function () { send(me, { type: 'draw' }); }));
-    } else {
-      el.acts.appendChild(btn('مرّر', 'go', function () { send(me, { type: 'pass' }); }));
-    }
-    if (v.hand.length === 1 && !v.said[me]) {
-      el.acts.appendChild(btn('واحدة!', '', function () { send(me, { type: 'sayOne' }); }));
-    }
-    if (v.callable !== null && v.callable !== me) {
-      (function (on) {
-        el.acts.appendChild(btn('نادِ على ' + seatName(on), '', function () { send(me, { type: 'callOut', on: on }); }));
-      })(v.callable);
-    }
-    el.hint.textContent = seatName(me) + ': دورك' + (can.length ? '' : ' — لا ورقة تُلعب، فاسحب');
-    setup();
   }
 
-  function setup() {
-    el.setup.textContent = '';
-    var s = document.createElement('span');
-    s.textContent = 'اللاعبون';
-    el.setup.appendChild(s);
-    for (var n = 2; n <= 5; n++) {
-      (function (k) {
-        var b = btn(String(k), k === seats ? 'on' : '', function () { seats = k; start(); });
-        el.setup.appendChild(b);
-      })(n);
-    }
-    el.setup.appendChild(btn('وزّع', 'go', function () { seed += 1; start(); }));
-    /* مفتاحٌ للحرث لا للّعب: إن أُطفئ لم تُقل «واحدة» مع الورقة قبل الأخيرة،
-       فتُفتح نافذة النداء ويُرى أثر العقوبة على الشاشة. */
-    el.setup.appendChild(btn('واحدة تلقائياً', autoOne ? 'on' : '', function () { autoOne = !autoOne; draw(); }));
-  }
+  /* ---------- اليد: نقرةٌ ترفع، وثانيةٌ تلعب ---------- */
+  el.hand.addEventListener('click', function (e) {
+    var b = e.target.closest('button.card');
+    if (!b || b.disabled || !G) return;
+    var id = +b.getAttribute('data-id'), me = actorOf(G);
+    if (sel !== id) { sel = id; hintText = ''; render(); return; }
+    var a = { type: 'play', card: id };
+    if (V && V.hand.length === 2 && armOne) a.sayOne = true;
+    sel = null; armOne = false;
+    send(me, a);
+  });
+  window.addEventListener('resize', function () { if (G && el.start.hidden) render(); });
 
-  start();
+  /* ---------- شاشة البداية ---------- */
+  el.badge.innerHTML = BADGE;
+  el.felt.innerHTML = '<div class="idle">' + MARK + '</div>';
+  function drawNames() {
+    var h = '';
+    for (var i = 0; i < seats; i++) {
+      var v = nameVals[i], ph = 'اللاعب ' + fmt(i + 1);
+      h += '<label class="in"><span class="av">' + esc((v || ph).charAt(0)) + '</span><input type="text" maxlength="14" autocomplete="off" placeholder="' + ph + '" value="' + esc(v) + '" data-i="' + i + '" aria-label="اسم ' + ph + '"></label>';
+    }
+    el.namelist.innerHTML = h;
+  }
+  el.namelist.addEventListener('input', function (e) {
+    var inp = e.target.closest('input');
+    if (!inp) return;
+    var i = +inp.getAttribute('data-i');
+    nameVals[i] = inp.value;
+    inp.parentElement.querySelector('.av').textContent = (inp.value.trim() || ('اللاعب ' + fmt(i + 1))).charAt(0);
+  });
+  el.count.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    seats = +b.getAttribute('data-n');
+    el.count.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    drawNames();
+  });
+  function setToggle(t, on) { t.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  el.house.addEventListener('click', function () {
+    var on = el.house.getAttribute('aria-checked') !== 'true';
+    setToggle(el.house, on);
+    el.housesubs.classList.toggle('dim', !on);
+    el.housesubs.querySelectorAll('button').forEach(function (b) { b.disabled = !on; });
+    if (!on) { house = { stack: false, jumpIn: false, sevenZero: false }; el.housesubs.querySelectorAll('button').forEach(function (b) { setToggle(b, false); }); }
+  });
+  el.housesubs.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    var k = b.getAttribute('data-k');
+    house[k] = !house[k];
+    setToggle(b, house[k]);
+  });
+  function startGame() {
+    names = [];
+    for (var i = 0; i < seats; i++) names.push((nameVals[i] || '').trim() || ('اللاعب ' + fmt(i + 1)));
+    var out = S.createGame({ seats: seats, seed: seed, house: house });
+    if (out.error) { el.hint.textContent = ERR[out.error]; return; }
+    G = out.state; lines = []; sel = null; armOne = false; lastDrawn = null; hintText = '';
+    tell(out.events, actorOf(G));
+    el.start.hidden = true;
+    el.resume.hidden = false;
+    render();
+  }
+  el.startbtn.addEventListener('click', function () { seed = G ? ((seed + 1) | 0) : seed; startGame(); });
+  el.resume.addEventListener('click', function () { el.start.hidden = true; render(); });
+  el.menu.addEventListener('click', function () { el.start.hidden = false; });
+  drawNames();
 })();
 </script>
 </body>
