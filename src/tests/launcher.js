@@ -51,8 +51,19 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         const needs = d.body.dataset.needsAssets !== undefined;
         const intake = [...d.querySelectorAll('.sheet')].filter(sh => !sh.hidden && vis(sh))
           .reduce((n, sh) => n + [...sh.querySelectorAll('button')].filter(vis).length, 0);
+        /* وطاولةُ ورقٍ من DOM لا لوح لها. تُعلن ‎body[data-render=dom]‎ ويقوم
+           مقام اللوح عنصرُ لعبٍ مُعلَنٌ ‎[data-table]‎ مرئيٌّ بمقاسٍ حقيقي —
+           عُشرُ الإطار فأكثر في البعدين، تماماً كما في ‎contract.js‎. */
+        const domRender = d.body.dataset.render === 'dom';
+        const fw = d.documentElement.clientWidth, fh = d.documentElement.clientHeight;
+        const tables = [...d.querySelectorAll('[data-table]')].filter(vis)
+          .map(e => e.getBoundingClientRect())
+          .filter(q => q.width >= fw / 10 && q.height >= fh / 10);
         if (!live.length && needs && intake) return { ok: true, live: ['intake:' + intake + ' buttons'], buttons: d.querySelectorAll('button').length };
         if (!live.length && needs) return { ok: false, why: 'needs assets yet offers no way to supply them' };
+        if (!live.length && domRender && tables.length)
+          return { ok: true, live: ['table:' + Math.round(tables[0].width) + 'x' + Math.round(tables[0].height)], buttons: d.querySelectorAll('button').length };
+        if (!live.length && domRender) return { ok: false, why: 'declares a DOM board yet shows no [data-table] of real size' };
         return { ok: !!live.length, live, buttons: d.querySelectorAll('button').length };
       });
       if (!info.ok) { bad++; console.log('FAIL ' + names[i - 1] + ': ' + (info.why || 'nothing drawn')); }

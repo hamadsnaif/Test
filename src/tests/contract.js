@@ -87,11 +87,49 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
               return cx >= c.l && cx <= c.rt && cy >= c.t && cy <= c.b;
             };
             const name = e => e.id || e.className.split(' ')[0];
-            const steal = [];
+            /* مروحة ورقٍ تتراكب بقصد: كل ورقةٍ تغطّي جارتها ولا يبقى منها إلا
+               طرفها. فسؤالُ «هل زحف جارٌ على جار» لا معنى له هناك — لكن
+               التهاونَ فيه يفتح باباً لورقةٍ مدفونةٍ تماماً لا تُلمس. فمنطقةٌ
+               واحدة تُعلن ‎[data-fan]‎ يسقط عنها فحص التراكب ويقوم مقامه فحصٌ
+               أشدّ: أكبر رقعةٍ **تملكها الورقة وحدها** يجب أن تبلغ ‎44px‎ في
+               البعدين. فالورقة المدفونة تسقط، والمكشوف طرفُها وحده يمرّ إن كان
+               طرفها يكفي إبهاماً. وتُقاس الرقعة بمسحٍ كل ‎2px‎ ثم أكبرِ مستطيلٍ
+               في المدرّج، لا بصندوق الورقة — فالصندوق يكذب هنا. */
+            const ownedPatch = (b, step) => {
+              const r = b.getBoundingClientRect();
+              const cols = Math.floor((r.width - step) / step) + 1;
+              const rows = Math.floor((r.height - step) / step) + 1;
+              if (cols < 1 || rows < 1) return { w: 0, h: 0, min: 0 };
+              const x0 = r.left + step / 2, y0 = r.top + step / 2;
+              const hist = new Array(cols).fill(0);
+              let best = { w: 0, h: 0, min: 0 };
+              for (let j = 0; j < rows; j++) {
+                for (let i = 0; i < cols; i++)
+                  hist[i] = own(x0 + i * step, y0 + j * step) === b ? hist[i] + 1 : 0;
+                const st = [];
+                for (let i = 0; i <= cols; i++) {
+                  const h = i === cols ? 0 : hist[i];
+                  while (st.length && hist[st[st.length - 1]] >= h) {
+                    const hh = hist[st.pop()];
+                    const l = st.length ? st[st.length - 1] + 1 : 0;
+                    const w = (i - l) * step, ht = hh * step;
+                    if (Math.min(w, ht) > best.min) best = { w, h: ht, min: Math.min(w, ht) };
+                  }
+                  st.push(i);
+                }
+              }
+              return best;
+            };
+            const steal = [], buried = [];
             for (const b of btns) {
               const r = b.getBoundingClientRect();
               if (r.width < 8 || r.height < 8) continue;
               if (!onScreen(b)) continue;                 // مقصوصٌ: ليس هدفاً هنا
+              if (b.closest('[data-fan]')) {
+                const q = ownedPatch(b, 2);
+                if (q.min < 44) buried.push({ id: name(b), w: Math.round(q.w), h: Math.round(q.h) });
+                continue;
+              }
               const thieves = {};
               for (let y = r.top + 3; y <= r.bottom - 3; y += 4) {
                 for (let x = r.left + 3; x <= r.right - 3; x += 4) {
@@ -115,10 +153,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
               fullscreen: document.body.dataset.layout === 'fullscreen',
               needsAssets: document.body.dataset.needsAssets !== undefined,
               intake: openSheet.reduce((n, sh) => n + [...sh.querySelectorAll('button')].filter(vis).length, 0),
+              renderDom: document.body.dataset.render === 'dom',
+              tables: [...document.querySelectorAll('[data-table]')].filter(vis)
+                .map(e => e.getBoundingClientRect())
+                .filter(q => q.width >= innerWidth / 10 && q.height >= innerHeight / 10).length,
               ovX: document.documentElement.scrollWidth > innerWidth + 1,
               ovY: document.documentElement.scrollHeight > innerHeight + 1,
               small: keys.filter(k => k.min < 44),
-              steal,
+              steal, buried,
               canvases, rows,
               layers: getComputedStyle(document.body).backgroundImage.split('gradient').length - 1,
               bgMatch: document.body.dataset.bg === 'match',
@@ -132,6 +174,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
           if (m.ovX) fails.push('overflows sideways');
           if (m.ovY) fails.push('overflows down');
           if (m.small.length) fails.push('under 44: ' + m.small.map(k => k.id + ':' + k.min).join(' '));
+          if (m.buried.length) fails.push('a fanned card is buried: ' + m.buried
+            .map(c => c.id + ' owns only ' + c.w + 'x' + c.h).join(' | '));
           if (m.steal.length) fails.push('a key overlaps its neighbour: ' + m.steal
             .map(s => s.id + (s.centre ? ' centre taken by ' + s.centre : '') + (s.by ? ' (' + s.by + ')' : ''))
             .join(' | '));
@@ -143,9 +187,16 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
              يُرخيانه: أن تُعلن ذلك عن نفسها بـ‎body[data-needs-assets]‎، وأن
              تعرض مكانه واجهةً فيها زرّ ظاهر يستدعي الملفّات. فلا تمرّ صفحة
              فارغة بحجّة أنها تنتظر شيئاً، ولا تمرّ لعبةٌ عاديةٌ فقدت لوحها. */
+          /* وطاولةُ ورقٍ من DOM وCSS 3D لا لوح لها أصلاً، ولا يصحّ أن تُصنع
+             لها طبقةٌ نقطيةٌ لا تلعب دوراً لتمرّ. تُعفى من شرط اللوح وحده،
+             وبشرطين يشدّان الفحص: أن تُعلن ذلك بـ‎body[data-render=dom]‎، وأن
+             يكون فيها عنصرُ لعبٍ مُعلَنٌ ‎[data-table]‎ مرئيٌّ بمقاسٍ حقيقي —
+             عُشرُ الشاشة فأكثر في البعدين. فلا تمرّ صفحةٌ فارغة بالإعلان، ولا
+             لعبةٌ عاديةٌ فقدت لوحها. */
           if (!m.canvases.length) {
-            if (!m.needsAssets) fails.push('no visible canvas');
-            else if (!m.intake) fails.push('needs assets yet offers no way to supply them');
+            if (m.needsAssets) { if (!m.intake) fails.push('needs assets yet offers no way to supply them'); }
+            else if (m.renderDom) { if (!m.tables) fails.push('declares a DOM board yet shows no [data-table] of real size'); }
+            else fails.push('no visible canvas');
           }
           /* صفوف الجهاز المادية يجب أن تكون ltr وإلا انقلبت الأسهم مع اتجاه
              الصفحة العربي. لكن ليست كل لعبة جهازاً: طاولة البينبول تملأ الشاشة

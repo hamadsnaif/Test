@@ -541,7 +541,30 @@
     px(c, 15, 30, 2, 1, '#e8862a');
     if (popped && t >= 18) ball(16, 24, RE);         // التالية على القاذف
   }
-  const BUILTIN = { bounce: drawBounce, snake: drawSnake, tetris: drawTetris, cadet: drawCadet, frozen: drawFrozen };
+  /* شدّة: ورقةٌ تخرج من المروحة فتقع على المرمى، فتأخذ الطاولةُ لونها — وهي
+     الحركة التي تتكوّن منها اللعبة كلّها. أربع نقراتٍ من ثمانية إطارات، لونٌ
+     لكل نقرة، فتنغلق الحلقة حيث انفتحت. والألوان درجات الصفحة نفسها. */
+  const SHADDA_C = ['#cf2138', '#2263d1', '#137a41', '#f2b526'];
+  function shaddaCard(c, x, y, fill) {
+    px(c, x, y, 10, 14, '#e9e2d1');
+    px(c, x + 1, y + 1, 8, 12, fill);
+    px(c, x + 2, y + 2, 2, 3, '#f7f2e7');
+  }
+  function drawShadda(c, f) {
+    const t = (f | 0) % 32, beat = Math.floor(t / 8), sub = t % 8;
+    px(c, 0, 0, 32, 32, '#1e6a45');
+    px(c, 4, 3, 24, 22, '#2c8a5b');                  // وسط الجوخ المضاء
+    px(c, 0, 0, 32, 2, '#33190b'); px(c, 0, 30, 32, 2, '#33190b');
+    px(c, 0, 0, 2, 32, '#33190b'); px(c, 30, 0, 2, 32, '#33190b');
+    for (let i = 0; i < 3; i++) {                    // مروحة اليد على الحافّة
+      px(c, 5 + i * 8, 26, 7, 6, '#d5ccb7');
+      px(c, 5 + i * 8, 26, 7, 1, '#f7f2e7');
+    }
+    const landed = sub >= 5;
+    shaddaCard(c, 11, 8, SHADDA_C[landed ? beat : (beat + 3) % 4]);
+    if (!landed) shaddaCard(c, 11, 25 - Math.round(sub * 3.4), SHADDA_C[beat]);
+  }
+  const BUILTIN = { bounce: drawBounce, snake: drawSnake, tetris: drawTetris, cadet: drawCadet, frozen: drawFrozen, shadda: drawShadda };
 
   /* A future game does not have to ship a draw function. Its "thumb" may be:
        {"builtin": "bounce"}                       one of the four above

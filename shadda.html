@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<!--
+  شدّة — SHADDA.  A matching card game for two to five, in the family of
+  Mattel's UNO.  This page is an original work: its own name, its own mark,
+  its own artwork, its own code.  Nothing here is copied from that game's
+  materials, and the name and badge are deliberately unlike its trade dress.
+
+  Stage 1 of six builds the ENGINE and its checks.  The table comes in stage 2.
+  What sits below the engine is a plain text harness, not the game's face: it
+  exists so the collection's contract has something real to test, and it is
+  replaced wholesale in stage 2 without the engine changing a line.
+
+  THE ENGINE TOUCHES NOTHING BUT ITS OWN STATE
+
+    No `document`, no DOM, no CSS, no timer and no `Math.random` appears
+    between ENGINE START and ENGINE END.  Its whole surface is:
+
+      Shadda.rng(seed)                 -> r(), a mulberry32 stream; r.a is its
+                                          32-bit cursor, so it can be saved
+      Shadda.createGame(opts)          -> {state, events}
+      Shadda.applyAction(state, seat, action, rng)
+                                       -> {state, events} | {error}
+      Shadda.viewFor(state, seat)      -> what that seat may know
+      Shadda.nextRound(state, rng)     -> {state, events}
+      Shadda.legalMoves(view)          -> the ids that seat could play now
+      Shadda.card(id) / points(id) / handScore(hand)
+      Shadda.playable(id, colour, topId)
+      Shadda.wild4Legal(hand, colour)  -> was a سحب أربعة honest
+      Shadda.ACTIONS                   -> the closed list of action types
+
+    The state is plain JSON with no cycles: numbers, strings, booleans and
+    arrays of card ids.  A card id is 0..107 and `card(id)` decodes it by
+    arithmetic, so the state never carries a catalogue of 108 objects and two
+    states of the same game compare byte for byte.
+
+    Randomness is injected, never ambient.  `state.rng` is the generator's
+    cursor, carried in the state itself, so replaying one seed through the
+    same actions gives the same game — which is what makes the checks in
+    src/tests/shadda.js deterministic, and what lets the host in stage 4 hold
+    the one true deck.
+
+  WHERE EVERY NUMBER CAME FROM
+
+    Read, not recalled, on 2026-09-22, in three places that agree:
+      W  en.wikipedia.org/wiki/Uno_(card_game)
+      U  unorules.com
+      A  Asmodee / Mattel's published rule sheet for the current edition
+
+    108 cards                   W,U,A.  Per colour 25: one 0, two each of 1-9
+                                (18), two each of Skip, Reverse and Draw Two
+                                (6).  Four colours -> 100.  Plus 4 Wild and 4
+                                Wild Draw Four -> 108.
+    deal 7                      W,U,A
+    the opening flip            W,U,A.  The next card is turned face up and
+                                its own effect applies at once:
+                                  number       play begins normally
+                                  Draw Two     the first player draws 2 and
+                                               is skipped
+                                  Skip         the first player is skipped
+                                  Reverse      direction reverses, so the
+                                               player to the dealer's right
+                                               goes first
+                                  Wild         the first player names the
+                                               colour, then plays
+                                  Wild Draw 4  returned to the deck, the deck
+                                               reshuffled, flip again
+    a play matches              W,U,A.  colour, or number, or symbol; or any
+                                Wild.
+    draw one, then you may      W,U,A.  If the drawn card is playable the
+    play it                     player may play it; otherwise play moves on.
+    Skip                        W,U,A.  Next player loses the turn.
+    Reverse                     W,U,A.  Direction reverses.  IN A TWO PLAYER
+                                GAME IT ACTS AS A SKIP — the player who
+                                played it plays again.
+    Draw Two                    W,U,A.  Next player draws 2 and is skipped.
+    Wild                        W,U,A.  Name any colour, play continues.
+    Wild Draw Four              W,U,A.  Name any colour; the next player draws
+                                4 and is skipped.  It may be played only by a
+                                player holding NO card of the colour in play —
+                                numbers and symbols of other colours do not
+                                stop you, and Wilds in hand do not count
+                                against you.  The rule is NOT enforced at the
+                                moment of play; it is enforced by the
+                                challenge, which is the whole point of it.
+    the challenge               W,U,A.  The player facing the four may
+                                challenge.  The challenged player shows that
+                                hand PRIVATELY to the challenger.
+                                  bluffing -> the bluffer draws 4, and the
+                                              challenger plays on
+                                  honest   -> the challenger draws 6 (the 4,
+                                              plus 2) and is skipped
+    saying «واحدة»              W,U,A.  Called as you play your second-to-last
+                                card.  Caught before the next player's turn
+                                begins: draw 2.  (Older editions said 4; the
+                                current sheet says 2, and so does section 3 of
+                                the brief.)
+    scoring                     W,U,A.  The winner of a round takes the total
+                                left in every other hand:
+                                  number card                 its face value
+                                  Skip / Reverse / Draw Two   20 each
+                                  Wild / Wild Draw Four       50 each
+    the target                  W,U,A.  500 points wins the match.
+    the stock running out       W,U,A.  The discard pile, less its top card,
+                                is shuffled and becomes the new stock.
+    stacking is NOT official    W,U,A agree: answering a Draw Two with another
+                                Draw Two is a house rule.  So are jump-in and
+                                7-0.  All three ship here behind a switch that
+                                is OFF.
+
+  CHOSEN HERE, NOT MEASURED  (no source says it, so it is mine and argued)
+
+    Who starts.  There is no dealer at a screen, so the opening flip is dealt
+    to seat 0 and seat 0 acts first.  Across a match the starting seat moves
+    on one each round (see nextRound), so the first-player advantage does not
+    sit on one seat for five rounds running.
+
+    Drawing when you could play.  The sheets say what to do when you have no
+    match; none of the three forbids drawing while you hold one.  The engine
+    allows `draw` at any point in the play phase, once per turn.  A player who
+    wants to keep a Wild for later should be allowed to.
+
+    Passing is an action.  After you draw, the engine does not decide for you
+    whether to play the card: you send `play` or `pass`.  That costs one round
+    trip and buys the one thing stage 4 needs — the host never guesses what a
+    seat meant.
+
+    When the «واحدة» window shuts.  The rule says "before the next player
+    begins their turn".  Here the window opens the moment a hand falls to one
+    without the call, and shuts on the first accepted action by any other
+    seat.  A player who remembers in time sends `sayOne` and is safe.
+
+    A stock that cannot be refilled.  If the stock is empty and the discard
+    holds only its top card — every card being in somebody's hand — a draw
+    yields fewer cards than asked and the `drew` event says how many actually
+    came.  Nobody is made to conjure a card, and no round deadlocks: the seat
+    may still pass.
+
+    Stacking is Draw Two only.  The house switch lets a Draw Two answer a Draw
+    Two and the count accumulate.  It deliberately does NOT let a Wild Draw
+    Four be stacked, because the challenge is the only thing keeping that card
+    honest and stacking would quietly delete it.
+
+    Playing something else after you draw.  The rule is written about the card
+    you just drew.  The engine lets you play any legal card once you have
+    drawn, because every one of them was legal a moment earlier too, so the
+    permission adds nothing a player did not already have.
+
+    A swapped hand has said nothing.  Under 7-0, «واحدة» was called about a
+    hand that is no longer yours, so the call drops from both seats and no
+    catch window opens — nobody played a second-to-last card.
+
+    Jump-in means identical.  Same colour AND same number or symbol; a Wild
+    can never jump in, since every Wild is identical to every other and the
+    rule would collapse into "whoever taps first".  Play continues from the
+    seat that jumped.
+
+    7-0.  A 7 swaps your hand with a seat you name (`swapWith`); a 0 passes
+    every hand one seat along the direction of play.  Both then pass the turn
+    as any number would.
+
+    Card ids.  0..99 are the four colours in the order red, blue, green,
+    yellow, 25 apiece; 100..103 Wild; 104..107 Wild Draw Four.  The order
+    inside a colour — 0, then 1-9 twice each, then Skip, Reverse and Draw Two
+    twice each — exists so `card(id)` is arithmetic.  It is not a claim about
+    how any physical deck is ordered.
+
+    What the host may send.  `viewFor(state, seat)` drops every other hand
+    (keeping the counts), the whole stock (keeping its size), the generator
+    cursor, the seed, and the truth of whether a Wild Draw Four was a bluff.
+    That truth lives in `state.challenge.legal`, and the `challenged` event
+    carries the revealed hand — stage 4 must deliver that one event to the two
+    seats involved and to nobody else.
+
+  THE PAGE ITSELF, AND THE COLLECTION'S CONTRACT
+
+    src/tests/contract.js wants a visible <canvas> in every game.  A card
+    table drawn in DOM and CSS 3D has none, and painting a bitmap layer that
+    plays no part would be a dodge.  So the contract gained a third declared
+    exemption, on the pattern of cadet's data-layout and frozen's assets:
+    `body[data-render="dom"]` is excused the board, and must instead show a
+    declared `[data-table]` element of real size — a tenth of the viewport in
+    both directions.  An empty page still fails; an ordinary game that lost
+    its canvas still fails.  src/tests/launcher.js carries the same clause.
+
+    The same file reserves .cap .deck .pads .field .top as chassis rows that
+    must read left to right.  This page uses .cap for its top bar, as the
+    other four games do, and touches none of the rest: the piles here are
+    .pile and .stock, and the hand is .handrow.
+
+    A fanned hand overlaps on purpose, which the contract's touch-theft scan
+    reads as one key eating its neighbour.  A single declared `[data-fan]`
+    region is excused that scan and held to a stricter one in its place: every
+    card in it must own, alone, an unbroken patch of at least 44 by 44 points.
+    A buried card fails.  Stage 1 has no fan — the hand here is a plain
+    wrapped row — but the clause is in the contract now, and was verified
+    against a page built to fail it.
+
+    Digits.  The owner settled that the ten numerals are drawn as SVG paths in
+    stage 2, the way the ش of the badge is drawn, because system text renders
+    ٠ as a diamond on Windows and a dot on iPhone.  This harness sidesteps it
+    entirely: it names cards in words.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="./icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="./icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="./icon-120.png">
+<link rel="icon" sizes="192x192" href="./icon-192.png" type="image/png">
+<script>if('serviceWorker' in navigator && /^https?:$/.test(location.protocol))addEventListener('load',function(){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(function(){});});</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SHADDA">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1a1714">
+<title>شدّة — SHADDA</title>
+<style>
+:root{
+  --ivory-hi:#f7f2e7; --ivory:#e9e2d1; --ivory-lo:#d5ccb7; --ivory-edge:#b9ae97; --ivory-deep:#a3977e;
+  --ink:#2a2723; --engrave:#6e6555;
+  --mat:#1a1714; --mat-hi:#2f2a24;
+  --cream:#f3ecd9;
+  /* الدرجات مقيسة في عيّنات المرحلة صفر: كل درجةٍ يقع عليها رقمٌ لا تنزل عن
+     ‏٣:١‏، والأساسات ‏٤٫٥:١‏ فأعلى مقابل ‎--cream‎ (والأصفر مقابل ‎#3a2a08‎). */
+  --red:#cf2138; --red-hi:#e84a5e; --red-lo:#8a0f22;
+  --blue:#2263d1; --blue-hi:#4a82e2; --blue-lo:#0f3d8c;
+  --green:#137a41; --green-hi:#1f9350; --green-lo:#0d5f32;
+  --yellow:#f2b526; --yellow-hi:#ffd760; --yellow-lo:#c08a12;
+  --felt:#1e6a45; --felt-hi:#2c8a5b; --felt-lo:#0f3f29;
+  --wood-lo:#33190b;
+  --acc:#e0a45e; --acc-hi:#ffd39a; --acc-lo:#9a6424;
+  --font:-apple-system,"SF Pro Text","SF Arabic","Segoe UI",Roboto,"Helvetica Neue",Arial,Tahoma,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+html{background:var(--mat);color:var(--cream);font-family:var(--font);-webkit-text-size-adjust:100%}
+body{
+  background:
+    radial-gradient(120% 70% at 50% -8%, rgba(255,236,205,.16), rgba(255,236,205,0) 62%),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.016) 0 2px, rgba(0,0,0,0) 2px 6px),
+    radial-gradient(110% 90% at 50% 110%, var(--mat-hi), var(--mat) 65%);
+  display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-user-select:none;user-select:none;
+}
+/* الشريط العلوي — صفّ الجهاز الذي يشترطه العقد، ومحتواه لاتينيٌّ فعلاً */
+.cap{
+  direction:ltr;flex:none;display:flex;align-items:center;gap:10px;
+  height:40px;padding:0 12px;
+  background:linear-gradient(180deg, var(--ivory-hi), var(--ivory) 60%, var(--ivory-lo));
+  color:var(--ink);border-bottom:1px solid var(--ivory-edge);
+  font-weight:800;font-size:13px;letter-spacing:.14em;
+}
+.cap .n{margin-left:auto;letter-spacing:0;font-weight:700;font-size:12px;color:var(--engrave);white-space:nowrap}
+.wrap{flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;padding:7px 9px}
+/* الطاولة — العنصر المُعلَن الذي يقوم مقام اللوح */
+.table{
+  flex:1;min-height:76px;display:flex;flex-direction:column;gap:6px;
+  border-radius:14px;padding:8px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, var(--felt-hi), rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, var(--felt), var(--felt-lo));
+  box-shadow:inset 0 0 0 2px var(--wood-lo), inset 0 0 24px rgba(0,0,0,.45);
+}
+.piles{display:flex;gap:8px;align-items:stretch;flex:none}
+.pile,.stock{
+  flex:1;min-width:0;border-radius:10px;padding:6px 8px;text-align:center;
+  background:linear-gradient(165deg, rgba(0,0,0,.22), rgba(0,0,0,.42));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
+}
+.pile b,.stock b{display:block;font-size:14px;font-weight:900;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pile small,.stock small{display:block;font-size:10px;color:#cfe6d8;letter-spacing:.02em}
+.pile[data-c="red"]{background:linear-gradient(165deg,var(--red-hi),var(--red) 48%,var(--red-lo))}
+.pile[data-c="blue"]{background:linear-gradient(165deg,var(--blue-hi),var(--blue) 48%,var(--blue-lo))}
+.pile[data-c="green"]{background:linear-gradient(165deg,var(--green-hi),var(--green) 48%,var(--green-lo))}
+.pile[data-c="yellow"]{background:linear-gradient(165deg,var(--yellow-hi),var(--yellow) 48%,var(--yellow-lo));color:#3a2a08}
+.pile[data-c="yellow"] small{color:#5a4410}
+.seats{display:flex;flex-wrap:wrap;gap:4px;font-size:11px;flex:none}
+.seat{padding:3px 7px;border-radius:8px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);white-space:nowrap}
+.seat.now{background:var(--acc);color:#2a1a05;font-weight:800}
+.log{
+  flex:1;min-height:26px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  font-size:11px;line-height:1.5;color:#dcf0e5;
+  background:rgba(0,0,0,.26);border-radius:10px;padding:5px 7px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);
+}
+.log div{padding:1px 0}
+.log div.hi{color:var(--acc-hi);font-weight:700}
+.handrow,.acts,.setup{display:flex;flex-wrap:wrap;gap:6px;flex:none}
+.handrow{max-height:29vh;overflow-y:auto;-webkit-overflow-scrolling:touch;align-content:flex-start}
+button{
+  appearance:none;-webkit-appearance:none;border:0;cursor:pointer;
+  font:800 13px/1.15 var(--font);color:var(--ink);
+  min-height:44px;min-width:44px;padding:5px 9px;border-radius:11px;
+  background:linear-gradient(180deg, var(--ivory-hi), var(--ivory) 55%, var(--ivory-lo));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9), 0 0 0 1px var(--ivory-edge), 0 2px 5px rgba(0,0,0,.45);
+}
+button[disabled]{opacity:.4;cursor:default}
+button.c{color:var(--cream);min-width:62px}
+button.c[data-c="red"]{background:linear-gradient(180deg,var(--red-hi),var(--red) 48%,var(--red-lo))}
+button.c[data-c="blue"]{background:linear-gradient(180deg,var(--blue-hi),var(--blue) 48%,var(--blue-lo))}
+button.c[data-c="green"]{background:linear-gradient(180deg,var(--green-hi),var(--green) 48%,var(--green-lo))}
+button.c[data-c="yellow"]{background:linear-gradient(180deg,var(--yellow-hi),var(--yellow) 48%,var(--yellow-lo));color:#3a2a08}
+button.c[data-c="wild"]{background:linear-gradient(180deg,#443f4d,#2a2731 48%,#0e0d12);color:var(--cream)}
+button.go{background:linear-gradient(180deg,var(--acc-hi),var(--acc) 55%,var(--acc-lo));color:#2a1a05}
+.setup{direction:rtl;font-size:12px;align-items:center;color:var(--ivory-deep)}
+.setup span{padding:0 2px;white-space:nowrap}
+.setup button{min-width:44px;font-size:13px}
+.setup button.on{background:linear-gradient(180deg,var(--acc-hi),var(--acc) 55%,var(--acc-lo));color:#2a1a05}
+.hint{flex:none;font-size:10.5px;color:var(--ivory-deep);line-height:1.45}
+</style>
+</head>
+<body data-render="dom">
+
+<div class="cap">SHADDA<span class="n" id="cap-n"></span></div>
+
+<div class="wrap">
+  <div class="table" data-table>
+    <div class="piles">
+      <div class="pile" id="pile"><b>—</b><small>المرمى</small></div>
+      <div class="stock" id="stock"><b>—</b><small>المسحب</small></div>
+    </div>
+    <div class="seats" id="seats"></div>
+    <div class="log" id="log"></div>
+  </div>
+  <div class="handrow" id="hand"></div>
+  <div class="acts" id="acts"></div>
+  <div class="setup" id="setup"></div>
+  <div class="hint" id="hint"></div>
+</div>
+
+<script>
+/* ===== SHADDA ENGINE START ===== *//* محرّك شدّة — منطقٌ خالص.
+   لا يلمس DOM ولا CSS ولا نافذةً ولا مؤقّتاً، ولا يستدعي Math.random. حالته
+   JSON صِرف بلا مرجعٍ دائري، وعشوائيته تُحقَن. وهذا شرطُ المرحلة ٤: المضيف
+   يمسك هذه الحالة، ويرسل لكل مقعدٍ ما يحقّ له وحده عبر viewFor. */
+var Shadda = (function () {
+  'use strict';
+
+  var COLOURS = ['red', 'blue', 'green', 'yellow'];
+  var ACTIONS = ['play', 'draw', 'pass', 'colour', 'challenge', 'accept', 'callOut', 'sayOne'];
+  var DECK = 108, HAND = 7, TARGET = 500;
+
+  /* ---------- العشوائية: mulberry32، ومؤشّرها عددٌ واحد يُحفظ في الحالة ---- */
+  function rng(seed) {
+    var f = function () {
+      var a = (f.a + 0x6D2B79F5) | 0;
+      f.a = a;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    f.a = seed | 0;
+    return f;
+  }
+
+  function shuffle(a, r) {
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(r() * (i + 1)), t = a[i];
+      a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  /* ---------- الورقة: تُفكّ من رقمها حساباً، فلا كتالوج في الحالة --------- */
+  function card(id) {
+    if (id >= 104) return { id: id, colour: null, kind: 'wild4', value: null };
+    if (id >= 100) return { id: id, colour: null, kind: 'wild', value: null };
+    var c = COLOURS[Math.floor(id / 25)], r = id % 25;
+    if (r === 0) return { id: id, colour: c, kind: 'number', value: 0 };
+    if (r <= 18) return { id: id, colour: c, kind: 'number', value: ((r - 1) >> 1) + 1 };
+    if (r <= 20) return { id: id, colour: c, kind: 'skip', value: null };
+    if (r <= 22) return { id: id, colour: c, kind: 'reverse', value: null };
+    return { id: id, colour: c, kind: 'draw2', value: null };
+  }
+
+  function points(id) {
+    var c = card(id);
+    if (c.kind === 'number') return c.value;
+    if (c.kind === 'wild' || c.kind === 'wild4') return 50;
+    return 20;
+  }
+
+  function handScore(hand) {
+    var s = 0;
+    for (var i = 0; i < hand.length; i++) s += points(hand[i]);
+    return s;
+  }
+
+  function playable(id, colour, topId) {
+    var c = card(id);
+    if (c.kind === 'wild' || c.kind === 'wild4') return true;
+    if (c.colour === colour) return true;
+    var t = card(topId);
+    if (c.kind === 'number' && t.kind === 'number' && c.value === t.value) return true;
+    if (c.kind !== 'number' && c.kind === t.kind) return true;
+    return false;
+  }
+
+  /* «سحب أربعة» لا تُلعب إلا من لا يملك ورقةً باللون الجاري. الأرقام والأفعال
+     من ألوانٍ أخرى لا تمنع، والورق الحرّ في اليد لا يُحسب عليك. */
+  function wild4Legal(hand, colour) {
+    for (var i = 0; i < hand.length; i++) {
+      var c = card(hand[i]);
+      if (c.kind === 'wild' || c.kind === 'wild4') continue;
+      if (c.colour === colour) return false;
+    }
+    return true;
+  }
+
+  /* ---------- أدواتٌ على الحالة ------------------------------------------ */
+  function clone(s) { return JSON.parse(JSON.stringify(s)); }
+  function top(st) { return st.discard[st.discard.length - 1]; }
+  function from(st, seat, n) { return ((seat + st.dir * n) % st.seats + st.seats) % st.seats; }
+
+  function to(st, seat, ev) { st.turn = seat; st.drew = false; ev.push({ t: 'turnPassed', seat: seat }); }
+
+  /* السحب. وإن نفد المسحب أُعيد خلط المرميّ عدا ورقته العليا — وهذا رسمي.
+     وإن لم يبق ما يُخلط فالمسحوب أقلّ ممّا طُلب، ويقول الحدث كم جاء فعلاً. */
+  function give(st, seat, n, ev, r) {
+    var got = [];
+    for (var i = 0; i < n; i++) {
+      if (!st.stock.length) {
+        if (st.discard.length < 2) break;
+        var t = st.discard.pop();
+        st.stock = shuffle(st.discard, r);
+        st.discard = [t];
+        ev.push({ t: 'stockReshuffled', cards: st.stock.length });
+      }
+      if (!st.stock.length) break;
+      var c = st.stock.pop();
+      st.hands[seat].push(c);
+      got.push(c);
+    }
+    if (st.hands[seat].length > 1) st.said[seat] = false;
+    ev.push({ t: 'drew', seat: seat, n: got.length, cards: got });
+    return got;
+  }
+
+  /* ---------- بدء جولة --------------------------------------------------- */
+  function deal(st, ev, r) {
+    var all = [], i;
+    for (i = 0; i < DECK; i++) all.push(i);
+    shuffle(all, r);
+    st.hands = []; st.said = [];
+    for (i = 0; i < st.seats; i++) { st.hands.push(all.splice(0, HAND)); st.said.push(false); }
+    st.stock = all;
+    st.discard = [];
+    ev.push({ t: 'dealt', seats: st.seats, each: HAND, first: st.turn });
+
+    /* الورقة المكشوفة. و«سحب أربعة» تعود إلى المسحب ويُعاد خلطه — رسمي. */
+    for (;;) {
+      var c = st.stock.pop();
+      if (card(c).kind === 'wild4') {
+        st.stock.push(c);
+        shuffle(st.stock, r);
+        ev.push({ t: 'stockReshuffled', cards: st.stock.length, why: 'openingWild4' });
+        continue;
+      }
+      st.discard.push(c);
+      break;
+    }
+    var t = card(top(st));
+    st.colour = t.colour;
+    ev.push({ t: 'flipped', card: t.id });
+    if (t.kind === 'skip') {
+      ev.push({ t: 'skipped', seat: st.turn });
+      to(st, from(st, st.turn, 1), ev);
+    } else if (t.kind === 'reverse') {
+      st.dir = -1;
+      ev.push({ t: 'directionReversed', dir: st.dir });
+      to(st, from(st, st.turn, 1), ev);
+    } else if (t.kind === 'draw2') {
+      give(st, st.turn, 2, ev, r);
+      ev.push({ t: 'skipped', seat: st.turn });
+      to(st, from(st, st.turn, 1), ev);
+    } else if (t.kind === 'wild') {
+      st.phase = 'colour';
+      st.chooser = st.turn;
+      st.wildKind = 'open';
+    }
+    return st;
+  }
+
+  function createGame(opts) {
+    opts = opts || {};
+    var seats = opts.seats === undefined ? 2 : opts.seats | 0;
+    if (seats < 2 || seats > 5) return { error: 'seatsOutOfRange' };
+    var seed = opts.seed === undefined ? 1 : opts.seed | 0;
+    var h = opts.house || {};
+    var r = rng(seed);
+    var st = {
+      v: 1, seed: seed, rng: 0, seats: seats,
+      house: { stack: !!h.stack, jumpIn: !!h.jumpIn, sevenZero: !!h.sevenZero },
+      hands: [], stock: [], discard: [], colour: null,
+      turn: (opts.first | 0) % seats, dir: 1,
+      pending: 0, drew: false, said: [], callable: null,
+      phase: 'play', chooser: null, wildKind: null, challenge: null, wild4: null,
+      scores: [], target: opts.target === undefined ? TARGET : opts.target | 0,
+      round: opts.round === undefined ? 1 : opts.round | 0,
+      winner: null, over: false
+    };
+    for (var i = 0; i < seats; i++) st.scores.push(opts.scores && opts.scores[i] ? opts.scores[i] | 0 : 0);
+    var ev = [];
+    deal(st, ev, r);
+    st.rng = r.a;
+    return { state: st, events: ev };
+  }
+
+  /* الجولة التالية: النقاط تبقى، والمقعد البادئ يتقدّم واحداً. */
+  function nextRound(state, r) {
+    if (!state) return { error: 'noState' };
+    if (state.phase !== 'over') return { error: 'roundNotOver' };
+    if (state.over) return { error: 'gameOver' };
+    var st = clone(state);
+    var gen = r || rng(0);
+    if (!r) gen.a = st.rng;
+    st.round += 1;
+    st.dir = 1;
+    st.turn = (st.round - 1) % st.seats;
+    st.pending = 0; st.drew = false; st.callable = null;
+    st.phase = 'play'; st.chooser = null; st.wildKind = null;
+    st.challenge = null; st.wild4 = null; st.winner = null;
+    var ev = [{ t: 'roundStarted', round: st.round, first: st.turn }];
+    deal(st, ev, gen);
+    st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
+    return { state: st, events: ev };
+  }
+
+  /* ---------- نهاية الجولة ----------------------------------------------- */
+  function endRound(st, winner, ev) {
+    var per = [], total = 0, i;
+    for (i = 0; i < st.seats; i++) { per.push(handScore(st.hands[i])); total += per[i]; }
+    st.scores[winner] += total;
+    st.winner = winner;
+    st.phase = 'over';
+    st.callable = null;
+    st.challenge = null;
+    ev.push({ t: 'roundEnded', winner: winner, points: total, perSeat: per, scores: st.scores.slice() });
+    if (st.scores[winner] >= st.target) {
+      st.over = true;
+      ev.push({ t: 'matchEnded', winner: winner, scores: st.scores.slice() });
+    }
+  }
+
+  /* ---------- أثر ورقةٍ لُعبت (غير الحرّة) -------------------------------- */
+  function effect(st, seat, c, action, ev, r) {
+    if (c.kind === 'skip') {
+      ev.push({ t: 'skipped', seat: from(st, seat, 1) });
+      to(st, from(st, seat, 2), ev);
+      return;
+    }
+    if (c.kind === 'reverse') {
+      st.dir = -st.dir;
+      ev.push({ t: 'directionReversed', dir: st.dir });
+      /* في لعبة اثنين تعمل عمل «وقّف»: اللاعب نفسه يلعب ثانيةً. والصيغة واحدة:
+         القفز مقعدين باتّجاهٍ معكوسٍ في طاولة اثنين يعود إلى صاحبها. */
+      if (st.seats === 2) { ev.push({ t: 'skipped', seat: from(st, seat, 1) }); to(st, from(st, seat, 2), ev); }
+      else to(st, from(st, seat, 1), ev);
+      return;
+    }
+    if (c.kind === 'draw2') {
+      if (st.house.stack) {                       // قاعدة بيتٍ مطفأةٌ افتراضاً
+        st.pending += 2;
+        to(st, from(st, seat, 1), ev);
+      } else {
+        var v = from(st, seat, 1);
+        give(st, v, 2, ev, r);
+        ev.push({ t: 'skipped', seat: v });
+        to(st, from(st, seat, 2), ev);
+      }
+      return;
+    }
+    /* رقم — وقاعدة ٧-٠ إن كانت مشتغلة */
+    if (st.house.sevenZero && c.kind === 'number' && c.value === 7) {
+      var w = action.swapWith;
+      var hold = st.hands[seat];
+      st.hands[seat] = st.hands[w];
+      st.hands[w] = hold;
+      /* «واحدة» قيلت عن يدٍ لم تعد يدَك: تسقط عن الاثنين، ولا تُفتح نافذة
+         نداءٍ على أحد — فلا أحد لعب ورقته قبل الأخيرة. */
+      st.said[seat] = false;
+      st.said[w] = false;
+      ev.push({ t: 'handsSwapped', a: seat, b: w });
+    } else if (st.house.sevenZero && c.kind === 'number' && c.value === 0) {
+      var hs = [], i;
+      for (i = 0; i < st.seats; i++) hs.push(st.hands[from(st, i, 1)]);
+      st.hands = hs;
+      for (i = 0; i < st.seats; i++) st.said[i] = false;
+      ev.push({ t: 'handsRotated', dir: st.dir });
+    }
+    to(st, from(st, seat, 1), ev);
+  }
+
+  /* ---------- لعبُ ورقة -------------------------------------------------- */
+  function doPlay(st, seat, action, ev, r) {
+    if (st.phase !== 'play') return { error: 'wrongPhase' };
+    var id = action.card;
+    if (typeof id !== 'number' || (id | 0) !== id) return { error: 'noSuchCard' };
+    var at = st.hands[seat].indexOf(id);
+    if (at < 0) return { error: 'notInHand' };
+    var c = card(id);
+
+    if (st.pending > 0) {
+      /* لا يقع إلا والتكديس مشتغل: إمّا أن يردّ بسحب ثنتين، وإمّا أن يأخذ */
+      if (c.kind !== 'draw2') return { error: 'mustTakeThePile' };
+    } else if (!playable(id, st.colour, top(st))) {
+      return { error: 'cardDoesNotMatch' };
+    }
+    if (st.house.sevenZero && c.kind === 'number' && c.value === 7 && st.pending === 0) {
+      var w = action.swapWith;
+      if (typeof w !== 'number' || w < 0 || w >= st.seats || w === seat) return { error: 'needSwapTarget' };
+    }
+
+    var wasColour = st.colour;
+    st.hands[seat].splice(at, 1);
+    st.discard.push(id);
+    st.callable = null;
+    ev.push({ t: 'played', seat: seat, card: id });
+
+    var left = st.hands[seat].length;
+    if (left === 1) {
+      st.said[seat] = !!action.sayOne;
+      if (action.sayOne) ev.push({ t: 'saidOne', seat: seat });
+      else st.callable = seat;
+    }
+    if (left === 0) { endRound(st, seat, ev); return; }
+
+    if (c.kind === 'wild' || c.kind === 'wild4') {
+      st.colour = null;
+      st.phase = 'colour';
+      st.chooser = seat;
+      st.wildKind = c.kind;
+      if (c.kind === 'wild4') st.wild4 = { from: seat, legal: wild4Legal(st.hands[seat], wasColour) };
+      if (action.colour !== undefined) return doColour(st, seat, action.colour, ev, r);
+      return;
+    }
+    st.colour = c.colour;
+    effect(st, seat, c, action, ev, r);
+  }
+
+  /* ---------- اختيار اللون ------------------------------------------------ */
+  function doColour(st, seat, colour, ev, r) {
+    if (st.phase !== 'colour' || seat !== st.chooser) return { error: 'wrongPhase' };
+    if (COLOURS.indexOf(colour) < 0) return { error: 'noSuchColour' };
+    st.colour = colour;
+    ev.push({ t: 'colourChosen', seat: seat, colour: colour });
+    var kind = st.wildKind;
+    st.wildKind = null;
+    st.chooser = null;
+    st.phase = 'play';
+    if (kind === 'wild4') {
+      st.phase = 'challenge';
+      st.challenge = { target: from(st, seat, 1), from: seat, legal: st.wild4.legal };
+      st.wild4 = null;
+      return;
+    }
+    if (kind === 'open') { to(st, seat, ev); return; }   // الورقة الحرّة المكشوفة
+    to(st, from(st, seat, 1), ev);
+  }
+
+  /* ---------- الاعتراض على «سحب أربعة» ------------------------------------ */
+  function doChallenge(st, seat, ev, r) {
+    if (st.phase !== 'challenge') return { error: 'wrongPhase' };
+    if (seat !== st.challenge.target) return { error: 'notYourTurn' };
+    var ch = st.challenge, shown = st.hands[ch.from].slice();
+    st.phase = 'play';
+    st.challenge = null;
+    if (!ch.legal) {
+      /* كذب: يسحب أربعاً، والمعترض يلعب عادةً ولا يسحب شيئاً */
+      give(st, ch.from, 4, ev, r);
+      ev.push({ t: 'challenged', by: seat, from: ch.from, bluff: true, hand: shown, drew: 4 });
+      ev.push({ t: 'penalised', seat: ch.from, cards: 4, why: 'bluff' });
+      to(st, seat, ev);
+    } else {
+      /* صدق: المعترض يسحب ستّاً ويخسر دوره */
+      give(st, seat, 6, ev, r);
+      ev.push({ t: 'challenged', by: seat, from: ch.from, bluff: false, hand: shown, drew: 6 });
+      ev.push({ t: 'penalised', seat: seat, cards: 6, why: 'badChallenge' });
+      ev.push({ t: 'skipped', seat: seat });
+      to(st, from(st, seat, 1), ev);
+    }
+  }
+
+  function doAccept(st, seat, ev, r) {
+    if (st.phase !== 'challenge') return { error: 'wrongPhase' };
+    if (seat !== st.challenge.target) return { error: 'notYourTurn' };
+    st.phase = 'play';
+    st.challenge = null;
+    give(st, seat, 4, ev, r);
+    ev.push({ t: 'skipped', seat: seat });
+    to(st, from(st, seat, 1), ev);
+  }
+
+  /* ---------- السحب والتمرير ---------------------------------------------- */
+  function doDraw(st, seat, ev, r) {
+    if (st.phase !== 'play') return { error: 'wrongPhase' };
+    if (st.pending > 0) {
+      var n = st.pending;
+      st.pending = 0;
+      give(st, seat, n, ev, r);
+      ev.push({ t: 'penalised', seat: seat, cards: n, why: 'stack' });
+      ev.push({ t: 'skipped', seat: seat });
+      to(st, from(st, seat, 1), ev);
+      return;
+    }
+    if (st.drew) return { error: 'alreadyDrew' };
+    give(st, seat, 1, ev, r);
+    st.drew = true;
+  }
+
+  function doPass(st, seat, ev) {
+    if (st.phase !== 'play') return { error: 'wrongPhase' };
+    if (st.pending > 0) return { error: 'mustTakeThePile' };
+    if (!st.drew) return { error: 'drawFirst' };
+    to(st, from(st, seat, 1), ev);
+  }
+
+  /* ---------- «واحدة»: قولُها، والنداء على من لم يقلها --------------------- */
+  function doSayOne(st, seat, ev) {
+    if (st.hands[seat].length !== 1) return { error: 'notAtOne' };
+    st.said[seat] = true;
+    if (st.callable === seat) st.callable = null;
+    ev.push({ t: 'saidOne', seat: seat });
+  }
+
+  function doCallOut(st, seat, action, ev, r) {
+    var on = action.on;
+    if (typeof on !== 'number' || on < 0 || on >= st.seats) return { error: 'noSuchSeat' };
+    if (on === seat) return { error: 'cannotCallYourself' };
+    if (st.callable !== on) return { error: 'nothingToCall' };
+    st.callable = null;
+    give(st, on, 2, ev, r);
+    ev.push({ t: 'penalised', seat: on, cards: 2, why: 'noOne' });
+  }
+
+  /* ---------- القفز (قاعدة بيتٍ مطفأةٌ افتراضاً) --------------------------- */
+  function doJumpIn(st, seat, action, ev, r) {
+    if (st.phase !== 'play' || st.pending > 0) return { error: 'wrongPhase' };
+    var id = action.card;
+    if (typeof id !== 'number' || st.hands[seat].indexOf(id) < 0) return { error: 'notInHand' };
+    var c = card(id), t = card(top(st));
+    if (c.kind === 'wild' || c.kind === 'wild4') return { error: 'cannotJumpWithWild' };
+    if (c.colour !== t.colour || c.kind !== t.kind || c.value !== t.value) return { error: 'notIdentical' };
+    st.turn = seat;
+    st.drew = false;
+    ev.push({ t: 'jumpedIn', seat: seat, card: id });
+    return doPlay(st, seat, action, ev, r);
+  }
+
+  /* ---------- المدخل الوحيد ----------------------------------------------- */
+  function applyAction(state, seat, action, r) {
+    if (!state) return { error: 'noState' };
+    if (state.over) return { error: 'gameOver' };
+    if (state.phase === 'over') return { error: 'roundOver' };
+    if (typeof seat !== 'number' || (seat | 0) !== seat || seat < 0 || seat >= state.seats) return { error: 'noSuchSeat' };
+    if (!action || typeof action !== 'object' || ACTIONS.indexOf(action.type) < 0) return { error: 'unknownAction' };
+
+    var st = clone(state);
+    var gen = r || rng(0);
+    if (!r) gen.a = st.rng;
+    var ev = [], out;
+
+    if (action.type === 'callOut') out = doCallOut(st, seat, action, ev, gen);
+    else if (action.type === 'sayOne') out = doSayOne(st, seat, ev);
+    else {
+      /* نافذة «واحدة» تُغلق بأوّل فعلٍ مقبولٍ من مقعدٍ آخر. وهي تُغلق هنا على
+         النسخة، فإن سقط الفعل بخطأٍ رُدّت النسخة كلّها ولم تُغلق النافذة. */
+      if (st.callable !== null && st.callable !== seat) st.callable = null;
+      if (st.house.jumpIn && action.type === 'play' && st.phase === 'play' && seat !== st.turn) {
+        out = doJumpIn(st, seat, action, ev, gen);
+        if (out && out.error) return out;
+        st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
+        return { state: st, events: ev };
+      }
+      var actor = st.phase === 'colour' ? st.chooser
+        : st.phase === 'challenge' ? st.challenge.target : st.turn;
+      if (seat !== actor) return { error: 'notYourTurn' };
+      if (action.type === 'play') out = doPlay(st, seat, action, ev, gen);
+      else if (action.type === 'draw') out = doDraw(st, seat, ev, gen);
+      else if (action.type === 'pass') out = doPass(st, seat, ev);
+      else if (action.type === 'colour') out = doColour(st, seat, action.colour, ev, gen);
+      else if (action.type === 'challenge') out = doChallenge(st, seat, ev, gen);
+      else if (action.type === 'accept') out = doAccept(st, seat, ev, gen);
+      else return { error: 'unknownAction' };
+    }
+    if (out && out.error) return out;
+    st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
+    return { state: st, events: ev };
+  }
+
+  /* ---------- ما يحقّ للمقعد أن يراه -------------------------------------- */
+  function viewFor(state, seat) {
+    var v = clone(state);
+    if (seat === null || seat === undefined) return v;      // المضيف يرى كلّ شيء
+    v.you = seat;
+    v.hand = v.hands[seat];
+    v.counts = [];
+    for (var i = 0; i < v.hands.length; i++) v.counts.push(v.hands[i].length);
+    delete v.hands;
+    v.stockCount = v.stock.length;
+    delete v.stock;
+    delete v.rng;
+    delete v.seed;
+    delete v.wild4;
+    if (v.challenge) delete v.challenge.legal;
+    return v;
+  }
+
+  /* ما يستطيع صاحبُ هذه الرؤية لعبه الآن. يعمل على الرؤية لا على الحالة، فهو
+     صالحٌ للعميل في المرحلة ٤ كما هو صالحٌ للمضيف. */
+  function legalMoves(view) {
+    var hand = view.hand || (view.hands && view.hands[view.turn]) || [];
+    if (view.phase !== 'play') return [];
+    var t = view.discard[view.discard.length - 1], out = [], i;
+    for (i = 0; i < hand.length; i++) {
+      if (view.pending > 0) { if (card(hand[i]).kind === 'draw2') out.push(hand[i]); }
+      else if (playable(hand[i], view.colour, t)) out.push(hand[i]);
+    }
+    return out;
+  }
+
+  return {
+    COLOURS: COLOURS, ACTIONS: ACTIONS, DECK: DECK, HAND: HAND, TARGET: TARGET,
+    rng: rng, card: card, points: points, handScore: handScore,
+    playable: playable, wild4Legal: wild4Legal,
+    createGame: createGame, applyAction: applyAction, nextRound: nextRound,
+    viewFor: viewFor, legalMoves: legalMoves
+  };
+})();
+if (typeof module === 'object' && module.exports) module.exports = Shadda;
+/* ===== SHADDA ENGINE END ===== */
+</script>
+
+<script>
+/* واجهةُ المرحلة الأولى — نصّيةٌ بحتة، وكل ما فيها رسمٌ لا منطق. تقرأ من
+   Shadda.viewFor فلا ترى إلا ما يراه المقعد صاحب الدور، وتكتب بـapplyAction.
+   الطاولة تحلّ محلّها في المرحلة ٢، والمحرّك لا يتغيّر بسببها حرفاً. */
+(function () {
+  'use strict';
+  var S = Shadda;
+
+  /* الأسماء رسمٌ لا منطق، فهي هنا لا في المحرّك. وهي أسماء القسم ٣. */
+  var NUM = ['صفر', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
+  var KIND = { skip: 'وقّف', reverse: 'عكس', draw2: 'سحب ثنتين', wild: 'تغيير اللون', wild4: 'سحب أربعة' };
+  var CLR = { red: 'أحمر', blue: 'أزرق', green: 'أخضر', yellow: 'أصفر' };
+  var SEATNAME = ['أنت', 'الثاني', 'الثالث', 'الرابع', 'الخامس'];
+
+  function label(id) {
+    var c = S.card(id);
+    if (c.kind === 'number') return NUM[c.value] + ' ' + CLR[c.colour];
+    if (c.kind === 'wild' || c.kind === 'wild4') return KIND[c.kind];
+    return KIND[c.kind] + ' ' + CLR[c.colour];
+  }
+  function seatName(i) { return SEATNAME[i] || ('المقعد ' + (i + 1)); }
+
+  var el = {
+    capN: document.getElementById('cap-n'), pile: document.getElementById('pile'),
+    stock: document.getElementById('stock'), seats: document.getElementById('seats'),
+    log: document.getElementById('log'), hand: document.getElementById('hand'),
+    acts: document.getElementById('acts'), setup: document.getElementById('setup'),
+    hint: document.getElementById('hint')
+  };
+
+  var G = null, seats = 3, seed = 1, lines = [], autoOne = true;
+
+  function say(text, hi) {
+    lines.push({ text: text, hi: !!hi });
+    if (lines.length > 60) lines.shift();
+  }
+
+  function tell(events) {
+    for (var i = 0; i < events.length; i++) {
+      var e = events[i];
+      if (e.t === 'dealt') say('وُزّعت ' + e.each + ' لكل لاعب، و' + seatName(e.first) + ' يبدأ.', true);
+      else if (e.t === 'flipped') say('المكشوفة: ' + label(e.card) + '.');
+      else if (e.t === 'played') say(seatName(e.seat) + ' لعب ' + label(e.card) + '.');
+      else if (e.t === 'drew' && e.n) say(seatName(e.seat) + ' سحب ' + e.n + '.');
+      else if (e.t === 'colourChosen') say(seatName(e.seat) + ' اختار ' + CLR[e.colour] + '.');
+      else if (e.t === 'skipped') say(seatName(e.seat) + ' وقف دوره.');
+      else if (e.t === 'directionReversed') say('انعكس الاتجاه.');
+      else if (e.t === 'saidOne') say(seatName(e.seat) + ' قال «واحدة».', true);
+      else if (e.t === 'challenged') say(seatName(e.by) + ' اعترض على ' + seatName(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'), true);
+      else if (e.t === 'penalised') say(seatName(e.seat) + ' عوقب بـ' + e.cards + '.', true);
+      else if (e.t === 'stockReshuffled') say('نفد المسحب، فأُعيد خلط المرميّ (' + e.cards + ').');
+      else if (e.t === 'handsSwapped') say(seatName(e.a) + ' بدّل يده مع ' + seatName(e.b) + '.');
+      else if (e.t === 'handsRotated') say('دارت الأيدي.');
+      else if (e.t === 'jumpedIn') say(seatName(e.seat) + ' قفز بـ' + label(e.card) + '.');
+      else if (e.t === 'roundStarted') say('— الجولة ' + e.round + ' —', true);
+      else if (e.t === 'roundEnded') say('انتهت الجولة: فاز ' + seatName(e.winner) + ' بـ' + e.points + ' نقطة.', true);
+      else if (e.t === 'matchEnded') say('انتهت المباراة: ' + seatName(e.winner) + '.', true);
+    }
+  }
+
+  function send(seat, action) {
+    var out = S.applyAction(G, seat, action, null);
+    if (out.error) { el.hint.textContent = 'رُفض الفعل: ' + out.error; return false; }
+    G = out.state;
+    tell(out.events);
+    el.hint.textContent = '';
+    draw();
+    return true;
+  }
+
+  function btn(text, cls, on, dis) {
+    var b = document.createElement('button');
+    b.textContent = text;
+    if (cls) b.className = cls;
+    if (dis) b.disabled = true; else b.addEventListener('click', on);
+    return b;
+  }
+
+  function start() {
+    var out = S.createGame({ seats: seats, seed: seed });
+    lines = [];
+    G = out.state;
+    tell(out.events);
+    el.hint.textContent = '';
+    draw();
+  }
+
+  function draw() {
+    /* المقعد الذي يُعرض هو صاحب الموقف — وواجهةُ المرحلة ١ تعرض رؤيته وحدها،
+       فيُرى بالعين أن viewFor لا تسرّب يدَ غيره. */
+    var me = G.phase === 'colour' ? G.chooser : (G.phase === 'challenge' ? G.challenge.target : G.turn);
+    var v = S.viewFor(G, me);
+
+    el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
+
+    var topId = v.discard[v.discard.length - 1];
+    el.pile.querySelector('b').textContent = label(topId);
+    el.pile.querySelector('small').textContent = 'المرمى' + (v.colour ? ' · ' + CLR[v.colour] : '');
+    el.pile.setAttribute('data-c', v.colour || '');
+    el.stock.querySelector('b').textContent = v.stockCount;
+    el.stock.querySelector('small').textContent = 'المسحب · المرميّ ' + v.discard.length;
+
+    el.seats.textContent = '';
+    for (var i = 0; i < v.seats; i++) {
+      var d = document.createElement('div');
+      d.className = 'seat' + (i === v.turn ? ' now' : '');
+      d.textContent = seatName(i) + ' · ' + v.counts[i] + (v.said[i] ? ' ✓' : '');
+      el.seats.appendChild(d);
+    }
+
+    el.log.textContent = '';
+    for (var j = 0; j < lines.length; j++) {
+      var q = document.createElement('div');
+      if (lines[j].hi) q.className = 'hi';
+      q.textContent = lines[j].text;
+      el.log.appendChild(q);
+    }
+    el.log.scrollTop = el.log.scrollHeight;
+
+    el.hand.textContent = '';
+    el.acts.textContent = '';
+
+    if (v.phase === 'over') {
+      el.acts.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'go', function () {
+        if (G.over) { seed += 1; start(); return; }
+        var out = S.nextRound(G, null);
+        if (out.error) return;
+        G = out.state; tell(out.events); draw();
+      }));
+      setup();
+      return;
+    }
+
+    if (v.phase === 'colour') {
+      for (var k = 0; k < S.COLOURS.length; k++) {
+        (function (c) {
+          el.acts.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }));
+          el.acts.lastChild.setAttribute('data-c', c);
+        })(S.COLOURS[k]);
+      }
+      el.hint.textContent = seatName(me) + ': اختر اللون.';
+      setup();
+      return;
+    }
+
+    if (v.phase === 'challenge') {
+      el.acts.appendChild(btn('اعترض', 'go', function () { send(me, { type: 'challenge' }); }));
+      el.acts.appendChild(btn('اقبل الأربع', '', function () { send(me, { type: 'accept' }); }));
+      el.hint.textContent = seatName(me) + ': سحب أربعة عليك — اعترض أو اقبل.';
+      setup();
+      return;
+    }
+
+    /* الطَّور play */
+    var can = S.legalMoves(v);
+    for (var h = 0; h < v.hand.length; h++) {
+      (function (id) {
+        var ok = can.indexOf(id) >= 0;
+        var c = S.card(id);
+        var b = btn(label(id), 'c', function () {
+          var a = { type: 'play', card: id };
+          if (v.hand.length === 2 && autoOne) a.sayOne = true;   // ثانيةُ الأخيرة
+          send(me, a);
+        }, !ok);
+        b.setAttribute('data-c', c.colour || 'wild');
+        el.hand.appendChild(b);
+      })(v.hand[h]);
+    }
+
+    if (v.pending > 0) {
+      el.acts.appendChild(btn('خذ ' + v.pending, 'go', function () { send(me, { type: 'draw' }); }));
+    } else if (!v.drew) {
+      el.acts.appendChild(btn('اسحب', 'go', function () { send(me, { type: 'draw' }); }));
+    } else {
+      el.acts.appendChild(btn('مرّر', 'go', function () { send(me, { type: 'pass' }); }));
+    }
+    if (v.hand.length === 1 && !v.said[me]) {
+      el.acts.appendChild(btn('واحدة!', '', function () { send(me, { type: 'sayOne' }); }));
+    }
+    if (v.callable !== null && v.callable !== me) {
+      (function (on) {
+        el.acts.appendChild(btn('نادِ على ' + seatName(on), '', function () { send(me, { type: 'callOut', on: on }); }));
+      })(v.callable);
+    }
+    el.hint.textContent = seatName(me) + ': دورك' + (can.length ? '' : ' — لا ورقة تُلعب، فاسحب');
+    setup();
+  }
+
+  function setup() {
+    el.setup.textContent = '';
+    var s = document.createElement('span');
+    s.textContent = 'اللاعبون';
+    el.setup.appendChild(s);
+    for (var n = 2; n <= 5; n++) {
+      (function (k) {
+        var b = btn(String(k), k === seats ? 'on' : '', function () { seats = k; start(); });
+        el.setup.appendChild(b);
+      })(n);
+    }
+    el.setup.appendChild(btn('وزّع', 'go', function () { seed += 1; start(); }));
+    /* مفتاحٌ للحرث لا للّعب: إن أُطفئ لم تُقل «واحدة» مع الورقة قبل الأخيرة،
+       فتُفتح نافذة النداء ويُرى أثر العقوبة على الشاشة. */
+    el.setup.appendChild(btn('واحدة تلقائياً', autoOne ? 'on' : '', function () { autoOne = !autoOne; draw(); }));
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>

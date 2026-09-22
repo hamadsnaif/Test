@@ -55,6 +55,17 @@
       "thumb": {
         "builtin": "frozen"
       }
+    },
+    {
+      "id": "shadda",
+      "file": "shadda.html",
+      "ar": "شدّة",
+      "en": "SHADDA",
+      "stripe": "#e0a45e",
+      "desc": "لعبة ورقٍ لاثنين حتى خمسة: طابق اللون أو الرقم، وقل «واحدة» قبل آخر ورقة.",
+      "thumb": {
+        "builtin": "shadda"
+      }
     }
   ]
 }
