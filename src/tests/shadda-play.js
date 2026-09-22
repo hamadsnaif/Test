@@ -209,7 +209,7 @@ async function open(browser, w, h, query) {
       let t = '';
       for (let k = 0; k < 30 && !/^دورك/.test(t); k++) { t = await p.$eval('#toast', e => e.classList.contains('on') ? e.textContent.trim() : ''); if (!/^دورك/.test(t)) await sleep(100); }
       ok('and «دورك» pops up over the table on its own', /^دورك/.test(t), t);
-      await sleep(1400);
+      await sleep(1800);                                         // كلمةٌ تبقى ‏١٣٠٠‏ ثم تُطوى في ‏٣٠٠‏
       ok('and goes away by itself', !(await p.$eval('#toast', e => e.classList.contains('on'))));
     }
 
@@ -311,7 +311,7 @@ async function open(browser, w, h, query) {
       await sleep(20);
     }
     ok('on 320 a hand of fifteen can be built by drawing', big >= 15, 'hand=' + big);
-    await sleep(1500);                                           // كشف المسحوب ثم طيرانه ثم انزلاق الباقي، قبل القياس
+    await sleep(2600);                                           // كشف المسحوب (ثانية) ثم طيرانه ثم انزلاق الباقي، قبل القياس
     const wide = await p.$eval('#hand', e => e.scrollWidth > e.clientWidth + 1);
     ok('a hand that wide slides sideways instead of burying its cards', wide);
     patches = await fanPatches(p);

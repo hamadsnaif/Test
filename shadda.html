@@ -284,24 +284,48 @@
     prefers-reduced-motion nothing flies and the toasts appear without
     their fade.
 
-    A draw penalty shows its card.  When a سحب ثنتين or سحب أربعة lands on
-    a seat, the toast carries the card itself: it slides in from the right
-    to the toast's left side with the total to be drawn under it («+٢»,
-    «+٤», or the stacked sum when the house rule is on and the seat must
-    press «خذ»), and the words say who draws how many.  The owner asked for
-    it (2026-09-22).
+    Every card with an effect shows itself in its notice.  When a سحب ثنتين
+    or سحب أربعة lands on a seat, the toast carries the card itself: it
+    slides in from the right to the toast's left side with the total to be
+    drawn under it («+٢», «+٤», or the stacked sum when the house rule is on
+    and the seat must press «خذ»), and the words say who draws how many and
+    that they stand.  The same for the rest: عكس with «انعكس الاتجاه», وقّف
+    with «فلان وقف دوره», a wild with the colour chosen shown as a disc
+    under it, a jump-in, and the seven and the zero of the house rule.  A
+    «stood» that merely follows a penalty draw (or a reverse between two)
+    is folded into that notice instead of a second one.  The owner asked
+    for the draw card first and then for all of them (2026-09-22).
 
     Drawn cards are shown before they are held.  A draw by the seat holding
     the phone — one card, or the four of an accepted سحب أربعة, or a stacked
-    pile — lays the drawn cards face up in the middle of the table for
-    750ms, then each flies to its place in the fan, where its button has
+    pile — lays the drawn cards face up in the middle of the table for a
+    second, then each flies to its place in the fan, where its button has
     been waiting invisible since the state changed.  Another seat's forced
     draw shows no faces: only the toast above.  Under prefers-reduced-motion
     the cards simply appear in the hand.
 
+    The pace.  The owner asked that the notices stay longer and that every
+    motion be slower and smoother, so: a flight takes 560ms on an ease-out
+    curve (cubic-bezier .22 .61 .36 1), the fan reflows in 420ms on the
+    same curve, a notice fades in over 280ms and holds 1300ms for a word,
+    1800ms for a shout and 2400ms when it carries a card, the reveal holds
+    1000ms, the hand-off window rises over 350ms and — the point of the
+    complaint — is not raised until every queued notice has been shown
+    (toastEndsAt), never sooner than 900ms after the last flight.
+
+    Nothing on the table can be scrolled by a focus.  The scene clips with
+    overflow:clip (hidden as the fallback), so it is not a scroll container
+    and a tap that focuses a card button — Chromium centres a focused
+    element that is partly clipped — cannot shift the felt sideways (the
+    felt is wider than the scene by design); and the hand's box now extends
+    below the scene, with the cards 6cqw above its bottom, so the fan's
+    curve never overflows the hand and the same focus cannot lift it.  Found
+    while shooting the notices with Playwright, whose click does the same
+    centring.
+
     The hand reflows instead of redrawing.  When a card leaves or arrives
     the fan's buttons are kept and only their positions change, so the
-    remaining cards slide to their new places (a 250ms transition on the
+    remaining cards slide to their new places (a 420ms transition on the
     transform); a card that arrives fades and scales in where it will sit,
     timed to the end of its flight from the stock.  A hand shown for a
     different seat is rebuilt outright.  The owner asked for this after the
@@ -569,7 +593,7 @@ button:disabled{cursor:default}
    حاويةٍ فوقها، فلو كان ‎perspective:130cqw‎ على ‎.scene‎ وهو الحاوية لقاس
    منطقةَ اللعب لا نفسه. بالغلاف يقيس المنظورُ المشهدَ. */
 .scene{
-  position:relative;width:100%;height:100%;overflow:hidden;direction:ltr;
+  position:relative;width:100%;height:100%;overflow:hidden;overflow:clip;direction:ltr;   /* clip لا hidden: لا يصير المشهد حاويةَ تمريرٍ يزحزحها تركيزُ زرّ */
   border-radius:16px;background:radial-gradient(100% 60% at 50% 0%, #2a2521, #141110 70%);
   perspective:130cqw;perspective-origin:50% 22%;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), 0 10px 30px rgba(0,0,0,.5);
@@ -630,14 +654,16 @@ button:disabled{cursor:default}
 .dir svg{width:100%;height:100%;display:block}
 
 /* ---------- اليد: منطقة ‎[data-fan]‎ الواحدة، وتنزلق حين لا يتّسع خطوها ---------- */
-.hand{position:absolute;left:0;right:0;bottom:0;height:46cqw;z-index:2;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;direction:ltr}
+/* اليد تنزل تحت حافّة المشهد بدل أن تنزل أوراقها تحت حافّتها: فلا فائضَ رأسيّاً
+   يزحزحه تركيزُ زرٍّ (المشهد يقصّها). */
+.hand{position:absolute;left:0;right:0;bottom:-14cqw;height:60cqw;z-index:2;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;direction:ltr}
 .hand::-webkit-scrollbar{display:none}
 .fanrow{position:relative;height:100%;margin:0 auto}
 .hand .card{
   --tx:0px;--ty:0px;--a:0deg;--lift:0cqw;
-  position:absolute;left:50%;bottom:-8cqw;transform-origin:50% 50%;
+  position:absolute;left:50%;bottom:6cqw;transform-origin:50% 50%;   /* الورقة تنزل ‎8cqw‎ تحت المشهد، وتحتها متّسعٌ لهبوط القوس */
   transform:translate(var(--tx), var(--ty)) translateY(var(--lift)) rotate(var(--a));
-  transition:transform .25s ease, opacity .2s ease, filter .18s ease;cursor:pointer;
+  transition:transform .42s cubic-bezier(.22,.61,.36,1), opacity .3s ease, filter .25s ease;cursor:pointer;
 }
 /* ورقةٌ تصل إلى اليد: تظهر في موضعها متأخّرةً عن نسختها الطائرة */
 .hand .card.in{opacity:0;transform:translate(var(--tx), calc(var(--ty) + 6cqw)) rotate(var(--a)) scale(.7)}
@@ -647,41 +673,45 @@ button:disabled{cursor:default}
 .hand .card.up{box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(0,0,0,.45), 0 0 0 3px var(--acc), 0 calc(var(--w)*.08) calc(var(--w)*.2) rgba(0,0,0,.55)}
 
 /* ---------- التنبيهات: كلمةٌ منبثقة وسط الطاولة وتغبيشٌ خفيف خلفها، تذهب وحدها ---------- */
-.veil{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .15s;
+.veil{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .3s;
   backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);background:rgba(20,17,16,.18)}
 .veil.on{opacity:1}
 .toast{position:absolute;left:50%;top:40%;z-index:5;transform:translate(-50%,-50%) scale(.92);opacity:0;pointer-events:none;
   direction:rtl;text-align:center;width:max-content;max-width:88%;padding:10px 18px;border-radius:14px;
   background:rgba(20,17,16,.93);color:var(--cream);font-weight:800;font-size:clamp(15px, 5.2cqw, 22px);line-height:1.35;
-  box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 10px 26px rgba(0,0,0,.55);transition:opacity .15s, transform .15s}
+  box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 10px 26px rgba(0,0,0,.55);transition:opacity .28s ease, transform .28s cubic-bezier(.22,.61,.36,1)}
 .toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .toast.big{font-size:clamp(18px, 6.4cqw, 26px);padding:14px 22px;color:var(--acc-hi)}
-/* تنويهُ السحب يحمل الورقة نفسها: تنزلق من اليمين إلى يسار التنويه، وتحتها المجموع */
+/* تنويهُ الأثر يحمل الورقة نفسها: تنزلق من اليمين إلى يسار التنويه، وتحتها
+   المجموع في السحب أو قرصُ اللون المختار في الحرّة */
 .toast.withcard{display:flex;align-items:center;gap:12px;padding:10px 14px}
-.toast .tcard{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none;order:2}
-.toast .tcard .card{--cw:15cqw;transform:translateX(40%);opacity:0;transition:transform .35s cubic-bezier(.2,.7,.2,1) .1s, opacity .25s .1s}
+.toast .tcard{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none;order:2}
+.toast .tcard .card{--cw:15cqw;transform:translateX(40%);opacity:0;transition:transform .5s cubic-bezier(.22,.61,.36,1) .12s, opacity .35s .12s}
 .toast.on .tcard .card{transform:none;opacity:1}
 .toast .tsum{font-size:1.05em;font-weight:900;color:var(--acc-hi);line-height:1}
+.toast .tclr{width:1.1em;height:1.1em;border-radius:50%;box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 0 0 2px rgba(255,255,255,.35), 0 2px 4px rgba(0,0,0,.5)}
 /* كشفُ المسحوب: الورق وجهاً لأعلى وسط الطاولة قبل أن يطير إلى اليد */
 .reveal{position:absolute;left:50%;top:44%;z-index:5;transform:translate(-50%,-50%);display:flex;gap:2cqw;pointer-events:none;direction:ltr}
-.reveal .card{--cw:var(--rw,24cqw);transform:translateY(6cqw) scale(.6);opacity:0;transition:transform .24s cubic-bezier(.2,.7,.2,1), opacity .2s}
+.reveal .card{--cw:var(--rw,24cqw);transform:translateY(6cqw) scale(.6);opacity:0;transition:transform .4s cubic-bezier(.22,.61,.36,1), opacity .3s}
 .reveal.on .card{transform:none;opacity:1}
-.reveal.out .card{opacity:0;transition:opacity .15s}
+.reveal.out .card{opacity:0;transition:opacity .25s}
 /* تبديل الأدوار نافذةٌ لا كلمة: الطاولة تغبّش خلفها ولا تُرسم اليد حتى يُضغط */
 .handoff{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-  text-align:center;direction:rtl;padding:16px;background:rgba(20,17,16,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  text-align:center;direction:rtl;padding:16px;background:rgba(20,17,16,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  animation:rise .35s cubic-bezier(.22,.61,.36,1)}
+@keyframes rise{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
 .handoff .av{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--ivory);color:var(--ink);font-size:30px;font-weight:900}
 .handoff .to{font-size:14px;color:var(--ivory-deep);font-weight:700}
 .handoff .who{font-size:clamp(22px, 7cqw, 32px);font-weight:900;line-height:1.2}
 .handoff .key{min-width:220px;margin-top:6px}
 .handoff small{font-size:12px;color:#b8ad98}
 /* الورقة الطائرة: نسخةٌ ثابتة الموضع تُحرَّك من اليد إلى المرمى أو من المسحب إلى اليد */
-.fly{position:fixed;z-index:50;pointer-events:none;transform-origin:50% 50%;transition:transform .38s cubic-bezier(.2,.7,.2,1)}
+.fly{position:fixed;z-index:50;pointer-events:none;transform-origin:50% 50%;transition:transform .56s cubic-bezier(.22,.61,.36,1)}
 .fly .card{width:100%;height:100%;aspect-ratio:auto}
 
 /* ---------- نهاية الجولة ---------- */
 .over{position:absolute;left:8%;right:8%;top:20%;z-index:3;direction:rtl;text-align:center;padding:14px 12px;border-radius:16px;
-  background:rgba(20,17,16,.92);box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 12px 30px rgba(0,0,0,.6)}
+  background:rgba(20,17,16,.92);box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 12px 30px rgba(0,0,0,.6);animation:rise .4s cubic-bezier(.22,.61,.36,1)}
 .over b{display:block;font-size:19px;font-weight:900;line-height:1.3}
 .over .sc{font-size:13px;color:#dcd2bd;margin-top:8px;line-height:1.7}
 .over .sc span{display:inline-block;padding:0 6px}
@@ -1390,15 +1420,26 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var handoffAt = 0, handoffTimer = null;                 // متى تُرفع نافذة التسليم: بعد أن تحطّ الورقة
   var reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+  /* ---------- الإيقاع: أبطأ وأنعم، والتنويه يبقى حتى يُقرأ (طلب المالك) ---------- */
+  var FLY_MS = 560, HANDOFF_WAIT = 900, TOAST_GAP = 200, TOAST_OUT = 300;
+
   /* ---------- التنبيهات المنبثقة: طابورٌ يعرض كلمةً ثم يطويها وحده ---------- */
-  var toastQ = [], toastTimer = null;
+  var toastQ = [], toastTimer = null, toastUntil = 0;   // ومتى يُطوى المعروض منها
   /* نداءُ الموقف يحلّ محلّ أي نداءٍ قبله لم يُعرض بعد، والطابور لا يطول عن ثلاثة:
-     لاعبٌ سريع لا يُطارَد بكلماتٍ فات وقتها. */
-  function toast(text, big, prompt, cardId, sum) {
+     لاعبٌ سريع لا يُطارَد بكلماتٍ فات وقتها. والورقة إن حُملت، وتحتها مجموعٌ (عدد)
+     أو لونٌ مختار (اسمه). */
+  function toast(text, big, prompt, cardId, sub) {
     if (prompt) toastQ = toastQ.filter(function (t) { return !t.prompt; });
-    toastQ.push({ text: text, big: !!big, prompt: !!prompt, card: typeof cardId === 'number' ? cardId : null, sum: sum });
+    toastQ.push({ text: text, big: !!big, prompt: !!prompt, card: typeof cardId === 'number' ? cardId : null, sub: sub });
     while (toastQ.length > 3) toastQ.shift();
     if (!toastTimer) nextToast();
+  }
+  function toastDur(t) { return t.card !== null ? 2400 : t.big ? 1800 : 1300; }
+  /* متى ينتهي آخر ما في الطابور — نافذة التسليم لا تُرفع قبله */
+  function toastEndsAt() {
+    var t = toastTimer ? toastUntil : Date.now();
+    for (var i = 0; i < toastQ.length; i++) t += toastDur(toastQ[i]) + TOAST_GAP + TOAST_OUT;
+    return t;
   }
   function nextToast() {
     var t = toastQ.shift();
@@ -1407,16 +1448,20 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var span = document.createElement('span'); span.textContent = t.text; el.toast.appendChild(span);
     if (t.card !== null) {
       var fig = document.createElement('span'); fig.className = 'tcard';
-      fig.innerHTML = cardHTML(t.card, {}) + '<span class="tsum">+' + fmt(t.sum) + '</span>';
+      fig.innerHTML = cardHTML(t.card, {}) +
+        (typeof t.sub === 'number' ? '<span class="tsum">+' + fmt(t.sub) + '</span>' :
+         typeof t.sub === 'string' ? '<span class="tclr" style="background:var(--' + t.sub + ')"></span>' : '');
       el.toast.appendChild(fig);
     }
     el.toast.classList.toggle('big', t.big);
     el.toast.classList.toggle('withcard', t.card !== null);
     el.toast.classList.add('on'); el.veil.classList.add('on');
+    var d = toastDur(t);
+    toastUntil = Date.now() + d + TOAST_OUT;
     toastTimer = setTimeout(function () {
       el.toast.classList.remove('on');
-      toastTimer = setTimeout(nextToast, 140);
-    }, t.card !== null ? 1600 : t.big ? 1400 : 950);
+      toastTimer = setTimeout(nextToast, TOAST_GAP);
+    }, d);
   }
   function clearToasts() {
     toastQ = []; if (toastTimer) clearTimeout(toastTimer); toastTimer = null;
@@ -1424,14 +1469,24 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
 
   /* ---------- كشفُ المسحوب ---------- */
-  var REVEAL_HOLD = 750;
+  var REVEAL_HOLD = 1000, REVEAL_STEP = 90;
+  /* زرّ الورقة الواصلة يظهر حين تحطّ نسختها الطائرة */
+  function landIn(id, ms) {
+    var b = el.hand.querySelector('.card.in[data-id="' + id + '"]');
+    if (b) setTimeout(function () { b.classList.remove('in'); }, ms);
+  }
+  function landAll(ms) {
+    var cs = el.hand.querySelectorAll('.card.in');
+    for (var k = 0; k < cs.length; k++) landIn(cs[k].getAttribute('data-id'), ms);
+  }
+  /* يعيد متى تحطّ آخر ورقةٍ مكشوفة في اليد، أو صفراً إن لم يُكشف شيء */
   function reveal(ids) {
-    if (reduced || !ids.length) return;
+    if (reduced || !ids.length) return 0;
     var old = el.scene.querySelector('.reveal');
     if (old) old.parentNode.removeChild(old);
     var W = scenewrap.clientWidth || 360, n = ids.length;
     var cw = Math.min(W * .24, (W * .92 - (n - 1) * W * .02) / n), html = '';
-    for (var i = 0; i < n; i++) html += cardHTML(ids[i], { style: 'transition-delay:' + (i * 60) + 'ms', attrs: ' data-id="' + ids[i] + '"' });
+    for (var i = 0; i < n; i++) html += cardHTML(ids[i], { style: 'transition-delay:' + (i * REVEAL_STEP) + 'ms', attrs: ' data-id="' + ids[i] + '"' });
     clearToasts();                                   // الكشف يحتاج وسط الطاولة
     var box = document.createElement('div');
     box.className = 'reveal'; box.style.setProperty('--rw', cw.toFixed(1) + 'px'); box.innerHTML = html;
@@ -1443,10 +1498,12 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       for (var k = 0; k < cards.length; k++) {
         var id = cards[k].getAttribute('data-id');
         fly(rect(cards[k]), rect(el.hand.querySelector('.card[data-id="' + id + '"]')), cardHTML(+id, {}));
+        landIn(id, FLY_MS);
       }
       box.classList.add('out');
-      setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 200);
-    }, REVEAL_HOLD + n * 60);
+      setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 300);
+    }, REVEAL_HOLD + n * REVEAL_STEP);
+    return Date.now() + REVEAL_HOLD + n * REVEAL_STEP + FLY_MS + 250;
   }
 
   /* ---------- الورقة الطائرة ---------- */
@@ -1454,7 +1511,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function rect(e) { return e ? e.getBoundingClientRect() : null; }
   function fly(from, to, html) {
     if (reduced || !from || !to || !from.width || !to.width) return;
-    flightUntil = Date.now() + 380;
+    flightUntil = Date.now() + FLY_MS;
     var f = document.createElement('div');
     f.className = 'fly'; f.innerHTML = html;
     f.style.left = from.left + 'px'; f.style.top = from.top + 'px';
@@ -1466,7 +1523,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     f.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + (to.width / from.width).toFixed(3) + ',' + (to.height / from.height).toFixed(3) + ')';
     var done = function () { if (f.parentNode) f.parentNode.removeChild(f); };
     f.addEventListener('transitionend', done);
-    setTimeout(done, 700);
+    setTimeout(done, FLY_MS + 400);
   }
   var q = new URLSearchParams(location.search), urlSeed = q.get('seed');
   var seed = urlSeed !== null && /^-?\d+$/.test(urlSeed) ? (parseInt(urlSeed, 10) | 0) : ((Math.random() * 0x7fffffff) | 0);
@@ -1477,7 +1534,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* ---------- السجلّ ---------- */
   function say(text, hi) { lines.push({ text: text, hi: !!hi }); if (lines.length > 80) lines.shift(); }
   var lastPlayed = null, revealIds = null;              // آخر ورقةٍ لُعبت، وما سُحب لمن يمسك الجوّال
+  /* الورقة التي أحدثت الأثر تُعرض مع تنويهه — إن كانت آخرُ ما لُعب من نوعه */
+  function effectCard(kinds) { return lastPlayed !== null && kinds.indexOf(S.card(lastPlayed).kind) >= 0 ? lastPlayed : null; }
   function tell(events, me) {
+    var quiet = {};                                      // «وقف دوره» الذي قاله تنويهٌ قبله لا يُعاد
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
       if (e.t === 'dealt') say('وُزّعت ' + fmt(e.each) + ' لكل لاعب، و' + nameOf(e.first) + ' يبدأ.', true);
@@ -1488,21 +1548,28 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         if (e.seat === me) lastDrawn = e.cards[e.cards.length - 1];
         if (e.seat === shownSeat) revealIds = e.cards.slice();
         if (e.n > 1) {
-          var pk = lastPlayed !== null ? S.card(lastPlayed).kind : null;
-          var pc = (pk === 'draw2' || pk === 'wild4') ? lastPlayed : null;
-          toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n), true, false, pc, e.n);
+          /* الوقوف الذي يتبع عقوبة السحب يُقال في تنويهها لا في تنويهٍ ثانٍ */
+          var stops = false;
+          for (var j = i + 1; j < events.length && j <= i + 2; j++) if (events[j].t === 'skipped' && events[j].seat === e.seat) { quiet[j] = true; stops = true; }
+          toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
         }
       }
-      else if (e.t === 'colourChosen') say(nameOf(e.seat) + ' اختار ' + CLR[e.colour] + '.');
-      else if (e.t === 'skipped') { say(nameOf(e.seat) + ' وقف دوره.'); toast(nameOf(e.seat) + ' وقف دوره'); }
-      else if (e.t === 'directionReversed') { say('انعكس الاتجاه.'); toast('انعكس الاتجاه'); }
+      else if (e.t === 'colourChosen') { say(nameOf(e.seat) + ' اختار ' + CLR[e.colour] + '.'); toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour); }
+      else if (e.t === 'skipped') { say(nameOf(e.seat) + ' وقف دوره.'); if (!quiet[i]) toast(nameOf(e.seat) + ' وقف دوره', false, false, effectCard(['skip'])); }
+      else if (e.t === 'directionReversed') {
+        say('انعكس الاتجاه.');
+        /* في اثنين يعمل العكس عمل «وقّف»، والوقوف يُقال هنا لا في تنويهٍ ثانٍ */
+        var nx = events[i + 1] && events[i + 1].t === 'skipped' ? events[i + 1] : null;
+        if (nx) quiet[i + 1] = true;
+        toast(nx ? 'انعكس الاتجاه — ' + nameOf(nx.seat) + ' يقف' : 'انعكس الاتجاه', false, false, effectCard(['reverse']));
+      }
       else if (e.t === 'saidOne') { say(nameOf(e.seat) + ' قال «واحدة».', true); toast(nameOf(e.seat) + ': «واحدة»!', true); }
       else if (e.t === 'challenged') { var ch = nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'); say(ch, true); toast(ch, true); }
       else if (e.t === 'penalised') { say(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards) + '.', true); if (e.why !== 'bluff' && e.why !== 'badChallenge') toast(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards)); }
       else if (e.t === 'stockReshuffled') { say('نفد المسحب، فأُعيد خلط المرميّ (' + fmt(e.cards) + ').'); toast('أُعيد خلط المرميّ'); }
-      else if (e.t === 'handsSwapped') { say(nameOf(e.a) + ' بدّل يده مع ' + nameOf(e.b) + '.'); toast('تبادلت الأيدي'); }
-      else if (e.t === 'handsRotated') { say('دارت الأيدي.'); toast('دارت الأيدي'); }
-      else if (e.t === 'jumpedIn') { say(nameOf(e.seat) + ' قفز بـ' + label(e.card) + '.'); toast(nameOf(e.seat) + ' قفز!'); }
+      else if (e.t === 'handsSwapped') { say(nameOf(e.a) + ' بدّل يده مع ' + nameOf(e.b) + '.'); toast('تبادلت الأيدي', false, false, effectCard(['number'])); }
+      else if (e.t === 'handsRotated') { say('دارت الأيدي.'); toast('دارت الأيدي', false, false, effectCard(['number'])); }
+      else if (e.t === 'jumpedIn') { say(nameOf(e.seat) + ' قفز بـ' + label(e.card) + '.'); lastPlayed = e.card; toast(nameOf(e.seat) + ' قفز!', false, false, e.card); }
       else if (e.t === 'roundStarted') say('— الجولة ' + fmt(e.round) + ' —', true);
       else if (e.t === 'roundEnded') say('انتهت الجولة: فاز ' + nameOf(e.winner) + ' بـ' + fmt(e.points) + ' نقطة.', true);
       else if (e.t === 'matchEnded') say('انتهت المباراة: ' + nameOf(e.winner) + ' يفوز.', true);
@@ -1517,8 +1584,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     G = out.state;
     tell(out.events, actorOf(G));
     hintText = '';
-    /* إن انتقل الموقف إلى مقعدٍ آخر أُمهلت النافذة حتى تصل الورقة الطائرة وتستقرّ */
-    if (privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Date.now() + (reduced ? 0 : 700);
+    /* إن انتقل الموقف إلى مقعدٍ آخر أُمهلت النافذة حتى تصل الورقة الطائرة وتستقرّ،
+       وحتى يُقرأ كلُّ تنويهٍ في الطابور (المالك: «النافذة تذهب بسرعة») */
+    if (privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Math.max(Date.now() + (reduced ? 0 : HANDOFF_WAIT), toastEndsAt());
     render();
     return true;
   }
@@ -1581,10 +1649,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* اليد لا تُعاد كتابتها: الأزرار الباقية تُبقى وتُحرَّك مواضعُها فتنزلق،
      والمغادرة تُحذف، والواصلة تُضاف وتظهر في موضعها بعد أن تصل نسختها الطائرة. */
   function syncHand(lay, owner) {
-    var row = el.hand.firstElementChild;
+    var row = el.hand.firstElementChild, rebuilt = false;
     if (!row || row.getAttribute('data-owner') !== String(owner)) {
       el.hand.innerHTML = '<div class="fanrow" data-owner="' + owner + '"></div>';
-      row = el.hand.firstElementChild;
+      row = el.hand.firstElementChild; rebuilt = true;
     }
     row.style.width = lay.width + 'px';
     var keep = {}, i;
@@ -1612,7 +1680,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       b.disabled = !it.ok;
       if (born && !reduced) {
         b.getBoundingClientRect();                                 // يثبّت حال «in» قبل الانتقال
-        setTimeout(function () { b.classList.remove('in'); }, Math.max(20, flightUntil - Date.now()));
+        setTimeout(function () { b.classList.remove('in'); }, rebuilt ? 20 : Math.max(20, flightUntil - Date.now()));
       }
       prev = b;
     });
@@ -1718,9 +1786,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       el.turn.textContent = nameOf(me) + '، «سحب أربعة» عليك';
       var takeFly = function (action) {
         revealIds = null;
-        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 500;
+        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 1600;   // حدٌّ أعلى؛ الحطّ الدقيق في landIn
         if (!send(me, action)) { flightUntil = 0; return; }
-        if (revealIds && revealIds.length && el.hand.querySelector('.card')) reveal(revealIds);
+        var end = revealIds && revealIds.length && el.hand.querySelector('.card') ? reveal(revealIds) : 0;
+        if (end) handoffAt = Math.max(handoffAt, end); else landAll(0);
       };
       el.acts.appendChild(btn('اعترض', 'acc', function () { takeFly({ type: 'challenge' }); }));
       el.acts.appendChild(btn('اقبل الأربع', '', function () { takeFly({ type: 'accept' }); }));
@@ -1730,10 +1799,11 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       var drawFly = function () {
         var from = rect(el.felt.querySelector('.stock .card:last-child'));
         revealIds = null;
-        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 500;   // الأزرار الجديدة تنتظر خفيّةً حتى يطير المسحوب إليها
+        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 1600;   // الأزرار الجديدة تنتظر خفيّةً حتى يطير المسحوب إليها (حدٌّ أعلى)
         if (!send(me, { type: 'draw' })) { flightUntil = 0; return; }
-        if (revealIds && revealIds.length) reveal(revealIds);
-        else fly(from, rect(el.hand.querySelector('.card.fresh')), backHTML({}));
+        var end = revealIds && revealIds.length ? reveal(revealIds) : 0;
+        if (end) handoffAt = Math.max(handoffAt, end);
+        else { fly(from, rect(el.hand.querySelector('.card.fresh')), backHTML({})); landAll(FLY_MS); }
       };
       if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', drawFly));
       else if (!v.drew) el.acts.appendChild(btn('اسحب', '', drawFly));
@@ -1789,7 +1859,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var from = rect(b), html = cardHTML(id, {});
     if (send(me, a)) fly(from, rect(el.felt.querySelector('.pile .tc')), html);
   });
-  el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; render(); } });
+  el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; flightUntil = 0; render(); } });
   el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
   window.addEventListener('resize', function () { if (G && el.start.hidden) render(); });
 
