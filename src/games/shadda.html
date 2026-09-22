@@ -292,17 +292,28 @@
     different seat is rebuilt outright.  The owner asked for this after the
     second look (2026-09-22).
 
-    The face, third form.  The owner asked for the numeral and the corner
-    index to share one colour, and for one uniform panel behind the centre
-    symbol in the spirit of that family's cards but not its ellipse: a
-    square whose two opposite corners are nearly sharp (10%) and the other
-    two deeply rounded (48%) — a leaf.  So the centre is an ivory leaf 60%
-    of the card's width, the corner indices are ivory leaves 24% wide, and
-    every numeral and symbol on them is inked in the card's own colour (a
-    darker amber #a8760a on yellow, since yellow on ivory cannot be read;
-    the wild's ink is its face's dark).  The name stays above the leaf, in
-    cream on the colour.  Contrast of ink on the ivory: red 4.6, blue 5.3,
-    green 5.2, amber 3.7, wild 12 to one.
+    The face, fourth form.  The owner asked for one uniform panel behind the
+    centre symbol in the spirit of that family's cards but not its ellipse:
+    a square whose two opposite corners are nearly sharp (10%) and the other
+    two deeply rounded (48%) — a leaf.  Then, on the phone: no panel in the
+    corners, the name moved to the two free corners, the leaf as large as
+    the space allows, and a light black outline on the centre symbol alone.
+    So: an ivory leaf 74% of the card's width in the centre, its numeral or
+    symbol inked in the card's own colour (a darker amber #a8760a on yellow,
+    since yellow on ivory cannot be read; the wild's ink is its face's
+    dark) with a thin dark stroke; the index at top-right and, turned,
+    bottom-left in cream straight on the colour with the solid shadow, as
+    the samples had it; the name at top-left and, turned, bottom-right,
+    small, in the same cream.  Contrast of ink on the ivory: red 4.6, blue
+    5.3, green 5.2, amber 3.7, wild 12 to one.
+
+    The seats sit farther out.  The samples put them on an ellipse rx 33%
+    ry 36% of the felt; with three players that is close to the piles, and
+    the owner asked for more room, so the ellipse is rx 41% ry 40% for the
+    seats across the table, while the side seats (under 30 or over 150
+    degrees) keep rx 33% so their tags stay inside the scene; the two edge
+    seats of a five-hand still get ry+4 and scale .84, and a tag is clamped
+    to the scene's width in any case.
 
     The fan step is 48px, not 8 degrees, and the tilt is 3 degrees at most.
     The samples fanned seven cards at (i-3)x8deg about a pivot 240% below,
@@ -495,35 +506,28 @@ button:disabled{cursor:default}
     linear-gradient(165deg, var(--hi), var(--c) 48%, var(--lo));
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 0 calc(var(--w)*.12) rgba(0,0,0,.18);
 }
-/* وسط الورقة عمودٌ: الاسم ثم الرمز، والمجموعة في المنتصف — فموضع الاسم واحدٌ
-   في كل ورقة، للأرقام والأفعال جميعاً (قرار المالك، المرحلة ١). */
-.card .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--w)*.035)}
-.card .cname{
-  font-size:calc(var(--w)*.15);line-height:1.15;font-weight:800;letter-spacing:.01em;
-  white-space:nowrap;direction:rtl;opacity:.95;text-shadow:0 .05em 0 var(--lo);
-}
-.card .cname.act{font-size:calc(var(--w)*.115);letter-spacing:0}
-/* الورقة العاجية: لوحٌ موحَّد المقاس خلف الرقم أو الرمز، زاويتان متقابلتان شبه
-   حادّتين وأخريان مقوّستان بشدّة، والحبر بلون الورقة في المنتصف والزاويتين معاً.
-   الشكل نفسه مقلوباً ‎180°‎ هو نفسه، فالزاوية السفلية تُدار بلا تغيير. */
+.card .mid{position:absolute;inset:0;display:grid;place-items:center}
+/* اللوح العاجي وسط الورقة: زاويتان متقابلتان شبه حادّتين وأخريان مقوّستان بشدّة،
+   بأكبر ما تتّسع له الورقة، والحبر بلون الورقة وعليه حدٌّ أسود خفيف — في المنتصف
+   وحده. الشكل مقلوباً ‎180°‎ هو نفسه. */
 .card .leaf{
-  width:60%;aspect-ratio:1;flex:none;display:grid;place-items:center;color:var(--nk);
+  width:74%;aspect-ratio:1;display:grid;place-items:center;color:var(--nk);
   border-radius:10% 48% 10% 48%;
   background:linear-gradient(160deg,var(--ivory-hi),var(--ivory) 60%,var(--ivory-lo));
   box-shadow:inset 0 1px 0 #fff, 0 0 0 1px rgba(0,0,0,.2), 0 calc(var(--w)*.025) calc(var(--w)*.05) rgba(0,0,0,.35);
 }
-.card .leaf .num{font-size:calc(var(--w)*.48);line-height:1;text-shadow:0 .04em 0 rgba(0,0,0,.14)}
-.card .leaf > svg{width:66%;height:auto;display:block}
-.card .idx{
-  position:absolute;width:calc(var(--w)*.24);aspect-ratio:1;display:grid;place-items:center;color:var(--nk);
-  border-radius:10% 48% 10% 48%;font-size:calc(var(--w)*.15);line-height:1;
-  background:linear-gradient(160deg,var(--ivory-hi),var(--ivory-lo));
-  box-shadow:0 0 0 1px rgba(0,0,0,.2), 0 1px 2px rgba(0,0,0,.3);
-}
-.card .idx .pl{font-size:calc(var(--w)*.12);letter-spacing:-.02em}
-.card .idx svg{width:68%;height:68%;display:block}
-.card .idx.a{top:4.5%;right:6%}
-.card .idx.b{bottom:4.5%;left:6%;transform:rotate(180deg)}
+.card .leaf .num{font-size:calc(var(--w)*.56);line-height:1;-webkit-text-stroke:calc(var(--w)*.012) rgba(0,0,0,.55);paint-order:stroke fill}
+.card .leaf > svg{width:68%;height:auto;display:block;filter:drop-shadow(0 0 .6px rgba(0,0,0,.7)) drop-shadow(0 0 .6px rgba(0,0,0,.5))}
+/* الزوايا بلا خلفية: الفهرس أعلى اليمين ومقلوبٌ أسفل اليسار كما في العيّنات،
+   والاسم صغيراً في الزاويتين الأخريين. */
+.card .idx{position:absolute;font-size:calc(var(--w)*.19);line-height:1;display:flex;align-items:center;gap:.05em;color:var(--fg);text-shadow:0 .06em 0 var(--lo)}
+.card .idx .pl{font-size:calc(var(--w)*.16);letter-spacing:-.02em}
+.card .idx svg{width:1em;height:1em;filter:drop-shadow(0 .06em 0 var(--lo))}
+.card .idx.a{top:5%;right:8%}
+.card .idx.b{bottom:5%;left:8%;transform:rotate(180deg)}
+.card .cn{position:absolute;font-size:calc(var(--w)*.105);line-height:1.1;font-weight:800;color:var(--fg);direction:rtl;white-space:nowrap;max-width:58%;overflow:hidden;text-overflow:ellipsis;text-shadow:0 .05em 0 var(--lo)}
+.card .cn.a{top:6.5%;left:8%}
+.card .cn.b{bottom:6.5%;right:8%;transform:rotate(180deg)}
 .card.back .face{
   background:
     repeating-linear-gradient(45deg, rgba(255,255,255,.045) 0 2px, rgba(0,0,0,0) 2px 7px),
@@ -1325,7 +1329,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var tag = o.tag || 'div';
     return '<' + tag + ' class="card' + (o.cls ? ' ' + o.cls : '') + '" style="--c:' + s.c + ';--hi:' + s.hi + ';--lo:' + s.lo + ';--fg:' + s.fg + ';--nk:' + s.nk + ';' + (o.style || '') + '"' +
       (o.attrs || '') + ' aria-label="' + label(id) + '">' +
-      '<span class="face"><span class="idx a">' + idx + '</span><span class="mid"><span class="cname' + (act ? ' act' : '') + '">' + name + '</span><span class="leaf">' + mid + '</span></span><span class="idx b">' + idx + '</span></span></' + tag + '>';
+      '<span class="face"><span class="idx a">' + idx + '</span><span class="cn a">' + name + '</span><span class="mid"><span class="leaf">' + mid + '</span></span><span class="idx b">' + idx + '</span><span class="cn b">' + name + '</span></span></' + tag + '>';
   }
   function backHTML(o) {
     o = o || {};
@@ -1451,7 +1455,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     for (var i = 0; i < angles.length; i++) {
       var seat = (me + 1 + i) % n, deg = angles[i], th = deg * Math.PI / 180;
       var edge = n === 5 && (deg < 30 || deg > 150);
-      var rx = 33, ry = 36 + (edge ? 4 : 0);
+      /* المقاعد الجانبية (أقلّ من ‎30°‎ أو أكثر من ‎150°‎) تبقى على نصف قطر العيّنات كي
+         لا تخرج بطاقاتها عن حافّة المشهد؛ والباقية أبعد عن المنتصف بطلب المالك. */
+      var side = deg < 30 || deg > 150;
+      var rx = side ? 33 : 41, ry = 40 + (edge ? 4 : 0);
       var x = 50 + rx * Math.cos(th), y = 50 - ry * Math.sin(th);
       var rot = 270 - deg, sc = edge ? .84 : 1;
       var cnt = v.counts[seat], m = Math.min(cnt, 7), backs = '';
@@ -1545,7 +1552,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       var tag = el.tags.querySelector('.ntag[data-seat="' + seats[i].getAttribute('data-seat') + '"]');
       if (!a || !tag) continue;
       var sc = Math.max(.6, Math.min(1.25, 1.15 * a.width / (W * .10)));
-      tag.style.left = (a.left + a.width / 2 - sr.left).toFixed(1) + 'px';
+      var half = tag.offsetWidth * sc / 2 + 2, x = a.left + a.width / 2 - sr.left;
+      x = Math.max(half, Math.min(sr.width - half, x));               // لا تخرج البطاقة عن المشهد
+      tag.style.left = x.toFixed(1) + 'px';
       tag.style.top = (a.top - sr.top).toFixed(1) + 'px';
       tag.style.transform = 'translate(-50%,-100%) scale(' + sc.toFixed(3) + ')';
     }
