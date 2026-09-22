@@ -138,6 +138,15 @@ def fill_game(html, entry):
     if entry['id'] == 'frozen' and '__FROZEN_ASSETS__' in html:
         blob = open(FROZEN_ASSETS, encoding='utf-8').read().strip()
         html = html.replace('__FROZEN_ASSETS__', blob)
+    # A page that plays across the network has to be able to tell whether the
+    # other end is running the same rules: two people on different builds would
+    # see the same table disagree with itself, and in a game with a hidden hand
+    # that reads as cheating rather than as a bug. So __BUILD_VER__ becomes a
+    # tag derived from the source's own bytes. It is derived, never typed --
+    # a hand-kept version number is forgotten exactly when it matters.
+    if '__BUILD_VER__' in html:
+        html = html.replace('__BUILD_VER__',
+                            hashlib.sha256(html.encode()).hexdigest()[:10])
     return html
 
 

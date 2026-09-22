@@ -8,6 +8,17 @@
  * وسطر الحالة، والمفاتيح، والسجلّ. فإن انفصل ما تعرضه الطاولة عمّا يفعله
  * المحرّك سقط هذا الفحص، وهو الشيء الوحيد الذي لا تمسكه فحوص src/tests/shadda.js.
  *
+ * والأونلاين يُقاد كلُّه بـ‎?net=loop‎: طبقة النقل وحدها تُستبدل بقناةٍ بين
+ * تبويبات الجهاز، وما فوقها — الغرفة والمقاعد والثقة واللقطات ورؤية كل مقعد —
+ * هو هو. فلا يحتاج هذا الفحص شبكةً ولا يخرج منه طلبٌ واحد.
+ *
+ *   node src/tests/shadda-play.js --rtc
+ *
+ * يضيف قسماً أخيراً يقود غرفةً على **WebRTC حقيقي** عبر وسيط التوقيع العام:
+ * سياقان منفصلان، ندّان حقيقيّان، وقناةُ بيانات تُفتح فعلاً. وهو **مطفأٌ
+ * افتراضياً** لأنه يحتاج إنترنت، ولأن بقيّة هذا الملفّ تشترط ألّا يخرج طلبٌ
+ * واحد من الجهاز — فلا يُخلط الشرطان.
+ *
  * وفيه قياسان يُطلبان بالاسم في المرحلة ٢: طرفُ كل ورقةٍ المكشوف في المروحة —
  * أكبر مستطيلٍ تملكه الورقة وحدها، بالطريقة نفسها التي يقيس بها contract.js —
  * على عرض ‎390‎ بيدٍ من سبع، وعلى عرض ‎320‎ بيدٍ من خمس عشرة.
@@ -21,6 +32,7 @@ const args = process.argv.slice(2);
 let PORT = 8613;
 const pi = args.indexOf('--port');
 if (pi >= 0) { PORT = parseInt(args[pi + 1], 10); args.splice(pi, 2); }
+const RTC = args.indexOf('--rtc') >= 0;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 let bad = 0;
@@ -124,6 +136,51 @@ async function fanPatches(p) {
   });
 }
 
+/* الغرفة تُقاد في **سياقٍ واحد**: BroadcastChannel لا يعبر بين سياقَي
+   Playwright — لكلٍّ تخزينه — فتبويبات اللاعبين تُفتح في السياق نفسه. */
+async function openIn(ctx, query, sink) {
+  const p = await ctx.newPage();
+  p.on('pageerror', e => sink.push(e.message));
+  p.on('console', m => { if (m.type() === 'error') sink.push('console: ' + m.text()); });
+  p.on('request', r => { if (!r.url().startsWith('http://127.0.0.1:' + PORT)) sink.push('external: ' + r.url()); });
+  await p.goto(`http://127.0.0.1:${PORT}/shadda.html${query || ''}`, { waitUntil: 'load' });
+  await sleep(400);
+  return p;
+}
+/* الضيف بعد فعله يُعطَّل حتى يصل حكم المضيف: لا تُنقر مفاتيحُه وهي معطّلة */
+async function settled(p) {
+  for (let i = 0; i < 60; i++) {
+    const acts = await p.$$eval('#acts button', es => es.map(b => b.disabled));
+    if (!acts.length || acts.some(d => !d) || (await liveCards(p)).length) return true;
+    await sleep(60);
+  }
+  return false;
+}
+/* على أيّ جهازٍ يقع الفعل الآن؟ الحالة الكبيرة تقولها بثلاث صيغ لا بواحدة:
+   «فلان، دورك» في اللعب، و«فلان، اختر اللون» بعد ورقةٍ حرّة، و«فلان، «سحب
+   أربعة» عليك» عند الاعتراض. وقياسُ الأولى وحدها يترك الغرفة تقف على مقعدٍ
+   مفاتيحُه أمامه — وهو ما ظنّه هذا الملفّ عطباً في الغرفة وليس فيه. */
+const ACTS_HERE = /، دورك$|، اختر اللون$|عليك$/;
+/* دورٌ واحد على أي تبويبٍ يقع عليه الفعل — كما يفعل اللاعب على جهازه هو.
+   وإن انتهت الجولة فلا أحد يحمل دوراً: من يملك المفتاح يمضي بها، وإلا وقف
+   كلُّ حلقةٍ تقود الغرفة عند أول جولةٍ تنتهي. */
+async function roomMove(pages, sayOne) {
+  for (const p of pages) {
+    if (!ACTS_HERE.test(await turnText(p))) continue;
+    if (!(await settled(p))) return { p, what: 'stuck' };
+    return { p, what: await oneMove(p, sayOne) };
+  }
+  for (const p of pages) {
+    const acts = await texts(p, '#acts button');
+    if (acts.some(x => /^(الجولة التالية|مباراة جديدة)$/.test(x))) {
+      await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/);
+      return { p, what: 'nextRound' };
+    }
+  }
+  return null;
+}
+const rosterText = p => p.$eval('#roster', e => e.innerText.replace(/\s+/g, ' ').trim());
+
 async function open(browser, w, h, query) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
   const p = await ctx.newPage();
@@ -148,9 +205,9 @@ async function open(browser, w, h, query) {
     ok('the start sheet is up and the table is declared beneath it',
       await p.$eval('#start', e => !e.hidden) &&
       await p.$eval('[data-table]', e => { const r = e.getBoundingClientRect(); return r.width >= innerWidth / 10 && r.height >= innerHeight / 10; }));
-    ok('three seats are offered by default, and only online waits for its stage',
+    ok('three seats are offered by default, and no mode is shut any more',
       (await p.$eval('#count .key.on', e => e.textContent.trim())) === '٣' &&
-      (await p.$$eval('.modes .key:disabled', es => es.length)) === 1);
+      (await p.$$eval('.modes .key:disabled', es => es.length)) === 0);
     ok('no card is on the table before a game starts', (await handCards(p)).length === 0);
 
     /* ---- الأسماء تُكتب فتظهر على الجوخ وفي الحالة ---- */
@@ -336,9 +393,9 @@ async function open(browser, w, h, query) {
     /* ============ ضدّ الحاسب: المقعد ٠ وحده الإنسان، والرؤية لا تتبدّل أبداً ============ */
     ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=31'));
     await p.click('.modes .key[data-m="cpu"]');
-    ok('picking «ضد الحاسب» arms it and leaves «أونلاين» alone as the only disabled mode',
+    ok('picking «ضد الحاسب» arms it, and the three modes are all open',
       await p.$eval('.modes .key[data-m="cpu"]', e => e.classList.contains('on')) &&
-      (await p.$$eval('.modes .key:disabled', es => es.length)) === 1);
+      (await p.$$eval('.modes .key:disabled', es => es.length)) === 0);
     ok('the privacy switch is hidden — there is no hand-off in this mode',
       await p.$eval('#privacy', e => e.hidden));
     ok('the name list asks only the human for a name; the rest are computer seats',
@@ -402,6 +459,324 @@ async function open(browser, w, h, query) {
     }
     const rep1 = await primeCpu(47), rep2 = await primeCpu(47);
     ok('the same ?seed=N replays the same computer play', rep1 === rep2, rep1 + ' vs ' + rep2);
+
+
+    /* =================================================================== *
+     * الأونلاين (المرحلة ٤): غرفةٌ بمضيفٍ موثوق، بلا شبكةٍ حقيقية.
+     *
+     * ‎?net=loop‎ يستبدل WebRTC بـBroadcastChannel ولا يمسّ سطراً فوق طبقة
+     * النقل: الغرفةُ والمقاعدُ والثقةُ واللقطاتُ ورؤيةُ كل مقعدٍ هي هي. وثمنُ
+     * ذلك — أن القناة المحلّية يسمعها كل تبويبٍ على الأصل — هو بالضبط ما
+     * يجعل هذا الفحص ممكناً: **يُنصت على السلك**، فيُثبَت أن ما أُرسل لمقعدٍ
+     * لا يحمل إلا ما يحقّ له، لا أن يُقال ذلك ويُصدَّق.
+     * =================================================================== */
+    {
+      const rctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
+      const re = [];
+      const H = await openIn(rctx, '?net=loop&seed=71', re);
+
+      await H.fill('#namelist input', 'حمد');
+      await H.click('.modes .key[data-m="online"]');
+      await sleep(120);
+      ok('online opens the room panel and puts the seat count away — the room decides it',
+        await H.$eval('#net', e => !e.hidden) && await H.$eval('#countrow', e => e.hidden) &&
+        await H.$eval('#privacy', e => e.hidden) &&
+        (await H.$$eval('#namelist input', es => es.length)) === 1);
+
+      await H.click('#mkroom');
+      await sleep(600);
+      const code = (await H.textContent('#roomcode')).trim();
+      ok('a room code is five letters, and none of them can be misheard',
+        /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{5}$/.test(code) && !/[0O1IL]/.test(code), code);
+      ok('the code is offered as a link as well as a word',
+        (await H.textContent('#roomlink')).indexOf('?join=' + code) > 0, await H.textContent('#roomlink'));
+      const codes = await H.evaluate(() => { const a = []; for (let i = 0; i < 400; i++) a.push(ShaddaNet.makeCode()); return a.join(''); });
+      ok('and no code this page can make carries 0, O, 1, I or L', !/[0O1IL]/.test(codes));
+
+      /* السلك: تبويبٌ ثالثٌ يفتح القناة نفسها ويسجّل كل ما يمرّ */
+      const TAP = await openIn(rctx, '?net=loop', re);
+      await TAP.evaluate(c => {
+        window.__tap = [];
+        window.__ch = new BroadcastChannel('shadda-room-' + c);
+        window.__ch.onmessage = e => { window.__tap.push(e.data); };
+        window.__forge = env => window.__ch.postMessage(env);
+      }, code);
+
+      const G1 = await openIn(rctx, '?net=loop&join=' + code, re);
+      ok('a ?join= link arrives already in online mode with the code filled in',
+        (await G1.inputValue('#codein')) === code && await G1.$eval('#net', e => !e.hidden) &&
+        await G1.$eval('.modes .key[data-m="online"]', e => e.classList.contains('on')));
+      await G1.fill('#namelist input', 'سارة');
+      await G1.click('#joingo');
+      await sleep(900);
+
+      const G2 = await openIn(rctx, '?net=loop&join=' + code, re);
+      await G2.fill('#namelist input', 'خالد');
+      await G2.click('#joingo');
+      await sleep(900);
+
+      const ros = await rosterText(H);
+      ok('the host sees the room fill: three names, all present',
+        ros.indexOf('حمد') >= 0 && ros.indexOf('سارة') >= 0 && ros.indexOf('خالد') >= 0 && !/انقطع/.test(ros), ros);
+      ok('a guest is told its own seat and waits for the host',
+        /ينتظر المضيف/.test(await H.textContent('#startbtn')) === false &&
+        (await G1.textContent('#startbtn')).trim() === 'ينتظر المضيف' &&
+        await G1.$eval('#startbtn', e => e.disabled), await G1.textContent('#startbtn'));
+
+      await H.click('#startbtn');
+      await sleep(1200);
+      const seats = [H, G1, G2];
+      const hands = [];
+      for (const p of seats) hands.push((await handCards(p)).length);
+      ok('the deal reaches every seat: the sheet drops and each holds its own seven',
+        (await Promise.all(seats.map(p => p.$eval('#start', e => e.hidden)))).every(Boolean) &&
+        hands.every(k => k === 7 || k === 9), hands.join('/'));
+      ok('and each screen shows the other two as backs on the felt',
+        (await Promise.all(seats.map(p => tags(p)))).every(t => t.length === 2));
+
+      /* ---- ما يمرّ على السلك: رؤيةُ المقعد وحدها، لا الحالة ---- */
+      const wire = await TAP.evaluate(() => window.__tap.map(e => { try { return { to: e.to, m: JSON.parse(e.m) }; } catch (x) { return null; } }).filter(Boolean));
+      const views = wire.filter(x => x.m && x.m.t === 'v').map(x => x.m);
+      ok('the host pushed a view to every remote seat', views.length >= 2, String(views.length));
+      ok('and not one of them carried anything that seat may not know',
+        views.length > 0 && views.every(m => {
+          const v = m.v;
+          if (!v || typeof v !== 'object') return false;
+          if ('hands' in v || 'stock' in v || 'seed' in v || 'rng' in v || 'wild4' in v) return false;
+          if (v.challenge && 'legal' in v.challenge) return false;
+          if (typeof v.you !== 'number' || v.you < 1) return false;
+          return typeof v.stockCount === 'number' && Array.isArray(v.counts) &&
+                 Array.isArray(v.hand) && v.hand.length === v.counts[v.you];
+        }), JSON.stringify(views[0] && Object.keys(views[0].v || {})));
+      ok('no message on the wire ever carried the whole state',
+        !wire.some(x => x.m && x.m.v && ('hands' in x.m.v || 'stock' in x.m.v)));
+
+      /* ---- ورقةٌ تُلعب من جهازٍ بعيد: لا سحباً وحده ----
+         السحب يمرّ من المفاتيح، واللعب يمرّ من اليد — وهما مساران مختلفان.
+         فحصٌ يقنع بالسحب يمرّ على يدٍ ميّتةٍ تماماً عند الضيف. */
+      let guestPlayed = false;
+      for (let k = 0; k < 150 && !guestPlayed; k++) {
+        const step = await roomMove(seats, true);
+        if (!step || !step.what || step.what === 'stuck') break;
+        if (step.what === 'play' && step.p !== H) guestPlayed = true;
+        await sleep(160);
+      }
+      ok('a card played on a remote device is ruled on by the host and reaches the table', guestPlayed);
+
+      /* ---- لقطةُ الحالة الدورية: المضيف يعيد تأكيد الحقيقة بلا حدثٍ جديد ---- */
+      await TAP.evaluate(() => { window.__tap.length = 0; });
+      await sleep(3600);
+      const snaps = await TAP.evaluate(() => window.__tap.map(e => { try { return JSON.parse(e.m); } catch (x) { return null; } }).filter(m => m && m.t === 'v'));
+      const bySeat = {};
+      for (const m of snaps) { const s = m.v && m.v.you; bySeat[s] = bySeat[s] || []; bySeat[s].push(m.n); }
+      ok('a state snapshot keeps going out while nothing happens, and repeats its number so no notice is said twice',
+        Object.keys(bySeat).length >= 2 && Object.keys(bySeat).every(s => bySeat[s].length >= 2 && new Set(bySeat[s]).size === 1),
+        JSON.stringify(bySeat));
+
+      /* ---- لا يُصدَّق الضيف في من هو ---- */
+      const peers = await TAP.evaluate(() => {
+        /* معرّفات المتكلّمين تُقرأ من الأظرف على السلك، لا من رسالةٍ تدّعيها */
+        const s = new Set();
+        for (const e of window.__tap) if (e && typeof e.from === 'string') s.add(e.from);
+        return [...s];
+      });
+      const guestPeers = peers.filter(x => x !== 'H');
+      ok('the wire shows the room has exactly two remote peers', guestPeers.length === 2, peers.join(','));
+
+      const before = await tagCounts(H);
+      const myBefore = (await handCards(H)).length;
+      await TAP.evaluate(({ c, from }) => {
+        const bad = [
+          null, 42, 'not json at all', [], {},
+          { t: 'zzz' }, { t: 'a' }, { t: 'a', a: null }, { t: 'a', a: 42 },
+          { t: 'a', a: { type: 'nosuch' } },
+          { t: 'a', a: { type: 'play', card: '__proto__' } },
+          { t: 'a', a: { type: 'draw' }, seat: 0, player: 99 },
+          { t: 'v', v: { hands: [[1]] } },
+        ];
+        for (const b of bad) window.__forge({ room: c, from: from, to: 'H', m: typeof b === 'string' ? b : JSON.stringify(b) });
+        window.__forge({ room: c, from: from, to: 'H' });
+        window.__forge({ room: c, from: from, to: 'H', m: '{' });
+      }, { c: code, from: guestPeers[0] });
+      await sleep(900);
+      ok('a forged seat, a forged player, a bent action and plain rubbish all leave the table exactly as it was',
+        (await tagCounts(H)).join(',') === before.join(',') && (await handCards(H)).length === myBefore,
+        before.join(',') + ' -> ' + (await tagCounts(H)).join(','));
+      ok('and nothing on any page threw while that arrived', re.length === 0, re[0]);
+
+      /* والمقعد يُقرأ من جدول المضيف: فعلٌ مزوّرٌ عليه ‎seat:0‎ يُطبَّق على
+         مقعد مُرسِله هو، ولا يمسّ المقعد ٠ بحال. */
+      let turnHolder = null, idle = 0;
+      for (let k = 0; k < 150 && !turnHolder; k++) {
+        if (ACTS_HERE.test(await turnText(G1))) { turnHolder = true; break; }
+        const step = await roomMove(seats, true);
+        if (!step || !step.what) { if (++idle > 8) break; await sleep(300); continue; }
+        idle = 0;
+        await sleep(200);
+      }
+      if (turnHolder) {
+        const h0 = (await handCards(H)).length, g1 = (await handCards(G1)).length;
+        /* من يحمل الدور الآن سارة (المقعد ١)؛ يُزوَّر فعلُها وعليه ‎seat:0‎ */
+        await TAP.evaluate(({ c, from }) => {
+          window.__forge({ room: c, from: from, to: 'H', m: JSON.stringify({ t: 'a', a: { type: 'draw' }, seat: 0, player: 0 }) });
+        }, { c: code, from: guestPeers[0] });
+        await sleep(900);
+        const h1 = (await handCards(H)).length, g1b = (await handCards(G1)).length;
+        ok('an action that claims seat 0 lands on the seat the host gave its sender, never on seat 0',
+          h1 === h0 && g1b >= g1, 'host ' + h0 + '->' + h1 + ', guest ' + g1 + '->' + g1b);
+      } else {
+        ok('an action that claims seat 0 lands on the seat the host gave its sender, never on seat 0', false, 'the turn never reached the guest');
+      }
+
+      /* ---- الأحداث الخاصّة: دالّةٌ خالصة تُفحص وحدها ---- */
+      const filt = await H.evaluate(() => {
+        const ev = [
+          { t: 'drew', seat: 1, n: 2, cards: [5, 6] },
+          { t: 'challenged', by: 2, from: 1, bluff: true, hand: [1, 2, 3], drew: 4 },
+          { t: 'played', seat: 1, card: 9 }
+        ];
+        return { one: ShaddaNet.eventsFor(ev, 1), two: ShaddaNet.eventsFor(ev, 2), three: ShaddaNet.eventsFor(ev, 3) };
+      });
+      ok('a draw keeps its cards for the seat that drew, and loses them for everyone else',
+        filt.one[0].cards.length === 2 && filt.two[0].cards === undefined && filt.three[0].cards === undefined &&
+        filt.two[0].n === 2 && filt.three[0].n === 2, JSON.stringify(filt.two[0]));
+      ok('a challenge shows the revealed hand to the two seats in it and to nobody else',
+        filt.one[1].hand.length === 3 && filt.two[1].hand.length === 3 && filt.three[1].hand === undefined &&
+        filt.three[1].bluff === true, JSON.stringify(filt.three[1]));
+
+      /* ---- سطر القياس خلف مفتاح ---- */
+      await H.click('#menu'); await sleep(150);
+      await H.click('#statsw'); await sleep(1300);
+      const meas = await H.$eval('#meas', e => e.hidden ? '' : e.textContent.trim());
+      ok('the measure line reads live numbers when its switch is on',
+        /^net loop /.test(meas) && /rtt /.test(meas) && /in .*\/s out .*\/s/.test(meas) && /peers 2/.test(meas), meas);
+      await H.click('#resume'); await sleep(200);
+
+      /* ---- مقعدٌ يخرج: يُفلت في حينه، والغرفة لا تقف عليه ---- */
+      await G2.close();
+      await sleep(3200);
+      const ros2 = await rosterText(H);
+      ok('a seat that leaves is let go at once and shown as gone, its place kept for it', /انقطع/.test(ros2), ros2);
+
+      let stood = false;
+      for (let k = 0; k < 60; k++) {
+        const t = await turnText(H);
+        if (/^خالد، دوره$/.test(t)) {
+          const keys = await texts(H, '#acts button');
+          if (keys.some(x => /^امضِ عن /.test(x))) {
+            await clickByText(H, '#acts button', /^امضِ عن /);
+            stood = true;
+            await sleep(500);
+            break;
+          }
+        }
+        const step = await roomMove([H, G1], true);
+        if (!step || !step.what) { await sleep(200); continue; }
+        await sleep(220);
+      }
+      ok('and when the turn reaches that empty seat the host can walk it on, so the room never locks', stood);
+
+      /* ---- من عاد رُدّ إلى مقعده هو ---- */
+      await G1.reload({ waitUntil: 'load' });
+      await sleep(600);
+      await G1.click('#joingo');
+      await sleep(1200);
+      const back = await G1.evaluate(() => document.getElementById('start').hidden);
+      const backTags = await tags(G1);
+      ok('a guest that comes back with the same tab is put back in its own seat',
+        back && backTags.length === 2, 'sheet hidden=' + back + ' tags=' + backTags.length);
+
+      ok('the whole room was played without one request leaving the machine', re.length === 0, re[0]);
+      await rctx.close();
+    }
+
+    /* ---- غرفةٌ ممتلئة: خمسةٌ حدُّ الطاولة، والسادس يُخبَر صراحةً ---- */
+    {
+      const fctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
+      const fe = [];
+      const F = await openIn(fctx, '?net=loop&seed=77', fe);
+      await F.fill('#namelist input', 'المضيف');
+      await F.click('.modes .key[data-m="online"]');
+      await F.click('#mkroom');
+      await sleep(600);
+      const fcode = (await F.textContent('#roomcode')).trim();
+      const gs = [];
+      for (let i = 0; i < 5; i++) {
+        const g = await openIn(fctx, '?net=loop&join=' + fcode, fe);
+        await g.fill('#namelist input', 'ضيف' + (i + 1));
+        await g.click('#joingo');
+        await sleep(650);
+        gs.push(g);
+      }
+      ok('the host seats four guests and no more', (await F.$$eval('#roster .r', es => es.length)) === 5,
+        String(await F.$$eval('#roster .r', es => es.length)));
+      ok('the fifth guest is told the room is full rather than left waiting',
+        /ممتلئة/.test((await gs[4].textContent('#netnote')).trim()), (await gs[4].textContent('#netnote')).trim());
+      ok('nothing threw while the room filled', fe.length === 0, fe[0]);
+      await fctx.close();
+    }
+
+
+    /* ---- WebRTC حقيقي: ندّان في سياقين منفصلين، وقناةٌ تُفتح فعلاً ----
+       مطفأٌ ما لم يُطلب بـ‎--rtc‎: يحتاج إنترنت، وبقيّة هذا الملفّ تشترط
+       ألّا يخرج طلبٌ واحد. وهو يثبت ما لا يثبته ‎loop‎: أن التوقيع يمرّ على
+       الوسيط العام بالشكل الذي قِيس، وأن قناة البيانات تُفتح وتحمل اللعب. */
+    if (RTC) {
+      const mk = () => browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
+      const hc = await mk(), gc = await mk();
+      const he = [], ge = [];
+      const H = await openIn(hc, '?seed=91', he);
+      const G = await openIn(gc, '', ge);
+
+      await H.fill('#namelist input', 'حمد');
+      await H.click('.modes .key[data-m="online"]');
+      await H.click('#mkroom');
+      let code = '';
+      for (let k = 0; k < 40 && !code; k++) { await sleep(500); code = (await H.textContent('#roomcode')).trim(); }
+      ok('rtc: the broker gave the host its room', /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{5}$/.test(code),
+        code + ' / ' + (await H.textContent('#netnote')).trim());
+
+      await G.fill('#namelist input', 'سارة');
+      await G.click('.modes .key[data-m="online"]');
+      await G.click('#joinroom');
+      await G.fill('#codein', code);
+      await G.click('#joingo');
+      let seated = false;
+      for (let k = 0; k < 60 && !seated; k++) {
+        await sleep(500);
+        seated = (await H.$$eval('#roster .r', es => es.length)) === 2;
+      }
+      ok('rtc: a data channel opened across the broker and the guest took a seat', seated,
+        (await G.textContent('#netnote')).trim());
+
+      if (seated) {
+        await H.click('#startbtn');
+        await sleep(2500);
+        const hands = [(await handCards(H)).length, (await handCards(G)).length];
+        ok('rtc: the deal crossed the wire and each seat holds its own seven',
+          hands.every(k => k === 7 || k === 9), hands.join('/'));
+        let moved = false;
+        for (let k = 0; k < 60 && !moved; k++) {
+          const step = await roomMove([H, G], true);
+          if (!step) { await sleep(300); continue; }
+          if (step.what === 'play' || step.what === 'one') moved = true;
+          await sleep(300);
+        }
+        ok('rtc: a card played on one device is ruled on by the other', moved);
+        await H.click('#menu'); await H.click('#statsw'); await sleep(1600);
+        const meas = await H.$eval('#meas', e => e.hidden ? '' : e.textContent.trim());
+        ok('rtc: the measure line reads a real link', /^net rtc /.test(meas) && /ice /.test(meas), meas);
+        console.log('     ' + meas);
+      }
+      /* الطلبات الخارجية هنا متوقّعة، لكنها محدودةٌ بمن أُعلن — تُقرأ وتُفحص */
+      const all = he.concat(ge);
+      const hosts = [...new Set(all.filter(x => /^external: /.test(x))
+        .map(u => { try { return new URL(u.slice(10)).hostname; } catch (e) { return u; } }))];
+      const threw = all.filter(x => !/^external: /.test(x));
+      ok('rtc: nothing was reached but the declared broker', hosts.length > 0 && hosts.every(x => x === '0.peerjs.com'), hosts.join(' '));
+      ok('rtc: nothing threw', threw.length === 0, threw[0]);
+      await hc.close(); await gc.close();
+    }
 
     /* ============ ضدّ الحاسب من اثنين حتى خمسة ============ */
     for (const n of [2, 5]) {

@@ -7,10 +7,12 @@
 
   Stage 1 of six built the ENGINE and its checks.  Stage 2 built the TABLE:
   a CSS 3D card table drawn in DOM and SVG, with no WebGL, no library and no
-  bitmap.  Stage 3 — this page, still — adds the HAND-OFF privacy window and
-  a CPU OPPONENT on top of that table.  Across all three the engine did not
-  change by a character (src/tests/shadda.js still runs its 108 checks on
-  the slice between the two ENGINE markers below).
+  bitmap.  Stage 3 added the HAND-OFF privacy window and a CPU OPPONENT on
+  top of that table.  Stage 4 — this page, still — adds the ONLINE ROOM: a
+  star of one trusted host and up to four remote seats, and with it the
+  collection's `data-net` clause.  Across all four the engine did not change
+  by a character (src/tests/shadda.js still runs its 108 checks on the slice
+  between the two ENGINE markers below).
 
   THE ENGINE TOUCHES NOTHING BUT ITS OWN STATE
 
@@ -170,8 +172,8 @@
     (keeping the counts), the whole stock (keeping its size), the generator
     cursor, the seed, and the truth of whether a Wild Draw Four was a bluff.
     That truth lives in `state.challenge.legal`, and the `challenged` event
-    carries the revealed hand — stage 4 must deliver that one event to the two
-    seats involved and to nobody else.
+    carries the revealed hand — which stage 4 delivers to the two seats
+    involved and to nobody else (ShaddaNet.eventsFor, checked on the wire).
 
   THE TABLE  (stage 2)
 
@@ -477,6 +479,168 @@
     the start sheet is showing (el.start.hidden) or the round is over, so
     nothing plays behind the menu or past a round's end.
 
+
+  THE ONLINE ROOM  (stage 4)
+
+    Three modes now: the phone passed around, a computer opponent, and a room
+    on the network.  The room is a STAR with a TRUSTED HOST, and it is the
+    shape the computer opponent already proved: a seat that is not holding
+    this phone reaches send() through a message instead of through a tap, and
+    nothing below send() can tell the difference.  One set of rules runs on
+    one device, so there is nothing for two devices to disagree about, and
+    no desync is possible by construction.
+
+    WHAT CROSSES THE WIRE
+
+      host -> seat  {t:'v', n, v, ev}  viewFor(G, seat) and that seat's own
+                                       events.  Never G, not once.
+                    {t:'seat', seat, ver, code, names}   you are seat N
+                    {t:'room', names, here}              the roster
+                    {t:'full'} {t:'ver'} {t:'no', e} {t:'bye'}
+      seat -> host  {t:'hi', name, rid, ver}
+                    {t:'a', a}         an action, for the host to apply
+                    {t:'ping'|'pong', k}
+
+    A whole view of a seven-card hand is about 600 bytes and a round is a few
+    kilobytes altogether.  Nothing is streamed and nothing ticks: a message
+    goes out when the state changes, plus one snapshot every 1500ms.
+
+    THE HOST SEES EVERYTHING, AND IS SAID TO
+
+      The host's device holds G, and it must: somebody has to hold the deck
+      to deal it.  Its own screen draws viewFor(G, 0) like any other seat's,
+      so no one else's hand is ever on it — but the state IS there, and the
+      room panel says so in words before anybody joins.  A game with a hidden
+      hand cannot leave that to be found out.  It is the price of having no
+      backend, and the alternative is a server nobody here wants to run.
+
+    WHAT A REMOTE SEAT MAY KNOW
+
+      viewFor drops the other hands (keeping the counts), the stock (keeping
+      its size), the generator cursor, the seed, and the truth of a Wild Draw
+      Four.  Two engine events carry more than the view does, so the network
+      layer strips them per seat (ShaddaNet.eventsFor):
+        drew        carries the ids drawn    -> only to the seat that drew
+        challenged  carries the revealed hand -> only to the two seats in it
+      Both are checked ON THE WIRE in src/tests/shadda-play.js: a third tab
+      opens the same channel and records every envelope that passes, and the
+      check is that no message addressed to a seat ever carried a key that
+      seat may not see.  Proved, not asserted.
+
+    DO NOT BELIEVE THE GUEST ABOUT WHO IT IS
+
+      The seat is read from the host's own table, keyed by the channel the
+      message arrived on.  Not one line anywhere reads a seat, player or from
+      field out of a message body: an action carrying seat:0 is applied to
+      whatever seat its sender actually holds, which the trace test forges
+      and then checks.  Action names are matched against Shadda.ACTIONS and
+      every field re-typed before the engine sees any of it — the same move
+      as matching button names against a known set.  Anything malformed is
+      dropped in silence and never thrown inside a channel handler, because
+      an exception there takes the whole room down with it.
+
+    THE THREE DEFENCES, TRANSLATED
+
+      The reference's one failure mode that mattered was a stuck button: a
+      press with no release leaves a game unplayable for no visible reason.
+      A card game cannot stick a button, but it can stick a TURN, and the
+      same three defences answer it.
+        1  The channel is reliable and ordered — RTCDataChannel {ordered:
+           true} with no maxRetransmits.  A few milliseconds is cheaper than
+           a table that disagrees with itself.
+        2  The host re-sends every seat its whole view every 1500ms under the
+           SAME sequence number, so a lost message heals within one beat and
+           no notice is ever announced twice.  This is the reference's
+           snapshot of held buttons, in the only currency this game has.
+        3  A seat is let go the moment its channel closes, not after a
+           timeout.  And because a card game still needs that seat to act,
+           the host is given «امضِ عن فلان», which walks the absent seat on
+           using nothing but legal actions — draw then pass, or accept, or a
+           colour.  No action was added to the engine for it.
+
+    ONE SEAT TABLE, AND COMING BACK TO YOUR OWN SEAT
+
+      Seat 0 is the host's and is never given away.  The rest are claimed in
+      arrival order out of one table (ShaddaNet.Seats), so nothing can hand
+      out a seat behind its back.  Before the deal, a seat that leaves is
+      folded away so the seats stay contiguous; after the deal its row is
+      kept, and a guest that comes back in the same tab — a per-tab rid in
+      sessionStorage — is put back in its own seat.  The rid is a return
+      ticket, never an identity: the seat still comes from the table.
+
+    THE CODE, AND THE LINK
+
+      Five letters from 23456789ABCDEFGHJKMNPQRSTUVWXYZ: no 0, O, 1, I or L,
+      because a room code is read out loud across a room.  What is typed is
+      mended rather than refused — a 0 becomes O, a 1 becomes I.  The host's
+      peer id IS the code (shadda-ABC23), so no lookup table exists anywhere.
+      And the code is a link from the first day: ?join=CODE opens the page in
+      online mode with the code already in the box, which on a phone is worth
+      more than anything else in this section.
+
+    THE TRANSPORT IS A SEAM
+
+      ShaddaNet knows nothing about شدّة and touches no DOM; the drawing layer
+      knows nothing about WebRTC.  ?net=loop swaps the entire transport for a
+      BroadcastChannel between tabs of one device, and not a line above it
+      changes — which is how the room, the seats, the trust rules, the
+      snapshots and the per-seat views are all checked with no network at
+      all.  That transport's price is that every tab on the origin hears
+      everything, and that price is exactly what makes the wire audit above
+      possible.  It is a test seam and a same-device seam, not a private
+      channel: a real room runs on WebRTC's data channel, which is point to
+      point and DTLS encrypted.
+
+    THE SIGNALLING, MEASURED AND NOT RECALLED
+
+      Signalling is the one thing that leaves the machine, and it goes to a
+      public broker so that there is no backend and the site stays static
+      files.  The contract forbids an external script, so no library is
+      loaded: the broker client here is ours — a socket, a heartbeat and a
+      backoff, in place of a library.  Its shape was measured against
+      0.peerjs.com on 2026-09-23 with a probe written for it, not recalled:
+        the broker stamps `src` itself, so a guest cannot claim to be another
+          peer at the signalling layer at all;
+        an OFFER is relayed only with a payload of the full shape {sdp,
+          type:'data', connectionId, label, reliable, serialization, browser,
+          metadata} — three shorter shapes were tried and the broker closed
+          the socket on each, with no message and no reason given;
+        `candidate: null`, the end-of-candidates marker, closes it too, so it
+          is never sent;
+        `metadata` passes through untouched, so the guest's display name
+          rides on it.
+
+    WHAT IS NOT SOLVED, SAID PLAINLY
+
+      No TURN.  With STUN alone, two peers behind symmetric NAT or CGNAT —
+      common on mobile networks — will not connect, and the reference is
+      blunt that this is the likeliest reason a real family session fails.
+      The socket for it is here from the first day rather than at the end of
+      the plan: body[data-net-turn="turns:host:443|user|pass"] is read, and
+      refused unless its host is also named in data-net-hosts, so a server
+      can never be dialled without being declared.  No credentials ship,
+      because there is no server here to issue any.  What is here instead is
+      a diagnosis: the measure line names the selected candidate type (host /
+      srflx / relay), so a NAT failure reads as a fact instead of as a
+      connection that simply never opens.
+
+      The broker is public.  It sees room codes and IP addresses.  It does
+      not see the game: that goes peer to peer, encrypted.
+
+      It has not been played between two real networks.  Everything here was
+      driven between tabs of one machine, and the reference is emphatic that
+      this proves nothing at all about NAT.  That is the first real test, and
+      it wants a phone on mobile data against a second network — not this
+      machine.
+
+    MEASURE, DO NOT GUESS
+
+      A switch on the start sheet raises one line: transport, code, seat,
+      rtt, bytes in and out per second, the size of the last view pushed, the
+      selected ICE candidate type, and the peer count.  The reference spent
+      four rounds fixing assumptions before it added its own; this one is
+      here on day one.
+
   THE PAGE ITSELF, AND THE COLLECTION'S CONTRACT
 
     src/tests/contract.js wants a visible <canvas> in every game.  A card
@@ -490,6 +654,28 @@
     Here the declared element is the scene itself, which is laid out and
     sized before a game starts — the start menu is a sheet over it, and the
     felt shows through.
+
+
+    A page that plays across the network would fail the contract's flattest
+    rule — no external request, ever — so stage 4 brought that rule its own
+    clause rather than a hole.  `body[data-net="online"]` is not excused one
+    thing; it is held to three:
+      1  the page must work completely with no network, and ask for nothing
+         in order to start at all;
+      2  no external request may happen before a player presses — the check
+         loads it, leaves it idle, and fails it on a single byte;
+      3  after the press, nothing but the hosts the page names in
+         `body[data-net-hosts]` may be contacted.
+    The check presses the page's own declared controls (`[data-net-probe]`)
+    and watches the wire, and it watches WebSockets too — `page.on('request')`
+    never sees one, which had been a door this contract could not see through
+    until now, for every page.  A page that declares no data-net may not
+    carry its machinery either: no hosts, no probe, no TURN.  So the five
+    older games are governed by exactly the rule they always were.
+    What the probe cannot see is ICE traffic to a STUN host, which is UDP and
+    invisible to a browser driven from outside.  That one is held in the code
+    instead: the page reads its host list out of its own declaration, so it
+    cannot use what it did not declare.
 
     A fanned hand overlaps on purpose, which the contract's touch-theft scan
     reads as one key eating its neighbour.  A single declared `[data-fan]`
@@ -551,6 +737,40 @@ body{
 button{appearance:none;-webkit-appearance:none;border:0;background:none;color:inherit;font:inherit;cursor:pointer;text-align:inherit}
 button:disabled{cursor:default}
 [hidden]{display:none !important}
+
+/* ---------- الأونلاين: الغرفة والرمز والرفقة وسطر القياس (المرحلة ٤) ---------- */
+.net{display:grid;gap:9px;margin-top:10px}
+.netpick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.joinbox{display:flex;gap:8px}
+.joinbox input{
+  flex:1;min-width:0;height:48px;border-radius:14px;border:1px solid var(--ivory-edge);
+  background:rgba(243,236,217,.06);color:var(--cream);padding:0 12px;
+  font:800 22px/1 var(--font);letter-spacing:.24em;text-align:center;direction:ltr;text-transform:uppercase;outline:none;
+}
+.joinbox input::placeholder{color:rgba(243,236,217,.28);letter-spacing:.24em}
+.roombox{display:grid;gap:6px}
+.code{
+  direction:ltr;text-align:center;font:900 30px/1.25 var(--font);letter-spacing:.28em;
+  color:var(--acc-hi);background:rgba(224,164,94,.10);border:1px dashed var(--acc-lo);
+  border-radius:14px;padding:8px 6px 8px 14px;user-select:all;-webkit-user-select:all;
+}
+.rlink{direction:ltr;text-align:center;font-size:11px;color:var(--ivory-deep);word-break:break-all;user-select:all;-webkit-user-select:all}
+.roster{display:grid;gap:6px}
+.roster .r{display:flex;align-items:center;gap:10px;min-height:38px;border-radius:10px;padding:0 10px;font-size:14px;font-weight:700;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)}
+.roster .r .av{width:26px;height:26px;border-radius:50%;background:var(--ivory);color:var(--ink);display:grid;place-items:center;font-weight:900;font-size:13px;flex:none}
+.roster .r small{margin-inline-start:auto;font-size:11px;font-weight:700;color:var(--engrave)}
+.roster .r.off{opacity:.45}
+.roster .r.off small{color:var(--red-hi)}
+.warn{font-size:11.5px;line-height:1.8;color:var(--acc-hi);background:rgba(224,164,94,.09);border-radius:12px;padding:8px 10px}
+.netnote{font-size:12.5px;line-height:1.7;color:var(--acc-hi);min-height:0}
+.netnote:empty{display:none}
+.meas{
+  position:fixed;left:0;right:0;bottom:0;z-index:60;direction:ltr;pointer-events:none;
+  font:500 10px/1.6 var(--font);letter-spacing:.03em;font-variant-numeric:tabular-nums;
+  color:var(--acc-lo);background:rgba(13,11,16,.74);text-align:center;
+  padding:2px 6px calc(2px + env(safe-area-inset-bottom));
+}
 
 /* ---------- الشريط العلوي: صفّ الهيكل الذي يشترطه العقد، ومحتواه لاتيني ---------- */
 .cap{
@@ -829,7 +1049,7 @@ button:disabled{cursor:default}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none !important;animation:none !important}}
 </style>
 </head>
-<body data-render="dom">
+<body data-render="dom" data-net="online" data-net-hosts="0.peerjs.com stun.l.google.com">
 
 <div class="cap">SHADDA<span class="n" id="cap-n"></span><button class="menu" id="menu" aria-label="القائمة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
 
@@ -857,12 +1077,32 @@ button:disabled{cursor:default}
       <div class="head"><span id="badge"></span><div><b>شدّة</b><small>لعبة ورقٍ لاثنين حتى خمسة</small></div></div>
       <div class="modes">
         <button class="key mode on" data-m="local"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="12" height="26" rx="3"/><path d="M14 26h4"/><path d="M4 12a6 6 0 0 1 4-5M28 20a6 6 0 0 1-4 5"/><path d="M8 4v3H5M24 28v-3h3"/></svg><span>على هذا الجهاز<small>تسليم الجوّال بين اللاعبين</small></span></button>
-        <button class="key mode" data-m="online" disabled><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="16" cy="16" r="12"/><path d="M4 16h24M16 4c-4 4-4 20 0 24M16 4c4 4 4 20 0 24M6 10h20M6 22h20"/></svg><span>أونلاين<small>أنشئ غرفة أو انضم برمز — يأتي في المرحلة ٤</small></span></button>
+        <button class="key mode" data-m="online" data-net-probe><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="16" cy="16" r="12"/><path d="M4 16h24M16 4c-4 4-4 20 0 24M16 4c4 4 4 20 0 24M6 10h20M6 22h20"/></svg><span>أونلاين<small>أنشئ غرفة أو انضم برمز — كلٌّ على جهازه</small></span></button>
         <button class="key mode" data-m="cpu"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="18" height="18" rx="3"/><rect x="12" y="12" width="8" height="8" rx="1"/><path d="M11 3v4M16 3v4M21 3v4M11 25v4M16 25v4M21 25v4M3 11h4M3 16h4M3 21h4M25 11h4M25 16h4M25 21h4"/></svg><span>ضد الحاسب<small>خصومٌ آليّون — من اثنين حتى خمسة</small></span></button>
       </div>
-      <div class="lbl">عدد اللاعبين</div>
-      <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div>
-      <div class="lbl">الأسماء</div>
+      <div class="net" id="net" hidden>
+        <div class="netpick" id="netpick">
+          <button class="key" id="mkroom" data-net-probe>أنشئ غرفة</button>
+          <button class="key" id="joinroom">انضمّ برمز</button>
+        </div>
+        <div class="joinbox" id="joinbox" hidden>
+          <input id="codein" type="text" autocomplete="off" spellcheck="false" maxlength="5" placeholder="ABCDE" aria-label="رمز الغرفة">
+          <button class="key acc" id="joingo">ادخل</button>
+        </div>
+        <div class="roombox" id="roombox" hidden>
+          <div class="lbl" id="codehead">رمز الغرفة</div>
+          <div class="code" id="roomcode"></div>
+          <div class="rlink" id="roomlink"></div>
+          <button class="key" id="copylink" hidden>انسخ الرابط</button>
+          <div class="lbl">في الغرفة</div>
+          <div class="roster" id="roster"></div>
+        </div>
+        <p class="warn">المضيفُ — من أنشأ الغرفة — جهازُه هو الطاولة: الورق كلّه عنده، ولا تُعرض على شاشته إلا يدُه هو. يُقال لكم صراحةً.</p>
+        <div class="netnote" id="netnote"></div>
+      </div>
+      <div id="countrow"><div class="lbl">عدد اللاعبين</div>
+      <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div></div>
+      <div class="lbl" id="namehead">الأسماء</div>
       <div class="namelist" id="namelist"></div>
       <button class="toggle" id="privacy" role="switch" aria-checked="true"><span>شاشة الخصوصية بين الأدوار</span><span class="sw"></span></button>
       <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد البيت</span><span class="sw"></span></button>
@@ -871,12 +1111,442 @@ button:disabled{cursor:default}
         <button class="toggle" role="switch" aria-checked="false" data-k="jumpIn" disabled><span>القفز بالورقة المطابقة (jump-in)</span><span class="sw"></span></button>
         <button class="toggle" role="switch" aria-checked="false" data-k="sevenZero" disabled><span>٧ تبادل و٠ تدوير</span><span class="sw"></span></button>
       </div>
+      <button class="toggle" id="statsw" role="switch" aria-checked="false"><span>سطر القياس (rtt وبايت/ث)</span><span class="sw"></span></button>
       <button class="key acc startbtn" id="startbtn">ابدأ</button>
       <button class="key resume" id="resume" hidden>عودة إلى الطاولة</button>
       <p class="note">القواعد الرسمية كاملة: ١٠٨ ورقة، وسبعٌ لكل لاعب، و«عكس» تعمل عمل «وقّف» في لعبة اثنين، والاعتراض على «سحب أربعة»، وعقوبة من لم يقل «واحدة» ورقتان. وقواعد البيت مطفأةٌ لأنها ليست من الرسمية.</p>
     </div>
   </div>
 </div>
+
+<div class="meas" id="meas" hidden></div>
+
+<script>
+/* ===== SHADDA NET START ===== *//* طبقة النقل — لا DOM ولا قواعد لعب.
+   لا يظهر في هذه الطبقة `document` ولا عنصرُ صفحةٍ واحد، ولا تعرف شيئاً عن
+   شدّة: تنقل كائنات JSON بين مضيفٍ وضيوف، وتحسم من هو المرسل بنفسها. وما
+   فوقها (طبقة الرسم) هي التي تعرف المقاعد والأوراق. الفصل هو درس
+   online-play-reference.md الأول، وهو ما يجعل الوصلة قابلةً للاستبدال:
+   ‎?net=loop‎ يستبدل WebRTC بـBroadcastChannel بلا أن يتبدّل سطرٌ فوقها. */
+var ShaddaNet = (function () {
+  'use strict';
+
+  /* ---------- رمز الغرفة: بلا ‎0 O 1 I L‎ لأنه يُقرأ بصوتٍ عالٍ في غرفة ---------- */
+  var ALPHA = '23456789ABCDEFGHJKMNPQRSTUVWXYZ', CODE_LEN = 5;
+  function makeCode() {
+    var out = '', i, b = new Uint8Array(CODE_LEN);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(b);
+    else for (i = 0; i < CODE_LEN; i++) b[i] = (Math.random() * 256) | 0;
+    for (i = 0; i < CODE_LEN; i++) out += ALPHA.charAt(b[i] % ALPHA.length);
+    return out;
+  }
+  /* ما كُتب من الحروف المستبعدة يُردّ إلى شبيهه لا يُرفض: من يقرأ الرمز بصوته
+     يقول «صفر» فيكتب من يسمعه ‎0‎، والرمز لا يحمل إلا ‎O‎. */
+  function cleanCode(s) {
+    s = String(s === undefined || s === null ? '' : s).toUpperCase().replace(/[^0-9A-Z]/g, '');
+    s = s.replace(/0/g, 'O').replace(/1/g, 'I');
+    var out = '', i;
+    for (i = 0; i < s.length; i++) if (ALPHA.indexOf(s.charAt(i)) >= 0) out += s.charAt(i);
+    return out.slice(0, CODE_LEN);
+  }
+
+  /* ---------- ما يُصدَّق وما يُسقط بصمت (القاعدة الأولى في المرجع) ----------
+     الرسالة كائنٌ عادي، و‎t‎ من قائمةٍ مغلقة. والمرسل يُعرَف من القناة التي
+     وصلت منها لا من حقلٍ في الرسالة — فـ‎seat‎ أو ‎player‎ أو ‎from‎ في الجسد
+     لا يُقرأ أصلاً، ولا سطرَ واحدٌ في هذا الملفّ يقرؤه. */
+  var TYPES = { hi: 1, a: 1, ping: 1, pong: 1, seat: 1, full: 1, ver: 1, room: 1, v: 1, no: 1, bye: 1 };
+  function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function sane(m) {
+    if (!m || typeof m !== 'object' || Array.isArray(m)) return null;
+    if (typeof m.t !== 'string' || !has(TYPES, m.t)) return null;
+    if (has(m, '__proto__')) return null;
+    return m;
+  }
+  function parse(txt) {
+    var m;
+    try { m = JSON.parse(txt); } catch (e) { return null; }
+    return sane(m);
+  }
+
+  /* ---------- جدول المقاعد: واحدٌ لا اثنان (القاعدة الثالثة في المرجع) ----------
+     المضيف وحده يملكه. المقعد ‎0‎ له هو ولا يُعطى لضيفٍ أبداً، والباقي يُرصد
+     بترتيب الوصول. ومن عاد بمعرّف عودته نفسه رُدّ إلى مقعده هو. */
+  function Seats(max) {
+    var rows = [{ peer: null, rid: null, name: '', here: true }];
+    var api = {
+      max: function () { return max; },
+      setMax: function (n) { max = n; },
+      rows: function () { return rows; },
+      of: function (peer) { for (var i = 0; i < rows.length; i++) if (rows[i].peer === peer) return i; return -1; },
+      claim: function (peer, rid, name) {
+        var i;
+        for (i = 1; i < rows.length; i++) if (rid && rows[i].rid === rid && !rows[i].here) {
+          rows[i].peer = peer; rows[i].here = true; if (name) rows[i].name = name;
+          return i;
+        }
+        for (i = 1; i < rows.length; i++) if (!rows[i].here) {
+          rows[i] = { peer: peer, rid: rid, name: name || '', here: true };
+          return i;
+        }
+        if (rows.length >= max) return -1;
+        rows.push({ peer: peer, rid: rid, name: name || '', here: true });
+        return rows.length - 1;
+      },
+      release: function (peer) {
+        var i = api.of(peer);
+        if (i < 0) return -1;
+        rows[i].peer = null; rows[i].here = false;
+        return i;
+      },
+      drop: function (peer) { var i = api.of(peer); if (i > 0) rows.splice(i, 1); return i; },
+      /* توزيعةٌ جديدة لا تحجز كرسياً لمن غادر: الصفوف الغائبة تُطوى أوّلاً */
+      compact: function () { for (var i = rows.length - 1; i > 0; i--) if (!rows[i].here) rows.splice(i, 1); },
+      names: function () { var a = [], i; for (i = 0; i < rows.length; i++) a.push(rows[i].name); return a; },
+      here: function () { var a = [], i; for (i = 0; i < rows.length; i++) a.push(!!rows[i].here); return a; }
+    };
+    return api;
+  }
+
+  /* ---------- القياس: أرقامٌ حيّة لا تخمين (القاعدة الخامسة في المرجع) ---------- */
+  function Meter() {
+    var inB = 0, outB = 0, t0 = Date.now(), last = 0, rtt = null, ice = '';
+    return {
+      inn: function (n) { inB += n; },
+      out: function (n) { outB += n; last = n; },
+      rtt: function (v) { if (v !== undefined) rtt = v; return rtt; },
+      ice: function (v) { if (v !== undefined) ice = v; return ice; },
+      read: function () {
+        var dt = Math.max(0.25, (Date.now() - t0) / 1000);
+        var r = { inBps: Math.round(inB / dt), outBps: Math.round(outB / dt), last: last, rtt: rtt, ice: ice };
+        inB = 0; outB = 0; t0 = Date.now();
+        return r;
+      }
+    };
+  }
+
+  /* ================= وصلةٌ محلّية: BroadcastChannel، بلا شبكةٍ إطلاقاً =========
+     تبويباتُ جهازٍ واحد. وُضعت لتُقاد الغرفةُ والمقاعدُ والثقةُ واللقطاتُ
+     بالفحص بلا شبكةٍ حقيقية، بنفس الطبقة التي فوقها حرفاً بحرف. وهي **ليست
+     خاصّة**: كل تبويبٍ على الأصل نفسه يسمع كل شيء — ولذلك تحديداً يصلح الفحص
+     أن يتنصّت عليها فيثبت أن ما أُرسل لمقعدٍ لا يحمل إلا ما يحقّ له. */
+  function Loop(opts) {
+    var code = opts.code, isHost = !!opts.host, on = opts.on || {};
+    var me = isHost ? 'H' : 'G' + Math.random().toString(36).slice(2, 9);
+    var ch = new BroadcastChannel('shadda-room-' + code);
+    var meter = Meter(), peers = {}, seen = {}, live = null, hostGone = null, dead = false;
+    var GAP = 600, STALE = 2200;
+
+    function raw(to, m) {
+      var txt = JSON.stringify(m);
+      meter.out(txt.length);
+      ch.postMessage({ room: code, from: me, to: to, m: txt });
+    }
+    function note(id) { seen[id] = Date.now(); }
+    function sweep() {
+      var now = Date.now(), id;
+      for (id in seen) if (peers[id] && now - seen[id] > STALE) {
+        delete peers[id]; delete seen[id];
+        if (on.gone) on.gone(id, 'left');
+      }
+    }
+    ch.onmessage = function (e) {
+      var d = e.data;
+      if (!d || d.room !== code || typeof d.from !== 'string' || d.from === me) return;
+      if (d.to !== me && d.to !== '*') return;
+      if (typeof d.m === 'string') meter.inn(d.m.length);
+      if (d.beat) { if (isHost) note(d.from); else if (hostGone) { clearTimeout(hostGone); hostGone = null; } return; }
+      var m = parse(d.m);
+      if (!m) return;
+      if (isHost) {
+        note(d.from);
+        if (!peers[d.from]) { peers[d.from] = true; if (on.peer) on.peer(d.from); }
+        if (on.msg) on.msg(d.from, m);
+      } else {
+        if (m.t === 'bye') { if (on.closed) on.closed('hostLeft'); return; }
+        if (on.msg) on.msg('H', m);
+      }
+    };
+    live = setInterval(function () {
+      ch.postMessage({ room: code, from: me, to: isHost ? '*' : 'H', beat: 1 });
+      if (isHost) sweep();
+    }, GAP);
+    if (isHost) { if (on.status) setTimeout(function () { if (on.status) on.status('ready', code); }, 0); }
+    /* ولا يقول الضيف «وصلنا» هنا: القناة المحلّية تُفتح سواءٌ كان في الغرفة
+       أحدٌ أو لم يكن، فالوصول لا يُعرف إلا بجواب المضيف. من فوقنا يمهل ثم ييأس. */
+    else raw('H', { t: 'hi', name: opts.name || '', rid: opts.rid || '', ver: opts.ver || '' });
+
+    return {
+      kind: 'loop', code: code, me: me,
+      to: function (peer, m) { raw(peer, m); return true; },
+      all: function (m) { raw('*', m); },
+      send: function (m) { raw('H', m); return true; },
+      meter: meter,
+      close: function () {
+        dead = true;
+        try { raw(isHost ? '*' : 'H', { t: 'bye' }); } catch (e) {}
+        clearInterval(live);
+        if (hostGone) clearTimeout(hostGone);
+        try { ch.close(); } catch (e) {}
+      }
+    };
+  }
+
+  /* ================= وصلة WebRTC ==========================================
+     التوقيع وحده يخرج إلى الشبكة، وعبر وسيطٍ عام لا خادمَ لنا. والبيانات
+     ند-لند على قناةٍ **موثوقةٍ مرتّبة** — الدفاع الأول من ثلاثة.
+
+     وشكل الرسائل على الوسيط مقيسٌ لا مُتذكَّر: جُرّب على ‎0.peerjs.com‎ يوم
+     ‎2026-09-23‎ بعميلٍ مكتوبٍ هنا لا بمكتبة، فثبت أنّ:
+       • الوسيط يضع ‎src‎ بنفسه — فلا ينتحل ضيفٌ مُرسِلاً آخر عليه.
+       • ‎OFFER‎ لا يُمرَّر إلا بحمولةٍ كاملة الشكل ‎{sdp, type:'data',
+         connectionId, label, reliable, serialization, browser, metadata}‎؛
+         وأيُّ شكلٍ أنقص يُغلق الوسيطُ السلكَ عليه بلا رسالةٍ ولا سبب.
+       • ‎candidate:null‎ (نهاية المرشّحين) يُغلق السلك كذلك — فلا تُرسَل.
+       • ‎metadata‎ يمرّ كما هو، فيُركب عليه الاسمُ المعروض. */
+  var BROKER = { host: '0.peerjs.com', path: '/peerjs', key: 'peerjs', ver: '1.5.4' };
+  var BACKOFF = [1000, 2000, 4000, 8000, 10000];
+
+  function Broker(id, on) {
+    var ws = null, hb = null, tries = 0, dead = false, ever = false;
+    function url() {
+      return 'wss://' + BROKER.host + BROKER.path + '?key=' + BROKER.key + '&id=' + encodeURIComponent(id) +
+        '&token=' + Math.random().toString(36).slice(2, 12) + '&version=' + BROKER.ver;
+    }
+    function retry() {
+      if (dead) return;
+      var w = BACKOFF[Math.min(tries++, BACKOFF.length - 1)];
+      setTimeout(dial, w);
+    }
+    function dial() {
+      if (dead) return;
+      try { ws = new WebSocket(url()); } catch (e) { retry(); return; }
+      ws.onopen = function () { tries = 0; };
+      ws.onmessage = function (e) {
+        var m;
+        try { m = JSON.parse(e.data); } catch (x) { return; }
+        if (!m || typeof m.type !== 'string') return;
+        if (m.type === 'OPEN') {
+          ever = true;
+          if (hb) clearInterval(hb);
+          hb = setInterval(function () { try { ws.send('{"type":"HEARTBEAT"}'); } catch (x) {} }, 5000);
+          if (on.open) on.open();
+          return;
+        }
+        if (m.type === 'ID-TAKEN') { if (on.taken) on.taken(); return; }
+        if (m.type === 'ERROR') { if (on.err) on.err((m.payload && m.payload.msg) || 'broker'); return; }
+        if (m.type === 'OFFER' || m.type === 'ANSWER' || m.type === 'CANDIDATE' || m.type === 'LEAVE' || m.type === 'EXPIRE')
+          if (typeof m.src === 'string' && on.sig) on.sig(m.type, m.src, m.payload);
+      };
+      /* فقدُ الوسيط لا يُسقط من اتّصل فعلاً: يُعاد الوصل بصمت (المرجع ١٣) */
+      ws.onclose = function () { if (hb) { clearInterval(hb); hb = null; } retry(); };
+      ws.onerror = function () {};
+    }
+    dial();
+    return {
+      ever: function () { return ever; },
+      up: function () { return !!ws && ws.readyState === 1; },
+      send: function (type, dst, payload) {
+        if (!ws || ws.readyState !== 1) return false;
+        try { ws.send(JSON.stringify({ type: type, dst: dst, payload: payload })); return true; } catch (e) { return false; }
+      },
+      close: function () { dead = true; if (hb) clearInterval(hb); try { if (ws) ws.close(); } catch (e) {} }
+    };
+  }
+
+  /* TURN من اليوم الأول لا في آخر الخطة: الخانة موجودة، ومن يملؤها يجب أن
+     يُعلن مضيفها في ‎data-net-hosts‎ وإلا رُفضت — فلا يتسلّل مضيفٌ غير مُعلَن. */
+  function iceConfig(cfg) {
+    var list = [];
+    if (cfg.stun) list.push({ urls: 'stun:' + cfg.stun });
+    if (cfg.turn && cfg.turn.urls) list.push(cfg.turn);
+    return { iceServers: list };
+  }
+
+  function Rtc(opts) {
+    var isHost = !!opts.host, code = opts.code, on = opts.on || {};
+    var myId = isHost ? 'shadda-' + code : 'shg' + Math.random().toString(36).slice(2, 10);
+    var meter = Meter(), links = {}, dead = false, statTimer = null, api = null;
+    var conf = iceConfig(opts.ice || {});
+    var hostId = 'shadda-' + code;
+
+    function mkLink(peer) {
+      var pc = new RTCPeerConnection(conf);
+      var L = { pc: pc, dc: null, q: [], remote: false, cid: 'sh' + Math.random().toString(36).slice(2, 9) };
+      links[peer] = L;
+      pc.onicecandidate = function (e) {
+        if (!e.candidate) return;
+        broker.send('CANDIDATE', peer, {
+          candidate: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate,
+          type: 'data', connectionId: L.cid
+        });
+      };
+      pc.onconnectionstatechange = function () {
+        var s = pc.connectionState;
+        if (s === 'failed' || s === 'closed' || s === 'disconnected') drop(peer, s === 'failed' ? 'failed' : 'left');
+      };
+      return L;
+    }
+    function wire(peer, dc) {
+      var L = links[peer];
+      if (!L) return;
+      L.dc = dc;
+      dc.onopen = function () {
+        if (isHost) { if (on.peer) on.peer(peer); }
+        else { api.send({ t: 'hi', name: opts.name || '', rid: opts.rid || '', ver: opts.ver || '' }); if (on.status) on.status('joined', code); }
+      };
+      dc.onmessage = function (e) {
+        var txt = typeof e.data === 'string' ? e.data : '';
+        meter.inn(txt.length);
+        var m = parse(txt);
+        if (!m) return;
+        if (!isHost && m.t === 'bye') { if (on.closed) on.closed('hostLeft'); return; }
+        if (on.msg) on.msg(peer, m);      /* المرسل هو القناة، لا حقلٌ في الرسالة */
+      };
+      dc.onclose = function () { drop(peer, 'left'); };
+      dc.onerror = function () {};
+    }
+    function drop(peer, why) {
+      var L = links[peer];
+      if (!L) return;
+      delete links[peer];
+      try { L.pc.close(); } catch (e) {}
+      if (isHost) { if (on.gone) on.gone(peer, why); }
+      else if (!dead && on.closed) on.closed(why === 'failed' ? 'failed' : 'hostLeft');
+    }
+    function flush(L) { while (L.q.length) L.pc.addIceCandidate(L.q.shift())['catch'](function () {}); }
+    function offer() {
+      var L = mkLink(hostId);
+      var dc = L.pc.createDataChannel('shadda', { ordered: true });   /* موثوقةٌ مرتّبة عمداً */
+      wire(hostId, dc);
+      L.pc.createOffer().then(function (d) { return L.pc.setLocalDescription(d); }).then(function () {
+        broker.send('OFFER', hostId, {
+          sdp: { type: L.pc.localDescription.type, sdp: L.pc.localDescription.sdp },
+          type: 'data', connectionId: L.cid, label: 'shadda', reliable: true,
+          serialization: 'none', browser: 'shadda',
+          metadata: { name: opts.name || '', proto: opts.ver || '' }
+        });
+      })['catch'](function () { if (on.status) on.status('failed', code); });
+    }
+    function answer(src, p) {
+      if (links[src]) { try { links[src].pc.close(); } catch (e) {} delete links[src]; }
+      var L = mkLink(src);
+      if (p.connectionId) L.cid = p.connectionId;
+      L.pc.ondatachannel = function (e) { wire(src, e.channel); };
+      L.pc.setRemoteDescription(p.sdp).then(function () {
+        L.remote = true; flush(L);
+        return L.pc.createAnswer();
+      }).then(function (d) { return L.pc.setLocalDescription(d); }).then(function () {
+        broker.send('ANSWER', src, {
+          sdp: { type: L.pc.localDescription.type, sdp: L.pc.localDescription.sdp },
+          type: 'data', connectionId: L.cid, browser: 'shadda'
+        });
+      })['catch'](function () {});
+    }
+    var broker = Broker(myId, {
+      open: function () {
+        if (isHost) { if (on.status) on.status('ready', code); return; }
+        offer();
+      },
+      taken: function () { if (on.status) on.status(isHost ? 'codeTaken' : 'noRoom', code); },
+      err: function (msg) { if (on.status) on.status('brokerError', msg); },
+      sig: function (type, src, p) {
+        if (type === 'LEAVE' || type === 'EXPIRE') {
+          if (isHost) drop(src, 'left');
+          else if (src === hostId && (!links[hostId] || !links[hostId].dc || links[hostId].dc.readyState !== 'open')) {
+            if (on.status) on.status('noRoom', code);
+          }
+          return;
+        }
+        if (!p || typeof p !== 'object') return;
+        if (type === 'OFFER') { if (isHost) answer(src, p); return; }
+        if (type === 'ANSWER') {
+          var L = links[src];
+          if (!L || !p.sdp) return;
+          L.pc.setRemoteDescription(p.sdp).then(function () { L.remote = true; flush(L); })['catch'](function () {});
+          return;
+        }
+        if (type === 'CANDIDATE') {
+          var K = links[src];
+          if (!K || !p.candidate) return;
+          if (!K.remote) K.q.push(p.candidate);
+          else K.pc.addIceCandidate(p.candidate)['catch'](function () {});
+        }
+      }
+    });
+    function put(peer, m) {
+      var L = links[peer];
+      if (!L || !L.dc || L.dc.readyState !== 'open') return false;
+      var txt = JSON.stringify(m);
+      meter.out(txt.length);
+      try { L.dc.send(txt); return true; } catch (e) { return false; }
+    }
+    /* القياس من المتصفّح نفسه: rtt ونوع المرشّح المختار — فيُرى فشلُ عبور NAT
+       بدل أن يبقى «اتصالٌ لا يفتح أبداً» بلا رسالةٍ ولا تفسير (المرجع ٧ و١٥.ج). */
+    statTimer = setInterval(function () {
+      var ks = Object.keys(links);
+      if (!ks.length) return;
+      var pc = links[ks[0]].pc;
+      if (!pc.getStats) return;
+      pc.getStats(null).then(function (rep) {
+        rep.forEach(function (s) {
+          if (s.type !== 'candidate-pair' || s.state !== 'succeeded') return;
+          if (typeof s.currentRoundTripTime === 'number') meter.rtt(Math.round(s.currentRoundTripTime * 1000));
+          var loc = rep.get ? rep.get(s.localCandidateId) : null;
+          if (loc && loc.candidateType) meter.ice(loc.candidateType);
+        });
+      })['catch'](function () {});
+    }, 1500);
+
+    api = {
+      kind: 'rtc', code: code, me: myId,
+      to: function (peer, m) { return put(peer, m); },
+      all: function (m) { for (var p in links) put(p, m); },
+      send: function (m) { return put(hostId, m); },
+      meter: meter,
+      close: function () {
+        dead = true;
+        try { api.all({ t: 'bye' }); } catch (e) {}
+        clearInterval(statTimer);
+        for (var p in links) { try { links[p].pc.close(); } catch (e) {} }
+        links = {};
+        broker.close();
+      }
+    };
+    return api;
+  }
+
+  /* ---------- ما يحقّ لكل مقعدٍ أن يسمعه من الأحداث ----------------------
+     المحرّك يضع في الحدث كلَّ ما يعرفه هو: ‎drew‎ يحمل أرقام الورق المسحوب،
+     و‎challenged‎ يحمل اليد المكشوفة. فلا يُبثّان كما هما: المسحوبُ لصاحبه
+     وحده، واليدُ المكشوفة للمتنازعَين وحدهما، وبقيّةُ الغرفة تسمع الحكم بلا
+     الورق. دالّةٌ خالصة، تُفحص وحدها في ‎shadda-play.js‎. */
+  function eventsFor(events, seat) {
+    if (!events || !events.length) return [];
+    var out = [], i, k, e, c;
+    for (i = 0; i < events.length; i++) {
+      e = events[i];
+      if (e.t === 'drew' && e.seat !== seat) {
+        c = {};
+        for (k in e) if (k !== 'cards' && has(e, k)) c[k] = e[k];
+        out.push(c);
+      } else if (e.t === 'challenged' && e.by !== seat && e.from !== seat) {
+        c = {};
+        for (k in e) if (k !== 'hand' && has(e, k)) c[k] = e[k];
+        out.push(c);
+      } else out.push(e);
+    }
+    return out;
+  }
+
+  return {
+    ALPHA: ALPHA, CODE_LEN: CODE_LEN, BROKER: BROKER,
+    makeCode: makeCode, cleanCode: cleanCode,
+    Seats: Seats, eventsFor: eventsFor, sane: sane,
+    open: function (opts) { return (opts.via === 'loop' ? Loop : Rtc)(opts); }
+  };
+})();
+/* ===== SHADDA NET END ===== */
+</script>
 
 <script>
 /* ===== SHADDA ENGINE START ===== *//* محرّك شدّة — منطقٌ خالص.
@@ -1480,7 +2150,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy'].forEach(function (id) {
+  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
+   'net', 'netpick', 'mkroom', 'joinroom', 'joinbox', 'codein', 'joingo', 'roombox', 'codehead', 'roomcode', 'roomlink', 'copylink', 'roster', 'netnote', 'countrow', 'namehead', 'statsw', 'meas'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
   });
   var scenewrap = el.scene.parentElement;
@@ -1488,7 +2159,16 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* ---------- الحالة (الرسم) ---------- */
   var G = null, V = null;               // حالة المحرّك، ورؤية المقعد صاحب الموقف
   var seats = 3, house = { stack: false, jumpIn: false, sevenZero: false };
-  var mode = 'local';                   // 'local' تسليمٌ محليّ، 'cpu' خصومٌ آليّون (المقعد ٠ الإنسان)
+  var mode = 'local';                   // 'local' تسليمٌ محليّ، 'cpu' خصومٌ آليّون، 'online' غرفةٌ على الشبكة
+  /* ---------- الأونلاين (المرحلة ٤): الحالةُ هنا، والنقلُ في ShaddaNet وحده ----------
+     mySeat: المقعد الذي يملكه هذا الجهاز ثابتاً — ‎null‎ في التسليم المحلّي (إذ
+     يمرّ الجوّال بين المقاعد)، و‎0‎ في وضع الحاسب، ومقعدُنا في الأونلاين. */
+  var mySeat = null, amHost = false, link = null, tbl = null, netView = null;
+  var netPhase = 'off', netCode = '', netNote = '', netSeen = -1, netN = [], netHere = [];
+  var netBusy = false, netBusyTimer = null, snapTimer = null, pingTimer = null, measTimer = null;
+  var pingAt = 0, statsOn = false, joinTimer = null, VER = '85f1007b1f';
+  var NET_VIA = /[?&]net=loop(?:&|$)/.test(location.search) ? 'loop' : 'rtc';
+  var SNAP_MS = 1500, PING_MS = 2000, MEAS_MS = 1000, BUSY_MS = 4000;
   var CPU_NAMES = ['فهد', 'منى', 'سعد', 'هند'];
   var cpuRng = S.rng(1), cpuTimer = null, cpuPending = false;
   var nameVals = ['', '', '', '', ''], names = [];
@@ -1623,6 +2303,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var lastPlayed = null, revealIds = null;              // آخر ورقةٍ لُعبت، وما سُحب لمن يمسك الجوّال
   /* الورقة التي أحدثت الأثر تُعرض مع تنويهه — إن كانت آخرُ ما لُعب من نوعه */
   function effectCard(kinds) { return lastPlayed !== null && kinds.indexOf(S.card(lastPlayed).kind) >= 0 ? lastPlayed : null; }
+  /* ما يُقال على هذه الشاشة، وبعين أي مقعد. في الأونلاين شاشةُ كلِّ جهازٍ
+     مقعدُه هو — شاشةُ المضيف المقعدُ ٠ — فلا يُقال لها إلا ما يُقال له. */
+  function mine(events) { return mode === 'online' ? ShaddaNet.eventsFor(events, 0) : events; }
+  function myEye() { return mySeat === null ? actorOf(G) : mySeat; }
   function tell(events, me) {
     var quiet = {};                                      // «وقف دوره» الذي قاله تنويهٌ قبله لا يُعاد
     for (var i = 0; i < events.length; i++) {
@@ -1630,8 +2314,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (e.t === 'flipped') lastPlayed = e.card;   // المكشوفة قد تكون عقوبةً على البادئ
       else if (e.t === 'played') lastPlayed = e.card;
       else if (e.t === 'drew' && e.n) {
-        if (e.seat === me) lastDrawn = e.cards[e.cards.length - 1];
-        if (e.seat === shownSeat) revealIds = e.cards.slice();
+        /* الورق نفسه يُنزع من الحدث لمن لا يحقّ له (ShaddaNet.eventsFor)، فيصل
+           ‎drew‎ بعدده بلا أرقامه. والعدد وحده هو ما يُقال حينئذ. */
+        if (e.seat === me && e.cards) lastDrawn = e.cards[e.cards.length - 1];
+        if (e.seat === shownSeat && e.cards) revealIds = e.cards.slice();
         if (e.n > 1) {
           /* الوقوف والعقوبة اللذان يتبعان السحب يُقالان في تنويهه لا في تنويهٍ ثانٍ */
           var stops = false, why = null;
@@ -1732,16 +2418,27 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     }, delay);
   }
 
+  /* المدخل الوحيد الذي يكتب. مقعدٌ بعيدٌ يمرّ من هنا كما يمرّ نقرُ إنسانٍ
+     محلّي: الضيف يُرسل فعله فيطبّقه المضيفُ بـapplyAction نفسها. */
   function send(seat, action) {
+    if (mode === 'online' && !amHost) {
+      if (!link) return false;
+      link.send({ t: 'a', a: action });
+      netBusy = true;                                   // لا نقرةَ ثانية قبل حكم المضيف
+      if (netBusyTimer) clearTimeout(netBusyTimer);
+      netBusyTimer = setTimeout(function () { netBusy = false; render(); }, BUSY_MS);
+      return true;
+    }
     var out = S.applyAction(G, seat, action, null);
     if (out.error) { hintText = ERR[out.error] || out.error; toastHoldUntil = 0; toast(hintText); render(); return false; }
     var wasSeat = shownSeat;
     G = out.state;
-    tell(out.events, actorOf(G));
+    tell(mine(out.events), myEye());
     hintText = '';
+    if (mode === 'online') hostPush(out.events);
     /* إن انتقل الموقف إلى مقعدٍ آخر أُمهلت النافذة حتى تصل الورقة الطائرة وتستقرّ،
        وحتى يُقرأ كلُّ تنويهٍ في الطابور (المالك: «النافذة تذهب بسرعة») */
-    if (privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Math.max(Date.now() + (reduced ? 0 : HANDOFF_WAIT), toastEndsAt() + AFTER_TOAST);
+    if (mode === 'local' && privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Math.max(Date.now() + (reduced ? 0 : HANDOFF_WAIT), toastEndsAt() + AFTER_TOAST);
     render();
     return true;
   }
@@ -1870,17 +2567,24 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
 
   /* ---------- الرسم كلّه من رؤية المقعد صاحب الموقف ---------- */
+  /* ما يراه هذا الجهاز. محلّياً يُحسب من ‎G‎؛ وعند ضيفٍ بعيدٍ لا ‎G‎ عنده
+     أصلاً — ما وصله من المضيف هو كلّ ما يملك، وهو ‎viewFor‎ مقعدِه لا غير. */
+  function curView() {
+    if (mode === 'online' && !amHost) return netView;
+    if (!G) return null;
+    return S.viewFor(G, mySeat === null ? actorOf(G) : mySeat);
+  }
   function render() {
-    if (!G) return;
-    var actor = actorOf(G);
-    /* في وضع الحاسب رؤية الجوّال رؤية المقعد ٠ دائماً — ولو كان الدور لحاسب،
-       فلا تُرسم يدُه أبداً على شاشة الإنسان (انظر رأس الملفّ). */
-    var me = mode === 'cpu' ? 0 : actor, v = V = S.viewFor(G, me);
-    /* بلا شاشة خصوصية، أو بعد انتهاء الجولة، الجوّال يرى صاحب الموقف مباشرةً؛
-       وفي وضع الحاسب لا نافذة تسليمٍ إطلاقاً — شاهدُ الجوّال المقعد ٠ وحده */
-    if (mode === 'cpu') shownSeat = 0;
+    var v = V = curView();
+    if (!v) return;
+    var actor = actorOf(v);
+    /* رؤية الجوّال ثابتةٌ حسب الوضع: صاحبُ الموقف في التسليم المحلّي، والمقعد ٠
+       في وضع الحاسب (فلا تُرسم يدُ حاسبٍ على شاشة إنسان)، ومقعدُنا وحده في
+       الأونلاين — وهو امتدادُ المبدأ نفسه لا قاعدةٌ جديدة. */
+    var me = mySeat === null ? actor : mySeat;
+    if (mySeat !== null) shownSeat = me;
     else if (!privacy || v.phase === 'over') shownSeat = me;
-    var handoff = mode !== 'cpu' && shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
+    var handoff = mySeat === null && shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
     if (handoffTimer) { clearTimeout(handoffTimer); handoffTimer = null; }
     if (waiting) handoffTimer = setTimeout(render, handoffAt - Date.now() + 10);
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
@@ -1929,18 +2633,30 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       for (var i = 0; i < v.seats; i++) sc += '<span class="' + (i === v.winner ? 'w' : '') + '">' + esc(nameOf(i)) + ' ' + fmt(v.scores[i]) + '</span>';
       el.over.innerHTML = '<b>' + (v.over ? 'انتهت المباراة: ' + esc(nameOf(v.winner)) + ' يفوز' : 'فاز ' + esc(nameOf(v.winner)) + ' بالجولة') + '</b><div class="sc">' + sc + '</div>';
       el.over.hidden = false;
-      el.acts.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'acc', function () {
+      /* الجولة التالية يملكها من يمسك الحالة: محلّياً هذا الجهاز، وفي الأونلاين
+         المضيفُ وحده — والباقون يُخبَرون أنهم ينتظرونه. */
+      if (mode !== 'online' || amHost) el.acts.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'acc', function () {
         if (G.over) { seed = (seed + 1) | 0; startGame(); return; }
         var out = S.nextRound(G, null);
         if (out.error) return;
-        G = out.state; sel = null; lastDrawn = null; tell(out.events, actorOf(G)); render();
+        G = out.state; sel = null; lastDrawn = null;
+        tell(mine(out.events), myEye());
+        if (mode === 'online') hostPush(out.events);
+        render();
       }));
-      if (!hint) hint = v.over ? 'النقاط إلى ' + fmt(v.target) + ' تحسم المباراة.' : 'الفائز يأخذ ما بقي في أيدي الآخرين.';
+      if (!hint) hint = mode === 'online' && !amHost ? 'الجولة التالية بيد المضيف — ينتظره الجميع.'
+        : v.over ? 'النقاط إلى ' + fmt(v.target) + ' تحسم المباراة.' : 'الفائز يأخذ ما بقي في أيدي الآخرين.';
     } else if (actor !== me) {
-      /* دور حاسبٍ — لا يد ولا مفاتيح للإنسان إلا نداءً على «واحدة» منسيّة */
+      /* دور غيرك — حاسباً كان أو مقعداً بعيداً: لا يد ولا مفاتيح إلا نداءً على
+         «واحدة» منسيّة. والدفاع الثالث يظهر هنا: إن كان صاحبُ الدور قد انقطع،
+         فللمضيف مفتاحٌ يمضي بدوره بأفعالٍ مشروعةٍ لا غير، فلا تقف الغرفة. */
       setTurn(nameOf(actor) + '، دوره');
       if (v.callable !== null && v.callable !== me) {
         el.acts.appendChild(btn('نادِ على ' + nameOf(v.callable), '', function () { send(me, { type: 'callOut', on: v.callable }); }));
+      }
+      if (mode === 'online' && amHost && netHere[actor] === false) {
+        el.acts.appendChild(btn('امضِ عن ' + nameOf(actor), 'acc', function () { standIn(actor); }));
+        if (!hint) hint = nameOf(actor) + ' انقطع. تنتظره الغرفة، أو تمضي عنه.';
       }
       if (!hint) hint = 'ينتظر ' + nameOf(actor) + '.';
       lastPrompt = '';                 // فنداء «دورك» يُنادى ثانيةً حين يعود الدور إلى الإنسان
@@ -2004,14 +2720,21 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ أو خذ', true, true, top, v.pending);
       else toast('دورك يا ' + nameOf(me), false, true);
     }
+    /* الضيفُ بعد فعله لا يضغط ثانيةً قبل أن يصل حكم المضيف */
+    if (netBusy) {
+      var stop = el.acts.querySelectorAll('button'), z;
+      for (z = 0; z < stop.length; z++) stop[z].disabled = true;
+      stop = el.hand.querySelectorAll('button');
+      for (z = 0; z < stop.length; z++) stop[z].disabled = true;
+    }
     scheduleCpu();
   }
 
   /* ---------- اليد: نقرةٌ ترفع، وثانيةٌ تلعب ---------- */
   el.hand.addEventListener('click', function (e) {
     var b = e.target.closest('button.card');
-    if (!b || b.disabled || !G) return;
-    var id = +b.getAttribute('data-id'), me = actorOf(G);
+    if (!b || b.disabled || !V) return;     /* الضيفُ لا يمسك G — رؤيتُه كل ما عنده */
+    var id = +b.getAttribute('data-id'), me = mySeat === null ? actorOf(V) : mySeat;
     if (sel !== id) { sel = id; hintText = ''; render(); return; }
     var a = { type: 'play', card: id };
     if (V && V.hand.length === 2 && armOne) a.sayOne = true;
@@ -2022,7 +2745,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   });
   el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; flightUntil = 0; render(); } });
   el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
-  window.addEventListener('resize', function () { if (G && el.start.hidden) render(); });
+  window.addEventListener('resize', function () { if ((G || netView) && el.start.hidden) render(); });
 
   /* ---------- شاشة البداية ---------- */
   el.badge.innerHTML = BADGE;
@@ -2030,14 +2753,15 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* في وضع الحاسب المقعد ٠ وحده يُدخل اسمه؛ والبقية حاسباتٌ بأسماء مقترحة
      من CPU_NAMES — لا حقل لها، فلا غشّ في مَن الإنسان. */
   function drawNames() {
-    var h = '';
-    for (var i = 0; i < seats; i++) {
+    var h = '', lim = mode === 'online' ? 1 : seats;
+    el.namehead.textContent = mode === 'local' ? 'الأسماء' : 'اسمك';
+    for (var i = 0; i < lim; i++) {
       if (mode === 'cpu' && i > 0) {
         var cn = CPU_NAMES[(i - 1) % CPU_NAMES.length];
         h += '<div class="in"><span class="av">' + esc(cn.charAt(0)) + '</span><span style="flex:1">' + esc(cn) + ' — حاسب</span></div>';
         continue;
       }
-      var v = nameVals[i], ph = mode === 'cpu' ? 'اسمك' : ('اللاعب ' + fmt(i + 1));
+      var v = nameVals[i], ph = mode === 'local' ? ('اللاعب ' + fmt(i + 1)) : 'اسمك';
       h += '<label class="in"><span class="av">' + esc((v || ph).charAt(0)) + '</span><input type="text" maxlength="14" autocomplete="off" placeholder="' + ph + '" value="' + esc(v) + '" data-i="' + i + '" aria-label="اسم ' + ph + '"></label>';
     }
     el.namelist.innerHTML = h;
@@ -2062,7 +2786,11 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (!b || b.disabled) return;
     mode = b.getAttribute('data-m');
     document.querySelectorAll('.modes .key').forEach(function (x) { x.classList.toggle('on', x === b); });
-    el.privacy.hidden = mode === 'cpu';
+    el.privacy.hidden = mode !== 'local';
+    el.net.hidden = mode !== 'online';
+    el.countrow.hidden = mode === 'online';
+    if (mode !== 'online') leaveRoom();
+    paintNet();
     drawNames();
   });
   function setToggle(t, on) { t.setAttribute('aria-checked', on ? 'true' : 'false'); }
@@ -2081,28 +2809,386 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     setToggle(b, house[k]);
   });
   function startGame() {
+    if (mode === 'online') {
+      if (!amHost || !tbl) { setNote('انتظر المضيف — هو من يبدأ.'); return; }
+      tbl.compact();
+      seats = tbl.rows().length;
+      if (seats < 2) { setNote('لا تبدأ الطاولة بأقلّ من اثنين. شارك الرمز وانتظر.'); return; }
+    }
     names = [];
     for (var i = 0; i < seats; i++) {
       if (mode === 'cpu' && i > 0) names.push(CPU_NAMES[(i - 1) % CPU_NAMES.length]);
-      else names.push((nameVals[i] || '').trim() || (mode === 'cpu' ? 'أنت' : ('اللاعب ' + fmt(i + 1))));
+      else if (mode === 'online' && i > 0) names.push(tbl.names()[i] || ('اللاعب ' + fmt(i + 1)));
+      else names.push((nameVals[i] || '').trim() || (mode === 'cpu' ? 'أنت' : mode === 'online' ? 'المضيف' : ('اللاعب ' + fmt(i + 1))));
     }
     var out = S.createGame({ seats: seats, seed: seed, house: house });
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
     G = out.state; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
-    shownSeat = mode === 'cpu' ? 0 : actorOf(G);      // في وضع الحاسب الشاهد المقعد ٠ دائماً
+    mySeat = mode === 'local' ? null : 0;             // محلّياً يمرّ الجوّال، وإلا فمقعدُنا ثابت
+    shownSeat = mySeat === null ? actorOf(G) : mySeat;
+    netBusy = false;
     handoffAt = 0;
     cpuRng = S.rng((seed ^ 0x5eed) | 0);               // ببذرة الجلسة، فيُعاد الحاسب كما يُعاد كل شيء
     cpuPending = false;
     if (cpuTimer) { clearTimeout(cpuTimer); cpuTimer = null; }
     clearToasts();
-    tell(out.events, actorOf(G));
+    tell(mine(out.events), myEye());
     el.start.hidden = true;
     el.resume.hidden = false;
+    if (mode === 'online' && amHost) { netPhase = 'playing'; sayRoom(); hostPush(out.events); }
     render();
   }
   el.startbtn.addEventListener('click', function () { seed = G ? ((seed + 1) | 0) : seed; startGame(); });
   el.resume.addEventListener('click', function () { el.start.hidden = true; render(); });
   el.menu.addEventListener('click', function () { clearToasts(); el.start.hidden = false; });
+
+  /* ================= الغرفة: نجمةٌ ومضيفٌ موثوق (المرحلة ٤) =================
+     جهازُ المضيف يمسك ‎G‎ كاملةً، ولا يصل أيَّ مقعدٍ بعيدٍ إلا ‎S.viewFor(G,
+     seat)‎ — لا الحالة، ولا يدُ غيره، ولا المسحب، ولا البذرة، ولا حقيقةُ «سحب
+     أربعة». وفعلُ الضيف يصل رسالةً فيطبّقه المضيف بـ‎send()‎ نفسها التي
+     يستدعيها نقرُ إنسانٍ محلّي: لا مسارَ ثانٍ للقواعد، كما لم يكن للحاسب.
+
+     ولا يُصدَّق الضيف في من هو: المقعد يُقرأ من جدول المقاعد عند المضيف
+     بمفتاح القناة التي وصلت منها الرسالة، ولا يقرأ سطرٌ واحدٌ هنا حقلَ
+     ‎seat‎ أو ‎player‎ من جسد الرسالة. وأسماء الأفعال تُطابَق ضد
+     ‎Shadda.ACTIONS‎ قبل أن تبلغ المحرّك. والمشوّهةُ تُسقط بصمت. */
+
+  function cleanName(s) { return String(s === undefined || s === null ? '' : s).replace(/[<>&"]/g, '').trim().slice(0, 14); }
+  function kb(n) { return n >= 1024 ? (n / 1024).toFixed(1) + 'KB' : n + 'B'; }
+  function setNote(t) { netNote = t || ''; if (el.netnote) el.netnote.textContent = netNote; }
+
+  /* فعلٌ وارد من السلك لا يبلغ المحرّك إلا بعد أن يُطابَق نوعاً وحقلاً — نظيرُ
+     «أسماء الأزرار تُطابق مجموعةً معروفة» في المرجع. وما لم يُذكر هنا يسقط. */
+  function cleanAction(a) {
+    if (!a || typeof a !== 'object' || Array.isArray(a)) return null;
+    if (typeof a.type !== 'string' || S.ACTIONS.indexOf(a.type) < 0) return null;
+    var o = { type: a.type };
+    if (typeof a.card === 'number' && isFinite(a.card)) o.card = a.card | 0;
+    if (typeof a.colour === 'string' && S.COLOURS.indexOf(a.colour) >= 0) o.colour = a.colour;
+    if (typeof a.on === 'number' && isFinite(a.on)) o.on = a.on | 0;
+    if (typeof a.swapWith === 'number' && isFinite(a.swapWith)) o.swapWith = a.swapWith | 0;
+    if (a.sayOne === true) o.sayOne = true;
+    return o;
+  }
+
+  /* معرّف العودة: يبقى في هذا التبويب وحده، فمن انقطع ثم عاد رُدّ إلى مقعده
+     هو لا إلى أي مقعد. وليس هويةً يُوثق بها: المقعد من جدول المضيف دائماً. */
+  function myRid() {
+    var k = 'shadda-rid', v;
+    try { v = sessionStorage.getItem(k); if (!v) { v = Math.random().toString(36).slice(2, 12); sessionStorage.setItem(k, v); } return v; }
+    catch (e) { return Math.random().toString(36).slice(2, 12); }
+  }
+
+  /* المضيفون المُعلَنون على ‎<body data-net-hosts>‎ هم الحدّ: الإعلان والفعل
+     مصدرٌ واحد لا اثنان، فلا يُستعمل مضيفٌ لم يُعلَن ولو كُتب في الشفرة. */
+  function netHosts() { return String(document.body.getAttribute('data-net-hosts') || '').trim().split(/\s+/).filter(Boolean); }
+  function iceOpts() {
+    var allow = netHosts(), o = {}, STUN = 'stun.l.google.com', t, m;
+    if (allow.indexOf(STUN) >= 0) o.stun = STUN + ':19302';
+    /* TURN من اليوم الأول: الخانة ‎data-net-turn="turns:host:443|user|pass"‎
+       قائمةٌ هنا وفارغة، ولا تُستعمل إلا إن أُعلن مضيفها كذلك. لا اعتمادَ
+       يُشحن معنا — لا خادمَ لنا — لكنّ الموضع موجود، وسطرُ القياس يُظهر نوع
+       المرشّح المختار فيُرى فشلُ عبور NAT بدل أن يبقى صمتاً بلا تفسير. */
+    t = String(document.body.getAttribute('data-net-turn') || '').trim();
+    if (t) { m = /^turns?:([^:?,\s|]+)/.exec(t); if (m && allow.indexOf(m[1]) >= 0) { var b = t.split('|'); o.turn = { urls: b[0], username: b[1] || '', credential: b[2] || '' }; } }
+    return o;
+  }
+
+  function roomLink(code) { return location.origin + location.pathname + '?join=' + code + (NET_VIA === 'loop' ? '&net=loop' : ''); }
+
+  function leaveRoom() {
+    if (link) { try { link.close(); } catch (e) {} link = null; }
+    if (snapTimer) { clearInterval(snapTimer); snapTimer = null; }
+    if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+    if (netBusyTimer) { clearTimeout(netBusyTimer); netBusyTimer = null; }
+    if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
+    amHost = false; tbl = null; netView = null; netSeen = -1; netN = []; netHere = [];
+    netCode = ''; netBusy = false; netPhase = 'off'; setNote('');
+    if (mode === 'online') mySeat = null;
+    if (el.meas) el.meas.hidden = true;
+  }
+  function beat() {
+    if (snapTimer) clearInterval(snapTimer);
+    if (pingTimer) clearInterval(pingTimer);
+    if (amHost) snapTimer = setInterval(snapTick, SNAP_MS);   /* الدفاع الثاني */
+    pingTimer = setInterval(pingTick, PING_MS);
+  }
+
+  var takenTries = 0, joinOpen = false;
+  function makeRoom() {
+    leaveRoom();
+    amHost = true; mySeat = 0; netCode = ShaddaNet.makeCode();
+    tbl = ShaddaNet.Seats(5);
+    tbl.rows()[0].name = (nameVals[0] || '').trim() || 'المضيف';
+    netN = [0, 0, 0, 0, 0]; netHere = [true];
+    netPhase = 'dialing'; setNote('نفتح الغرفة…');
+    link = ShaddaNet.open({ via: NET_VIA, host: true, code: netCode, ver: VER, ice: iceOpts(),
+      on: { status: onStatus, gone: onGone, msg: hostMsg } });
+    beat(); paintNet();
+  }
+  function joinRoom(code) {
+    code = ShaddaNet.cleanCode(code);
+    if (code.length !== ShaddaNet.CODE_LEN) { setNote('الرمز ' + fmt(ShaddaNet.CODE_LEN) + ' محارف، وليس فيه صفرٌ ولا واحدٌ ولا O ولا I ولا L.'); paintNet(); return; }
+    leaveRoom();
+    amHost = false; mySeat = null; netCode = code;
+    netPhase = 'dialing'; setNote('نطرق الباب…');
+    link = ShaddaNet.open({ via: NET_VIA, host: false, code: code, ver: VER, ice: iceOpts(),
+      name: cleanName(nameVals[0]), rid: myRid(), on: { status: onStatus, msg: guestMsg, closed: onClosed } });
+    /* لا يُطرق إلى الأبد: إن لم يُجب أحدٌ قيل ذلك صراحةً بدل انتظارٍ بلا خبر
+       (وللسلك الحقيقي مهلةٌ أطول: وسيطٌ ثم عبور NAT ثم قناة). */
+    joinTimer = setTimeout(function () {
+      joinTimer = null;
+      if (netPhase === 'lobby' || netPhase === 'playing') return;
+      leaveRoom();
+      netPhase = 'lost';
+      setNote('لا أحد في الغرفة ' + code + '. تأكّد من الرمز، أو اطلب من المضيف أن يفتحها.');
+      paintNet();
+    }, NET_VIA === 'loop' ? 3000 : 14000);
+    beat(); paintNet();
+  }
+
+  function onStatus(kind) {
+    if (kind === 'ready') { netPhase = 'lobby'; setNote('الغرفة مفتوحة. اقرأ الرمز على من معك، أو أرسل الرابط.'); }
+    else if (kind === 'brokerError' || kind === 'noRoom' || kind === 'failed' || kind === 'codeTaken') { if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; } }
+    else if (kind === 'joined') { netPhase = 'lobby'; setNote('وصلنا الغرفة. ننتظر المضيف.'); }
+    else if (kind === 'codeTaken') {
+      if (amHost && takenTries++ < 5) { setNote('الرمز مشغول — نجرّب غيره.'); makeRoom(); return; }
+      netPhase = 'lost'; setNote(amHost ? 'تعذّر حجز رمزٍ للغرفة.' : 'لا غرفة بهذا الرمز.');
+    }
+    else if (kind === 'noRoom') { netPhase = 'lost'; setNote('لا غرفة بهذا الرمز، أو أُغلقت.'); }
+    else if (kind === 'brokerError') { netPhase = 'lost'; setNote('تعذّر الوصول إلى وسيط التوقيع. تأكّد من الإنترنت.'); }
+    else if (kind === 'failed') { netPhase = 'lost'; setNote('تعذّر فتح الاتصال. قد يمنعه نوع الشبكة — ولا TURN بعد.'); }
+    paintNet();
+  }
+  function onClosed(why) {
+    var msg = why === 'hostLeft' ? 'أُغلقت الغرفة — خرج المضيف.' : 'انقطع الاتصال بالمضيف.';
+    leaveRoom();
+    netPhase = 'lost'; setNote(msg);
+    G = null; V = null; netView = null;
+    clearToasts();
+    el.start.hidden = false; el.resume.hidden = true;
+    paintNet();
+  }
+  /* الدفاع الثالث: يُفلَت المقعد لحظةَ اختفاء صاحبه، لا بعد مهلة. وقبل التوزيع
+     يُطوى صفّه فتبقى المقاعد متتابعة؛ وبعده يبقى محجوزاً ليعود إليه هو. */
+  function onGone(peer) {
+    if (!amHost || !tbl) return;
+    var s = tbl.of(peer);
+    if (s < 1) return;
+    var nm = tbl.rows()[s].name || ('اللاعب ' + fmt(s + 1));
+    if (G) tbl.release(peer); else tbl.drop(peer);
+    sayRoom(); paintNet();
+    if (G) { toast(nm + ' انقطع', true); render(); }
+  }
+  function sayRoom() {
+    if (!amHost || !tbl) return;
+    netHere = tbl.here();
+    if (link) link.all({ t: 'room', names: tbl.names(), here: netHere });
+  }
+
+  /* ما يُرسَل لكل مقعد: رؤيتُه وحدها، وأحداثُه وحدها. */
+  function hostPush(events) {
+    if (!amHost || !link || !tbl || !G) return;
+    var rows = tbl.rows(), s;
+    for (s = 1; s < rows.length; s++) {
+      if (!rows[s].here || !rows[s].peer || s >= G.seats) continue;
+      netN[s] = (netN[s] || 0) + 1;
+      link.to(rows[s].peer, { t: 'v', n: netN[s], v: S.viewFor(G, s), ev: ShaddaNet.eventsFor(events || [], s) });
+    }
+  }
+  /* الدفاع الثاني: لقطةُ حالةٍ دورية بالرقم نفسه — الرؤية تُصحَّح ولا يُعاد
+     نداءُ حدثٍ قيل. فرسالةٌ ضاعت لا تترك طاولةً متجمّدةً بلا سبب. */
+  function snapTick() {
+    if (!amHost || !link || !tbl || !G) return;
+    var rows = tbl.rows(), s;
+    for (s = 1; s < rows.length; s++) if (rows[s].here && rows[s].peer && s < G.seats)
+      link.to(rows[s].peer, { t: 'v', n: netN[s] || 0, v: S.viewFor(G, s), ev: [] });
+  }
+  function pingTick() {
+    if (!link) return;
+    pingAt = Date.now();
+    if (!amHost) { link.send({ t: 'ping', k: pingAt }); return; }
+    if (!tbl) return;
+    var rows = tbl.rows(), s;
+    for (s = 1; s < rows.length; s++) if (rows[s].here && rows[s].peer) { link.to(rows[s].peer, { t: 'ping', k: pingAt }); return; }
+  }
+
+  function hostMsg(peer, m) {
+    if (m.t === 'bye') { onGone(peer); return; }
+    if (m.t === 'ping') { link.to(peer, { t: 'pong', k: m.k }); return; }
+    if (m.t === 'pong') { if (m.k === pingAt) link.meter.rtt(Date.now() - m.k); return; }
+    if (m.t === 'hi') {
+      if (typeof m.ver === 'string' && m.ver && VER && m.ver !== VER) { link.to(peer, { t: 'ver', ver: VER }); return; }
+      var seat = tbl.of(peer);
+      if (seat < 0) seat = tbl.claim(peer, typeof m.rid === 'string' ? m.rid.slice(0, 32) : '', cleanName(m.name));
+      if (seat < 0) { link.to(peer, { t: 'full' }); return; }
+      if (G && seat >= G.seats) { tbl.release(peer); link.to(peer, { t: 'full' }); return; }
+      link.to(peer, { t: 'seat', seat: seat, ver: VER, code: netCode, names: tbl.names() });
+      sayRoom(); paintNet();
+      if (G) { netN[seat] = (netN[seat] || 0) + 1; link.to(peer, { t: 'v', n: netN[seat], v: S.viewFor(G, seat), ev: [] }); }
+      return;
+    }
+    if (m.t === 'a') {
+      var s = tbl.of(peer);                     /* المقعد من جدولنا، لا من الرسالة */
+      if (s < 1 || !G) return;
+      var a = cleanAction(m.a);
+      if (!a) { link.to(peer, { t: 'no', e: 'unknownAction' }); return; }
+      var out = S.applyAction(G, s, a, null);
+      if (out.error) { link.to(peer, { t: 'no', e: out.error }); return; }
+      G = out.state;
+      tell(mine(out.events), myEye());
+      hostPush(out.events);
+      render();
+      return;
+    }
+  }
+
+  function guestMsg(peer, m) {
+    if (m.t === 'ping') { link.send({ t: 'pong', k: m.k }); return; }
+    if (m.t === 'pong') { if (m.k === pingAt) link.meter.rtt(Date.now() - m.k); return; }
+    /* رفضٌ صريح: يُقال ولا يُعاد الطرق — لا انتظارٌ بلا خبر، ولا محاولةٌ أبدية */
+    if (m.t === 'full' || m.t === 'ver') {
+      var why = m.t === 'full' ? 'الغرفة ممتلئة — خمسةٌ حدُّ الطاولة.'
+                               : 'المضيف يشغّل نسخةً أخرى من شدّة. حدّثا الصفحة كلاكما.';
+      leaveRoom();
+      netPhase = 'lost'; setNote(why); paintNet();
+      return;
+    }
+    if (m.t === 'seat') {
+      if (typeof m.seat !== 'number') return;
+      if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
+      mySeat = m.seat | 0; shownSeat = mySeat;
+      if (m.code) netCode = String(m.code).slice(0, 8);
+      if (Array.isArray(m.names)) names = m.names.map(cleanName);
+      netPhase = 'lobby'; setNote('مقعدك ' + fmt(mySeat + 1) + '. ننتظر المضيف ليبدأ.');
+      paintNet();
+      return;
+    }
+    if (m.t === 'room') {
+      if (Array.isArray(m.names)) names = m.names.map(cleanName);
+      if (Array.isArray(m.here)) netHere = m.here;
+      paintNet();
+      return;
+    }
+    if (m.t === 'no') {
+      netBusy = false;
+      hintText = ERR[m.e] || String(m.e || '');
+      toastHoldUntil = 0; toast(hintText); render();
+      return;
+    }
+    if (m.t === 'v') {
+      if (!m.v || typeof m.v !== 'object' || !Array.isArray(m.v.discard)) return;
+      netView = m.v;
+      if (typeof m.v.you === 'number') { mySeat = m.v.you; shownSeat = mySeat; }
+      netBusy = false;
+      if (netBusyTimer) { clearTimeout(netBusyTimer); netBusyTimer = null; }
+      if (netPhase !== 'playing') { netPhase = 'playing'; clearToasts(); setNote(''); el.start.hidden = true; el.resume.hidden = false; lastPrompt = ''; paintNet(); }
+      if (typeof m.n === 'number' && m.n > netSeen) {
+        netSeen = m.n;
+        revealIds = null;
+        tell(Array.isArray(m.ev) ? m.ev : [], mySeat);
+        if (revealIds && revealIds.length && !reduced) flightUntil = Date.now() + REVEAL_HOLD + 1600;
+      }
+      render();
+      if (revealIds && revealIds.length) { if (el.hand.querySelector('.card')) reveal(revealIds); revealIds = null; }
+      return;
+    }
+  }
+
+  /* المضيف يمضي عن مقعدٍ انقطع صاحبه — بأفعالٍ مشروعةٍ لا غير، فلا تقف
+     الغرفة على غائب. لا فعلَ جديداً في المحرّك: سحبٌ ثم تمرير، أو قبولٌ، أو لون. */
+  function standIn(seat) {
+    if (!amHost || !G || netHere[seat] !== false) return;
+    var v = S.viewFor(G, seat);
+    if (v.phase === 'colour') { send(seat, { type: 'colour', colour: v.colour || S.COLOURS[0] }); return; }
+    if (v.phase === 'challenge') { send(seat, { type: 'accept' }); return; }
+    if (v.pending > 0 || !v.drew) { send(seat, { type: 'draw' }); return; }
+    send(seat, { type: 'pass' });
+  }
+
+  /* ---------- شاشة الغرفة ---------- */
+  function paintNet() {
+    if (!el.net) return;
+    el.net.hidden = mode !== 'online';
+    el.countrow.hidden = mode === 'online';
+    if (mode !== 'online') { el.startbtn.textContent = 'ابدأ'; el.startbtn.disabled = false; return; }
+    var inRoom = !!link;
+    el.netpick.hidden = inRoom;
+    el.joinbox.hidden = inRoom || !joinOpen;
+    el.roombox.hidden = !inRoom;
+    el.netnote.textContent = netNote;
+    if (inRoom) {
+      el.codehead.textContent = amHost ? 'رمز غرفتك' : 'رمز الغرفة';
+      el.roomcode.textContent = netCode;
+      el.roomlink.textContent = amHost ? roomLink(netCode) : '';
+      el.copylink.hidden = !amHost;
+      var html = '', i, nm, rows = amHost && tbl ? tbl.rows() : null;
+      if (rows) {
+        for (i = 0; i < rows.length; i++) {
+          nm = i === 0 ? ((nameVals[0] || '').trim() || 'المضيف') : (rows[i].name || ('اللاعب ' + fmt(i + 1)));
+          html += '<div class="r' + (rows[i].here ? '' : ' off') + '"><span class="av">' + esc(nm.charAt(0)) + '</span><span>' + esc(nm) + '</span><small>' +
+            (i === 0 ? 'المضيف — أنت' : rows[i].here ? 'حاضر' : 'انقطع') + '</small></div>';
+        }
+      } else {
+        var n2 = Math.max(names.length, mySeat === null ? 0 : mySeat + 1);
+        for (i = 0; i < n2; i++) {
+          nm = names[i] || ('اللاعب ' + fmt(i + 1));
+          html += '<div class="r' + (netHere[i] === false ? ' off' : '') + '"><span class="av">' + esc(nm.charAt(0)) + '</span><span>' + esc(nm) + '</span><small>' +
+            (i === 0 ? 'المضيف' : i === mySeat ? 'أنت' : netHere[i] === false ? 'انقطع' : '') + '</small></div>';
+        }
+        if (!html) html = '<div class="r"><span class="av">…</span><span>ننتظر المضيف</span></div>';
+      }
+      el.roster.innerHTML = html;
+    }
+    el.startbtn.textContent = amHost ? 'ابدأ اللعب' : inRoom ? 'ينتظر المضيف' : 'أنشئ غرفةً أو انضمّ';
+    el.startbtn.disabled = !amHost || !tbl || tbl.rows().length < 2;
+  }
+  function measTick() {
+    if (!el.meas) return;
+    if (!statsOn || !link) { el.meas.hidden = true; return; }
+    var r = link.meter.read();
+    el.meas.hidden = false;
+    el.meas.textContent = 'net ' + link.kind + ' ' + (netCode || '-') + ' ' + (amHost ? 'host' : 'seat ' + (mySeat === null ? '-' : mySeat)) +
+      ' | rtt ' + (r.rtt === null ? '--' : r.rtt + 'ms') +
+      ' | in ' + kb(r.inBps) + '/s out ' + kb(r.outBps) + '/s' +
+      ' | last ' + r.last + 'B' + (r.ice ? ' | ice ' + r.ice : '') +
+      (amHost && tbl ? ' | peers ' + (tbl.here().filter(Boolean).length - 1) : '');
+  }
+  measTimer = setInterval(measTick, MEAS_MS);
+
+  el.mkroom.addEventListener('click', function () { takenTries = 0; joinOpen = false; makeRoom(); });
+  el.joinroom.addEventListener('click', function () { joinOpen = true; paintNet(); el.codein.focus(); });
+  el.joingo.addEventListener('click', function () { joinRoom(el.codein.value); });
+  el.codein.addEventListener('input', function () { el.codein.value = ShaddaNet.cleanCode(el.codein.value); });
+  el.codein.addEventListener('keydown', function (e) { if (e.key === 'Enter') joinRoom(el.codein.value); });
+  el.copylink.addEventListener('click', function () {
+    var u = roomLink(netCode);
+    function pick() {
+      setNote('انسخه بيدك — المسه مطوّلاً.');
+      try { var r = document.createRange(); r.selectNodeContents(el.roomlink); var s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(function () { setNote('نُسخ الرابط.'); }, pick);
+    else pick();
+  });
+  el.statsw.addEventListener('click', function () {
+    statsOn = el.statsw.getAttribute('aria-checked') !== 'true';
+    setToggle(el.statsw, statsOn);
+    measTick();
+  });
+  /* خروجُ التبويب يُغلق القناة فوراً، فيُفلت المقعد عند المضيف في حينه */
+  window.addEventListener('pagehide', function () { if (link) { try { link.close(); } catch (e) {} link = null; } });
+
+  /* رابط ‎?join=CODE‎ من اليوم الأول: على الجوّال هو الفرق كلّه */
+  var joinParam = ShaddaNet.cleanCode(q.get('join') || '');
+  if (joinParam.length === ShaddaNet.CODE_LEN) {
+    mode = 'online'; joinOpen = true;
+    var mb = document.querySelector('.modes .key[data-m="online"]');
+    document.querySelectorAll('.modes .key').forEach(function (x) { x.classList.toggle('on', x === mb); });
+    el.privacy.hidden = true;
+    el.codein.value = joinParam;
+    setNote('دُعيت إلى الغرفة ' + joinParam + '. اكتب اسمك ثم ادخل.');
+  }
+  paintNet();
   drawNames();
 })();
 </script>

@@ -44,6 +44,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
           const errs = [], ext = [];
           p.on('pageerror', e => errs.push(e.message));
           p.on('request', r => { if (!r.url().startsWith('http://127.0.0.1:' + PORT)) ext.push(r.url()); });
+          /* طلبُ الصفحة ليس وحده ما يخرج منها: WebSocket لا يمرّ بحدث request
+             إطلاقاً، فكان بابٌ يخرج منه سلكٌ بلا أن يراه هذا الفحص. يُسدّ هنا
+             لكل الصفحات، مُعلِنةً كانت أو غير مُعلِنة. */
+          p.on('websocket', ws => ext.push(ws.url()));
           await p.goto(`http://127.0.0.1:${PORT}/${page}`, { waitUntil: 'load' });
           await sleep(1200);
           const m = await p.evaluate(() => {
@@ -225,6 +229,73 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
         }
       }
     }
+    /* ------------------------------------------------------------------ *
+     * بند «بلا إنترنت»، وقاعدة data-net التي تنزل معه.
+     *
+     * القاعدة القديمة تبقى كما هي لمن لم يُعلن: صفر طلبٍ خارجي، أبداً. وهي
+     * مفحوصةٌ أصلاً في الجدول أعلاه على عشرين مقاساً لكل صفحة.
+     *
+     * ومن أعلن ‎body[data-net="online"]‎ لا يُعفى من شرطٍ بل يُشدّ بثلاثة:
+     *   ١) تعمل الصفحة كاملةً بلا إنترنت — لا تطلب شيئاً لتُقلع أصلاً.
+     *   ٢) ولا طلبَ خارجيّاً قبل ضغطة اللاعب: تُحمّل وتُترك، ولا يُقبل شيء.
+     *   ٣) وبعد الضغط لا يُقصد إلا المضيفون المُعلَنون في ‎data-net-hosts‎.
+     * ومن لم يُعلن فليس له أن يحمل عُدّتها: لا ‎data-net-hosts‎ ولا
+     * ‎[data-net-probe]‎ — فلا يتسلّل الإعفاء إلى صفحةٍ لم تطلبه.
+     *
+     * وما يراه هذا الفحص هو HTTP وWebSocket. حركةُ ICE إلى مضيف STUN تسير على
+     * UDP ولا يراها متصفّحٌ مقادٌ من الخارج — تلك محروسةٌ في الشفرة نفسها:
+     * الصفحة تقرأ قائمة المضيفين من إعلانها هي، فلا تستعمل ما لم تُعلن. */
+    for (const page of PAGES) {
+      const ctx = await browser.newContext({
+        viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true,
+      });
+      const p = await ctx.newPage();
+      const ext = [], errs = [];
+      p.on('pageerror', e => errs.push(e.message));
+      p.on('request', r => { if (!r.url().startsWith('http://127.0.0.1:' + PORT)) ext.push(r.url()); });
+      p.on('websocket', ws => ext.push(ws.url()));
+      await p.goto(`http://127.0.0.1:${PORT}/${page}`, { waitUntil: 'load' });
+      await sleep(1800);
+      const d = await p.evaluate(() => ({
+        net: document.body.getAttribute('data-net'),
+        hosts: (document.body.getAttribute('data-net-hosts') || '').trim().split(/\s+/).filter(Boolean),
+        turn: (document.body.getAttribute('data-net-turn') || '').trim(),
+        probes: document.querySelectorAll('[data-net-probe]').length,
+      }));
+      const fails = [];
+      if (ext.length) fails.push('went to the network before any press: ' + ext[0]);
+      if (!d.net) {
+        if (d.hosts.length || d.probes || d.turn)
+          fails.push('declares no data-net yet carries its machinery');
+      } else if (d.net !== 'online') {
+        fails.push('unknown data-net value: ' + d.net);
+      } else {
+        if (!d.hosts.length) fails.push('declares data-net yet names no host');
+        if (!d.probes) fails.push('declares data-net yet offers nothing to press');
+        if (d.turn) {
+          const m = /^turns?:([^:?,\s|]+)/.exec(d.turn);
+          if (!m || d.hosts.indexOf(m[1]) < 0) fails.push('a TURN host that was never declared: ' + d.turn);
+        }
+        ext.length = 0;
+        for (let i = 0; i < d.probes; i++) {
+          const loc = p.locator('[data-net-probe]').nth(i);
+          if (!(await loc.isVisible().catch(() => false))) continue;
+          await loc.click({ timeout: 4000 }).catch(() => {});
+          await sleep(900);
+        }
+        await sleep(2600);
+        const seen = ext.map(u => { try { return new URL(u).hostname; } catch (e) { return u; } });
+        const bad = seen.filter(hn => d.hosts.indexOf(hn) < 0);
+        if (bad.length) fails.push('reached a host it never declared: ' + bad[0]);
+        console.log('     ' + page + ' declared [' + d.hosts.join(' ') + '], after the press reached [' +
+          (seen.length ? [...new Set(seen)].join(' ') : 'nothing') + ']');
+      }
+      if (errs.length) fails.push('page error: ' + errs[0]);
+      if (fails.length) { bad++; console.log('FAIL offline clause: ' + page + ' — ' + fails.join(' | ')); }
+      else console.log('PASS offline clause: ' + page + (d.net ? ' (declares data-net="' + d.net + '")' : ''));
+      await ctx.close();
+    }
+
     // الحركة تحترم تفضيل النظام
     for (const page of PAGES) {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, reducedMotion: 'reduce' });
