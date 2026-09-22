@@ -148,9 +148,9 @@ async function open(browser, w, h, query) {
     ok('the start sheet is up and the table is declared beneath it',
       await p.$eval('#start', e => !e.hidden) &&
       await p.$eval('[data-table]', e => { const r = e.getBoundingClientRect(); return r.width >= innerWidth / 10 && r.height >= innerHeight / 10; }));
-    ok('three seats are offered by default and the other modes wait for their stages',
+    ok('three seats are offered by default, and only online waits for its stage',
       (await p.$eval('#count .key.on', e => e.textContent.trim())) === '٣' &&
-      (await p.$$eval('.modes .key:disabled', es => es.length)) === 2);
+      (await p.$$eval('.modes .key:disabled', es => es.length)) === 1);
     ok('no card is on the table before a game starts', (await handCards(p)).length === 0);
 
     /* ---- الأسماء تُكتب فتظهر على الجوخ وفي الحالة ---- */
@@ -332,6 +332,99 @@ async function open(browser, w, h, query) {
     ok('scrolled to the end, the last card is wholly on screen', lastOn);
     ok('nothing threw on the small screen either', errs.length === 0, errs[0]);
     await ctx.close();
+
+    /* ============ ضدّ الحاسب: المقعد ٠ وحده الإنسان، والرؤية لا تتبدّل أبداً ============ */
+    ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=31'));
+    await p.click('.modes .key[data-m="cpu"]');
+    ok('picking «ضد الحاسب» arms it and leaves «أونلاين» alone as the only disabled mode',
+      await p.$eval('.modes .key[data-m="cpu"]', e => e.classList.contains('on')) &&
+      (await p.$$eval('.modes .key:disabled', es => es.length)) === 1);
+    ok('the privacy switch is hidden — there is no hand-off in this mode',
+      await p.$eval('#privacy', e => e.hidden));
+    ok('the name list asks only the human for a name; the rest are computer seats',
+      (await p.$$eval('#namelist input', es => es.length)) === 1 &&
+      (await p.$$eval('#namelist .in:not(:has(input))', es => es.length)) === 2);
+    await p.fill('#namelist input[data-i="0"]', 'حمد');
+    await p.click('#startbtn'); await sleep(150);
+    const cpuNames = await p.$$eval('#namelist .in:not(:has(input)) span:last-child', es => es.map(e => e.textContent.split(' — ')[0]));
+    ok('two computer seats stand on the felt, named as promised', (await tags(p)).length === 2 && cpuNames.length === 2);
+
+    let handoffSeen = false, minHand = 99, kindsCpu = {}, seenCpuToast = false, seenCpuSayOne = false, movesCpu = 0;
+    for (let k = 0; k < 900 && movesCpu < 400; k++) {
+      if (await overText(p)) break;
+      if (await p.$eval('#handoff', e => !e.hidden)) { handoffSeen = true; break; }
+      const n = (await handCards(p)).length;
+      if (n < minHand) minHand = n;
+      const tt = await p.$eval('#toast', e => e.classList.contains('on') ? e.textContent.trim() : '');
+      if (tt && cpuNames.some(nm => tt.indexOf(nm) === 0)) {
+        seenCpuToast = true;
+        if (/«واحدة»/.test(tt)) seenCpuSayOne = true;
+      }
+      const t = await turnText(p);
+      if (/، دوره$/.test(t)) { await sleep(120); continue; }
+      const acts = await texts(p, '#acts button');
+      const call = acts.find(x => /^نادِ على /.test(x));
+      if (call) { await clickByText(p, '#acts button', call); movesCpu++; kindsCpu.callOut = (kindsCpu.callOut || 0) + 1; continue; }
+      const what = await oneMove(p, true);
+      if (!what) break;
+      kindsCpu[what] = (kindsCpu[what] || 0) + 1;
+      movesCpu++;
+    }
+    ok('the hand-off window never appears against the computer', !handoffSeen);
+    ok('the human always has a hand to look at — never the computer\'s', minHand > 0, 'minHand=' + minHand);
+    ok('the game actually moved (played, drew or passed) while the computer took its turns', movesCpu > 0, JSON.stringify(kindsCpu));
+    ok('a computer\'s move popped up in its own name — no shared log', seenCpuToast, JSON.stringify(kindsCpu));
+    ok('a computer said «واحدة» on its own', seenCpuSayOne);
+    const overCpu = await overText(p);
+    ok('a whole round against the computer reaches a winner', /^فاز /.test(overCpu) || /انتهت المباراة/.test(overCpu), overCpu.replace(/\n/g, ' / '));
+    ok('nothing threw against the computer either', errs.length === 0, errs[0]);
+    await ctx.close();
+
+    /* ============ ‎سلوك الحاسب حتميّ ببذرة seed — لا Math.random ============ */
+    /* لا تقيس هذا بعدّ تكرارٍ ثابت: مهلة الحاسب نفسها زمنٌ حقيقيّ (setTimeout)،
+       فعدّ التكرارات يتسابق معها ويختلف من تشغيلٍ لآخر ولو كانت البذرة واحدة.
+       القياس الصحيح نقطةٌ في اللعبة لا في الساعة: فعلٌ واحد من الإنسان، ثم
+       الانتظار حتى يعود الدور إليه — وهذا يحدث دائماً بعد نفس تتابع الأفعال
+       بالضبط لأن كل قرارٍ حاسوبيٍّ دالّةٌ صِرفةٌ في الحالة، بلا Math.random. */
+    async function primeCpu(seed) {
+      const r = await open(browser, 390, 844, '?seed=' + seed);
+      await r.p.click('.modes .key[data-m="cpu"]');
+      await r.p.click('#startbtn'); await sleep(150);
+      if (!/، دوره$/.test(await turnText(r.p))) await oneMove(r.p, true);   // فعلٌ واحد من الإنسان، إن كان دوره
+      for (let k = 0; k < 400; k++) {
+        if (await overText(r.p)) break;
+        if (!/، دوره$/.test(await turnText(r.p))) break;                   // عاد الدور إلى الإنسان — نقطةٌ حتميّة
+        await sleep(100);
+      }
+      const state = await r.p.$eval('#cap-n', e => e.textContent.trim()) + '|' + (await r.p.$eval('#clr', e => e.textContent.trim()));
+      await r.ctx.close();
+      return state;
+    }
+    const rep1 = await primeCpu(47), rep2 = await primeCpu(47);
+    ok('the same ?seed=N replays the same computer play', rep1 === rep2, rep1 + ' vs ' + rep2);
+
+    /* ============ ضدّ الحاسب من اثنين حتى خمسة ============ */
+    for (const n of [2, 5]) {
+      const r = await open(browser, 390, 844, '?seed=' + (50 + n));
+      await r.p.click('.modes .key[data-m="cpu"]');
+      await r.p.click('#count [data-n="' + n + '"]'); await sleep(30);
+      ok(n + ' vs computer: the name list asks the human alone',
+        (await r.p.$$eval('#namelist input', es => es.length)) === 1);
+      await r.p.click('#startbtn'); await sleep(150);
+      ok(n + ' vs computer: that many computer seats stand on the felt', (await tags(r.p)).length === n - 1);
+      let played = false, hoff = false;
+      for (let k = 0; k < 200 && !played; k++) {
+        if (await r.p.$eval('#handoff', e => !e.hidden)) { hoff = true; break; }
+        const t = await turnText(r.p);
+        if (/، دوره$/.test(t)) { await sleep(120); continue; }
+        const what = await oneMove(r.p, true);
+        if (!what) break;
+        if (what === 'play') played = true;
+      }
+      ok(n + ' vs computer: a card can actually be played and no hand-off appears', played && !hoff);
+      ok(n + ' vs computer: nothing threw', r.errs.length === 0, r.errs[0]);
+      await r.ctx.close();
+    }
   } finally {
     await browser.close();
     server.kill();

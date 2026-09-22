@@ -5,9 +5,10 @@
   its own artwork, its own code.  Nothing here is copied from that game's
   materials, and the name and badge are deliberately unlike its trade dress.
 
-  Stage 1 of six built the ENGINE and its checks.  Stage 2 — this page —
-  builds the TABLE: a CSS 3D card table drawn in DOM and SVG, with no WebGL,
-  no library and no bitmap, sitting on top of the engine, which did not
+  Stage 1 of six built the ENGINE and its checks.  Stage 2 built the TABLE:
+  a CSS 3D card table drawn in DOM and SVG, with no WebGL, no library and no
+  bitmap.  Stage 3 — this page, still — adds the HAND-OFF privacy window and
+  a CPU OPPONENT on top of that table.  Across all three the engine did not
   change by a character (src/tests/shadda.js still runs its 108 checks on
   the slice between the two ENGINE markers below).
 
@@ -423,6 +424,59 @@
     other four games do, and none of the rest: the piles are .stock and
     .pile (its cards .tc and .uc), the hand is .hand [data-fan].
 
+  THE CPU OPPONENT  (stage 3, mine and argued — no source governs a bot)
+
+    Mode and view.  «ضد الحاسب» is seat 0 (named from the human's own field)
+    against one to four computer seats named from CPU_NAMES.  Seat 0's view
+    is fixed for the whole game (shownSeat = 0 always, so the hand-off window
+    never appears — the collection's contract and section 4 of the brief both
+    forbid a bot from seeing more of the state than a player at that seat
+    would); when the actor is a computer seat the table still renders through
+    Shadda.viewFor(G, 0), never through the acting seat's own view, so the
+    computer's hand is simply never drawn on a human's screen.  The action
+    keys are built only when the acting seat IS 0 — otherwise the panel says
+    whose turn it is and offers only the one thing a bystander may always do,
+    «نادِ على», if the window is open.
+
+    The policy, one send() per tick.  A computer's move is `cpuAct(seat)` in
+    the drawing layer, reading only Shadda.viewFor(G, seat) — never G — so it
+    cannot see a hand it should not:
+      callable        call the human out first if the window is open on them
+      has a legal play  prefer an action card (Skip/Reverse/Draw Two) when the
+                      next seat's count is 2 or fewer; otherwise the card whose
+                      colour it holds most of (bestByColour) — keeping its
+                      spread wide rather than narrow; a Wild Draw Four only
+                      when Shadda.wild4Legal says it is honest, and it never
+                      is played bluffing; a plain Wild only when nothing else
+                      is legal.  A 7 under the house rule swaps with the seat
+                      after it (an arbitrary, declared pick — the rule gives
+                      no better default than any other seat).
+      no legal play, pending>0   take the pile (draw), since only a Draw Two
+                      could answer it and none is legal
+      no legal play, not drawn   draw once
+      no legal play, drawn already  pass
+      colour phase    the colour it holds most of, excluding the card just
+                      played (sent inside the SAME play action when the
+                      played card was the Wild, so no extra tick is spent)
+      challenge phase challenge only holding three or more of the colour in
+                      play — a plain, stated threshold, not a probability
+                      model; it accepts otherwise.  Since this bot never
+                      bluffs a Wild Draw Four, accepting is always correct
+                      against it and challenging is always a mistake — which
+                      is the point of testing the challenge both ways.
+    «واحدة» is said with the same action, the moment the hand about to be
+    played would fall to one (hand.length === 2 before the play), never a
+    separate tick and never forgotten.
+
+    The pace is a timer, not a motion.  Each tick is scheduled 450-700ms
+    after the last (scheduleCpu/cpuPending), a delay drawn from its own seeded
+    stream — cpuRng = Shadda.rng(seed ^ 0x5eed) — never Math.random, so a
+    ?seed=N session's computer play replays identically; the delay is a wait,
+    not a CSS transition, so it is not touched by prefers-reduced-motion.  The
+    schedule is re-armed at the end of every render() and stands down while
+    the start sheet is showing (el.start.hidden) or the round is over, so
+    nothing plays behind the menu or past a round's end.
+
   THE PAGE ITSELF, AND THE COLLECTION'S CONTRACT
 
     src/tests/contract.js wants a visible <canvas> in every game.  A card
@@ -792,7 +846,7 @@ button:disabled{cursor:default}
       <div class="modes">
         <button class="key mode on" data-m="local"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="3" width="12" height="26" rx="3"/><path d="M14 26h4"/><path d="M4 12a6 6 0 0 1 4-5M28 20a6 6 0 0 1-4 5"/><path d="M8 4v3H5M24 28v-3h3"/></svg><span>على هذا الجهاز<small>تسليم الجوّال بين اللاعبين</small></span></button>
         <button class="key mode" data-m="online" disabled><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="16" cy="16" r="12"/><path d="M4 16h24M16 4c-4 4-4 20 0 24M16 4c4 4 4 20 0 24M6 10h20M6 22h20"/></svg><span>أونلاين<small>أنشئ غرفة أو انضم برمز — يأتي في المرحلة ٤</small></span></button>
-        <button class="key mode" data-m="cpu" disabled><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="18" height="18" rx="3"/><rect x="12" y="12" width="8" height="8" rx="1"/><path d="M11 3v4M16 3v4M21 3v4M11 25v4M16 25v4M21 25v4M3 11h4M3 16h4M3 21h4M25 11h4M25 16h4M25 21h4"/></svg><span>ضد الحاسب<small>خصومٌ آليّون — يأتي في المرحلة ٣</small></span></button>
+        <button class="key mode" data-m="cpu"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="18" height="18" rx="3"/><rect x="12" y="12" width="8" height="8" rx="1"/><path d="M11 3v4M16 3v4M21 3v4M11 25v4M16 25v4M21 25v4M3 11h4M3 16h4M3 21h4M25 11h4M25 16h4M25 21h4"/></svg><span>ضد الحاسب<small>خصومٌ آليّون — من اثنين حتى خمسة</small></span></button>
       </div>
       <div class="lbl">عدد اللاعبين</div>
       <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div>
@@ -1422,6 +1476,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* ---------- الحالة (الرسم) ---------- */
   var G = null, V = null;               // حالة المحرّك، ورؤية المقعد صاحب الموقف
   var seats = 3, house = { stack: false, jumpIn: false, sevenZero: false };
+  var mode = 'local';                   // 'local' تسليمٌ محليّ، 'cpu' خصومٌ آليّون (المقعد ٠ الإنسان)
+  var CPU_NAMES = ['فهد', 'منى', 'سعد', 'هند'];
+  var cpuRng = S.rng(1), cpuTimer = null, cpuPending = false;
   var nameVals = ['', '', '', '', ''], names = [];
   var sel = null, armOne = false, lastDrawn = null, hintText = '';
   var privacy = true, shownSeat = null, lastPrompt = '';   // المقعد الذي يرى الجوّالُ يدَه، وآخر نداءٍ نُودي
@@ -1593,6 +1650,76 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     }
   }
 
+  /* ---------- الخصم الحاسوبي: يقرّر من viewFor(G, seat) لا من G — انظر رأس
+     الملفّ «THE CPU OPPONENT». كل استدعاءٍ فعلٌ واحد، يُجدوَل بمهلة. ---------- */
+  function seatAfter(v, seat) { return ((seat + v.dir) % v.seats + v.seats) % v.seats; }
+  function colourCounts(hand) {
+    var cnt = { red: 0, blue: 0, green: 0, yellow: 0 };
+    hand.forEach(function (id) { var c = S.card(id); if (c.colour) cnt[c.colour]++; });
+    return cnt;
+  }
+  function bestByColour(candidates, hand) {
+    var cnt = colourCounts(hand), best = candidates[0], bestN = -1;
+    candidates.forEach(function (id) {
+      var c = S.card(id).colour, n = c ? cnt[c] : 0;
+      if (n > bestN) { bestN = n; best = id; }
+    });
+    return best;
+  }
+  function cpuColour(v, excludeId) {
+    var hand = v.hand.filter(function (id) { return id !== excludeId; });
+    var cnt = colourCounts(hand), best = S.COLOURS[0], bestN = -1;
+    S.COLOURS.forEach(function (c) { if (cnt[c] > bestN) { bestN = cnt[c]; best = c; } });
+    return best;
+  }
+  function cpuWillChallenge(v) {
+    var n = 0;
+    v.hand.forEach(function (id) { if (S.card(id).colour === v.colour) n++; });
+    return n >= 3;
+  }
+  function playChosen(seat, v, legal) {
+    var hand = v.hand, colour = v.colour;
+    var nonWild = legal.filter(function (id) { var k = S.card(id).kind; return k !== 'wild' && k !== 'wild4'; });
+    var wild4s = legal.filter(function (id) { return S.card(id).kind === 'wild4' && S.wild4Legal(hand, colour); });
+    var wilds = legal.filter(function (id) { return S.card(id).kind === 'wild'; });
+    var chosen;
+    if (nonWild.length) {
+      var nextCount = v.counts[seatAfter(v, seat)];
+      var actionCards = nonWild.filter(function (id) { var k = S.card(id).kind; return k === 'skip' || k === 'reverse' || k === 'draw2'; });
+      chosen = bestByColour((nextCount <= 2 && actionCards.length) ? actionCards : nonWild, hand);
+    } else if (wild4s.length) chosen = wild4s[0];
+    else chosen = wilds[0];
+    var action = { type: 'play', card: chosen };
+    if (hand.length === 2) action.sayOne = true;
+    if (!S.card(chosen).colour) action.colour = cpuColour(v, chosen);
+    else if (v.house.sevenZero && S.card(chosen).kind === 'number' && S.card(chosen).value === 7) action.swapWith = seatAfter(v, seat);
+    send(seat, action);
+  }
+  function cpuAct(seat) {
+    if (!G || actorOf(G) !== seat) return;                     // الحالة تبدّلت — لا فعل فائتاً
+    var v = S.viewFor(G, seat);
+    if (v.phase === 'colour') { send(seat, { type: 'colour', colour: cpuColour(v) }); return; }
+    if (v.phase === 'challenge') { send(seat, cpuWillChallenge(v) ? { type: 'challenge' } : { type: 'accept' }); return; }
+    if (v.callable !== null && v.callable !== seat) { send(seat, { type: 'callOut', on: v.callable }); return; }
+    var legal = S.legalMoves(v);
+    if (legal.length) { playChosen(seat, v, legal); return; }
+    if (v.pending > 0 || !v.drew) { send(seat, { type: 'draw' }); return; }
+    send(seat, { type: 'pass' });
+  }
+  /* مهلةٌ لا حركة: ‏٤٥٠–٧٠٠‏ ملّي ثانية بمولّدٍ ببذرة seed، لا Math.random */
+  function scheduleCpu() {
+    if (mode !== 'cpu' || !G || G.phase === 'over' || !el.start.hidden || cpuPending) return;
+    var seat = actorOf(G);
+    if (seat === 0) return;
+    cpuPending = true;
+    var delay = 450 + Math.floor(cpuRng() * 250);
+    cpuTimer = setTimeout(function () {
+      cpuPending = false; cpuTimer = null;
+      if (mode !== 'cpu' || !G || G.phase === 'over' || !el.start.hidden) return;
+      cpuAct(seat);
+    }, delay);
+  }
+
   function send(seat, action) {
     var out = S.applyAction(G, seat, action, null);
     if (out.error) { hintText = ERR[out.error] || out.error; toastHoldUntil = 0; toast(hintText); render(); return false; }
@@ -1733,10 +1860,15 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* ---------- الرسم كلّه من رؤية المقعد صاحب الموقف ---------- */
   function render() {
     if (!G) return;
-    var me = actorOf(G), v = V = S.viewFor(G, me);
-    /* بلا شاشة خصوصية، أو بعد انتهاء الجولة، الجوّال يرى صاحب الموقف مباشرةً */
-    if (!privacy || v.phase === 'over') shownSeat = me;
-    var handoff = shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
+    var actor = actorOf(G);
+    /* في وضع الحاسب رؤية الجوّال رؤية المقعد ٠ دائماً — ولو كان الدور لحاسب،
+       فلا تُرسم يدُه أبداً على شاشة الإنسان (انظر رأس الملفّ). */
+    var me = mode === 'cpu' ? 0 : actor, v = V = S.viewFor(G, me);
+    /* بلا شاشة خصوصية، أو بعد انتهاء الجولة، الجوّال يرى صاحب الموقف مباشرةً؛
+       وفي وضع الحاسب لا نافذة تسليمٍ إطلاقاً — شاهدُ الجوّال المقعد ٠ وحده */
+    if (mode === 'cpu') shownSeat = 0;
+    else if (!privacy || v.phase === 'over') shownSeat = me;
+    var handoff = mode !== 'cpu' && shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
     if (handoffTimer) { clearTimeout(handoffTimer); handoffTimer = null; }
     if (waiting) handoffTimer = setTimeout(render, handoffAt - Date.now() + 10);
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
@@ -1792,6 +1924,14 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         G = out.state; sel = null; lastDrawn = null; tell(out.events, actorOf(G)); render();
       }));
       if (!hint) hint = v.over ? 'النقاط إلى ' + fmt(v.target) + ' تحسم المباراة.' : 'الفائز يأخذ ما بقي في أيدي الآخرين.';
+    } else if (actor !== me) {
+      /* دور حاسبٍ — لا يد ولا مفاتيح للإنسان إلا نداءً على «واحدة» منسيّة */
+      setTurn(nameOf(actor) + '، دوره');
+      if (v.callable !== null && v.callable !== me) {
+        el.acts.appendChild(btn('نادِ على ' + nameOf(v.callable), '', function () { send(me, { type: 'callOut', on: v.callable }); }));
+      }
+      if (!hint) hint = 'ينتظر ' + nameOf(actor) + '.';
+      lastPrompt = '';                 // فنداء «دورك» يُنادى ثانيةً حين يعود الدور إلى الإنسان
     } else if (v.phase === 'colour') {
       setTurn(nameOf(me) + '، اختر اللون');
       S.COLOURS.forEach(function (c) {
@@ -1842,15 +1982,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     el.hint.textContent = hint;
     
 
-    /* نداءُ الموقف يُنادى مرّةً واحدة لكل موقفٍ جديد */
+    /* نداءُ الموقف يُنادى مرّةً واحدة لكل موقفٍ جديد — ولا يُنادى إلا حين
+       يكون الموقف موقف الإنسان فعلاً (وضع الحاسب: لا نداء «دورك» لدور حاسب) */
     var key = me + ':' + v.phase + ':' + v.round;
-    if (v.phase !== 'over' && key !== lastPrompt) {
+    if (actor === me && v.phase !== 'over' && key !== lastPrompt) {
       lastPrompt = key;
       if (v.phase === 'colour') toast('اختر اللون', false, true);
       else if (v.phase === 'challenge') toast('«سحب أربعة» عليك — اعترض أو اقبل', true, true, top, 4);
       else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ أو خذ', true, true, top, v.pending);
       else toast('دورك يا ' + nameOf(me), false, true);
     }
+    scheduleCpu();
   }
 
   /* ---------- اليد: نقرةٌ ترفع، وثانيةٌ تلعب ---------- */
@@ -1873,10 +2015,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* ---------- شاشة البداية ---------- */
   el.badge.innerHTML = BADGE;
   el.felt.innerHTML = '<div class="idle">' + MARK + '</div>';
+  /* في وضع الحاسب المقعد ٠ وحده يُدخل اسمه؛ والبقية حاسباتٌ بأسماء مقترحة
+     من CPU_NAMES — لا حقل لها، فلا غشّ في مَن الإنسان. */
   function drawNames() {
     var h = '';
     for (var i = 0; i < seats; i++) {
-      var v = nameVals[i], ph = 'اللاعب ' + fmt(i + 1);
+      if (mode === 'cpu' && i > 0) {
+        var cn = CPU_NAMES[(i - 1) % CPU_NAMES.length];
+        h += '<div class="in"><span class="av">' + esc(cn.charAt(0)) + '</span><span style="flex:1">' + esc(cn) + ' — حاسب</span></div>';
+        continue;
+      }
+      var v = nameVals[i], ph = mode === 'cpu' ? 'اسمك' : ('اللاعب ' + fmt(i + 1));
       h += '<label class="in"><span class="av">' + esc((v || ph).charAt(0)) + '</span><input type="text" maxlength="14" autocomplete="off" placeholder="' + ph + '" value="' + esc(v) + '" data-i="' + i + '" aria-label="اسم ' + ph + '"></label>';
     }
     el.namelist.innerHTML = h;
@@ -1893,6 +2042,15 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (!b) return;
     seats = +b.getAttribute('data-n');
     el.count.querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    drawNames();
+  });
+  /* اختيار الطَّور: على هذا الجهاز أو ضدّ الحاسب — والأونلاين معطّلٌ حتى المرحلة ٤ */
+  document.querySelector('.modes').addEventListener('click', function (e) {
+    var b = e.target.closest('.key.mode');
+    if (!b || b.disabled) return;
+    mode = b.getAttribute('data-m');
+    document.querySelectorAll('.modes .key').forEach(function (x) { x.classList.toggle('on', x === b); });
+    el.privacy.hidden = mode === 'cpu';
     drawNames();
   });
   function setToggle(t, on) { t.setAttribute('aria-checked', on ? 'true' : 'false'); }
@@ -1912,11 +2070,18 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   });
   function startGame() {
     names = [];
-    for (var i = 0; i < seats; i++) names.push((nameVals[i] || '').trim() || ('اللاعب ' + fmt(i + 1)));
+    for (var i = 0; i < seats; i++) {
+      if (mode === 'cpu' && i > 0) names.push(CPU_NAMES[(i - 1) % CPU_NAMES.length]);
+      else names.push((nameVals[i] || '').trim() || (mode === 'cpu' ? 'أنت' : ('اللاعب ' + fmt(i + 1))));
+    }
     var out = S.createGame({ seats: seats, seed: seed, house: house });
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
     G = out.state; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
-    shownSeat = actorOf(G); handoffAt = 0;           // من يمسك الجوّال الآن هو البادئ
+    shownSeat = mode === 'cpu' ? 0 : actorOf(G);      // في وضع الحاسب الشاهد المقعد ٠ دائماً
+    handoffAt = 0;
+    cpuRng = S.rng((seed ^ 0x5eed) | 0);               // ببذرة الجلسة، فيُعاد الحاسب كما يُعاد كل شيء
+    cpuPending = false;
+    if (cpuTimer) { clearTimeout(cpuTimer); cpuTimer = null; }
     clearToasts();
     tell(out.events, actorOf(G));
     el.start.hidden = true;
