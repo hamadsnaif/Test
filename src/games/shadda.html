@@ -235,12 +235,40 @@
 
     CHOSEN IN STAGE 2, NOT MEASURED  (mine, and argued)
 
-    The digits are paths.  System text draws ٠ as a diamond on Windows and a
-    dot on iPhone, so the ten numerals ٠-٩ are drawn here as SVG strokes in
-    the manner of the ش: one round-capped pen of width 11 in a 100-box,
-    traced against the Tahoma and Segoe UI forms and read at 26px, 44px and
-    100px before being kept.  Card NAMES stay text: every Arabic face draws
-    «صفر» legibly; the structural disagreement is in the numerals alone.
+    The digits are system text, by the owner's eye.  Ten SVG numerals were
+    drawn in the manner of the ش (pen 11 in a 100-box, traced on Tahoma and
+    Segoe UI, read at 26/44/100px) and shown on the phone on 2026-09-22; the
+    owner asked for the previous face back, so a numeral is a text glyph at
+    .64w with the solid shadow of the samples.  ٠ is a diamond on Windows
+    and a dot on iPhone; the card's name above it settles which digit it is.
+
+    No calc() inside a transform function.  The samples wrote the name tag
+    as rotate(calc(var(--rot) * -1)) rotateX(calc(var(--tilt) * -1)); on the
+    iPhone that whole transform was dropped and the tags lay flat on the
+    felt, squashed to a sliver (seen in the owner's screenshot, 2026-09-22).
+    Every angle and offset a transform needs is now written out by the
+    script as its own custom property (--nrot, --ntilt, --ox, --tx, --ty).
+
+    The rim shows.  The felt's near edge was under the hand; the owner asked
+    to see the table's base, so the felt is shallower (100cqh - 34cqw) and
+    the wooden rim sits above the fan, the cards overlapping it a little.
+
+    Words pop up in the middle, not at the edges.  The status line and log
+    stay, but what a player must notice — «دورك», «اختر اللون», «فلان وقف
+    دوره», a refused move — pops up as a toast over the table with a light
+    blur behind it and leaves on its own (0.95s, 1.4s for the challenge) so
+    the rhythm holds.  A change of hands is a window, not a toast: when the
+    seat that must act is not the seat the phone was showing, the table
+    blurs behind «مرّر الجوّال إلى فلان» and the hand is NOT rendered until
+    «أنا فلان — أرني ورقي» is pressed.  The owner asked for both on the
+    phone, so the privacy screen planned for stage 3 landed here; it has a
+    switch on the start sheet, on by default.
+
+    Cards fly.  A played card flies from its place in the fan to the top of
+    the discard, a drawn card flies from the stock to its place in the hand:
+    a fixed-position clone tweened for 380ms, removed on arrival.  Under
+    prefers-reduced-motion nothing flies and the toasts appear without
+    their fade.
 
     The fan step is 48px, not 8 degrees, and the tilt is 3 degrees at most.
     The samples fanned seven cards at (i-3)x8deg about a pivot 240% below,
@@ -333,7 +361,7 @@
   --wood:#6a3d20; --wood-hi:#a2663a; --wood-lo:#33190b;
   --acc:#e0a45e; --acc-hi:#ffd39a; --acc-lo:#9a6424;
   --font:-apple-system,"SF Pro Text","SF Arabic","Segoe UI",Roboto,"Helvetica Neue",Arial,Tahoma,sans-serif;
-  --tilt:54deg;
+  --tilt:54deg; --ntilt:-54deg;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
@@ -441,6 +469,7 @@ button:disabled{cursor:default}
   white-space:nowrap;direction:rtl;opacity:.95;text-shadow:0 .05em 0 var(--lo);
 }
 .card .cname.act{font-size:calc(var(--w)*.115);letter-spacing:0}
+.card .num{font-size:calc(var(--w)*.64);line-height:1;text-shadow:0 .06em 0 var(--lo), 0 .12em .14em rgba(0,0,0,.35)}
 .card .mid > svg{width:62%;height:auto;flex:none;filter:drop-shadow(0 .04em 0 var(--lo)) drop-shadow(0 .1em .1em rgba(0,0,0,.35))}
 .card .idx{position:absolute;font-size:calc(var(--w)*.19);line-height:1;display:flex;align-items:center;gap:.05em;text-shadow:0 .06em 0 var(--lo)}
 .card .idx svg{width:1em;height:1em;filter:drop-shadow(0 .06em 0 var(--lo))}
@@ -468,7 +497,7 @@ button:disabled{cursor:default}
 .felt{
   /* في إطار ‎1:1.08‎ الارتفاع ‎84cqw‎ كما في العيّنات؛ وفي مشهدٍ أطول يتعمّق الجوخ
      نحو اللاعب بالفرق كلّه، فتبقى الحافّة البعيدة قريبةً من رأس المشهد. */
-  position:absolute;left:-8cqw;top:calc(8cqw - (100cqh - 108cqw) * .4);width:116cqw;height:calc(100cqh - 24cqw);border-radius:42cqw / 28cqw;
+  position:absolute;left:-8cqw;top:calc(6cqw - (100cqh - 108cqw) * .3);width:116cqw;height:calc(100cqh - 34cqw);border-radius:42cqw / 28cqw;
   transform:rotateX(var(--tilt));transform-origin:50% 58%;transform-style:preserve-3d;
   background:
     repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, rgba(0,0,0,0) 1px 3px),
@@ -485,10 +514,12 @@ button:disabled{cursor:default}
 .felt .idle svg{width:100%;height:100%;display:block}
 .seat{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot)) scale(var(--sc,1));transform-style:preserve-3d;width:30cqw;height:26cqw}
 .oppfan{position:absolute;left:50%;top:0;width:0;height:0}
-.oppfan .card{--cw:9cqw;position:absolute;left:0;top:0;transform-origin:50% 140%;transform:translate(-50%,-60%) rotate(var(--a))}
+.oppfan .card{--cw:9cqw;position:absolute;left:0;top:0;transform-origin:50% 140%;transform:translate(-50%,-75%) rotate(var(--a))}
 .ntag{
   position:absolute;left:50%;top:50%;transform-origin:0 0;
-  transform:rotate(calc(var(--rot) * -1)) rotateX(calc(var(--tilt) * -1)) translate(-50%,-100%);
+  /* لا ‎calc()‎ داخل دالّة تحويل: سفاري أسقط التحويل كلّه فاستلقت البطاقة على الجوخ.
+     الزاويتان تُكتبان جاهزتين: ‎--nrot‎ من السكربت و‎--ntilt‎ من الجذر. */
+  transform:rotate(var(--nrot)) rotateX(var(--ntilt)) translate(-50%,-100%);
   display:flex;align-items:center;gap:1.4cqw;direction:rtl;white-space:nowrap;
   padding:.8cqw 2cqw .8cqw 1.2cqw;border-radius:5cqw;background:rgba(20,17,16,.86);color:var(--cream);
   box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 1.5cqw 3cqw rgba(0,0,0,.5);font-size:3.3cqw;font-weight:800;
@@ -506,7 +537,7 @@ button:disabled{cursor:default}
    بضعف المقاس يُبقيها حادّة. */
 .piles .card{position:absolute;top:50%;transform-origin:50% 100%}
 .piles .stock{position:absolute;left:22%;top:78%;width:0;height:0;transform-style:preserve-3d}
-.piles .stock .card{--cw:26cqw;transform:translate(-50%,-100%) translate(calc(var(--i) * -.6cqw), calc(var(--i) * -.6cqw)) rotateX(-36deg) scale(.5)}
+.piles .stock .card{--cw:26cqw;transform:translate(-50%,-100%) translate(var(--ox), var(--ox)) rotateX(-36deg) scale(.5)}
 .piles .pile{position:absolute;left:70%;top:78%;width:0;height:0;transform-style:preserve-3d}
 .piles .pile .card{--cw:36cqw;transform:translate(-50%,-100%) rotateX(-36deg) rotate(var(--r)) scale(.5)}
 .piles .pile .uc{filter:brightness(.8)}
@@ -521,15 +552,37 @@ button:disabled{cursor:default}
 .hand::-webkit-scrollbar{display:none}
 .fanrow{position:relative;height:100%;margin:0 auto}
 .hand .card{
-  --dx:0px;--dy:0px;--a:0deg;--lift:0cqw;
-  position:absolute;left:50%;bottom:-5cqw;transform-origin:50% 50%;
-  transform:translateX(calc(-50% + var(--dx))) translateY(calc(var(--dy) + var(--lift))) rotate(var(--a));
+  --tx:0px;--ty:0px;--a:0deg;--lift:0cqw;
+  position:absolute;left:50%;bottom:-8cqw;transform-origin:50% 50%;
+  transform:translate(var(--tx), var(--ty)) translateY(var(--lift)) rotate(var(--a));
   transition:transform .18s ease, filter .18s ease;cursor:pointer;
 }
 .hand .card.up{--lift:-6cqw}
 .hand .card:disabled{filter:saturate(.45) brightness(.62);cursor:default}
 .hand .card.fresh .face{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 0 calc(var(--w)*.12) rgba(0,0,0,.18), inset 0 0 0 calc(var(--w)*.04) var(--acc)}
 .hand .card.up{box-shadow:inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 1px rgba(0,0,0,.45), 0 0 0 3px var(--acc), 0 calc(var(--w)*.08) calc(var(--w)*.2) rgba(0,0,0,.55)}
+
+/* ---------- التنبيهات: كلمةٌ منبثقة وسط الطاولة وتغبيشٌ خفيف خلفها، تذهب وحدها ---------- */
+.veil{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .15s;
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);background:rgba(20,17,16,.18)}
+.veil.on{opacity:1}
+.toast{position:absolute;left:50%;top:40%;z-index:5;transform:translate(-50%,-50%) scale(.92);opacity:0;pointer-events:none;
+  direction:rtl;text-align:center;width:max-content;max-width:88%;padding:10px 18px;border-radius:14px;
+  background:rgba(20,17,16,.93);color:var(--cream);font-weight:800;font-size:clamp(15px, 5.2cqw, 22px);line-height:1.35;
+  box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 10px 26px rgba(0,0,0,.55);transition:opacity .15s, transform .15s}
+.toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.toast.big{font-size:clamp(18px, 6.4cqw, 26px);padding:14px 22px;color:var(--acc-hi)}
+/* تبديل الأدوار نافذةٌ لا كلمة: الطاولة تغبّش خلفها ولا تُرسم اليد حتى يُضغط */
+.handoff{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  text-align:center;direction:rtl;padding:16px;background:rgba(20,17,16,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.handoff .av{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--ivory);color:var(--ink);font-size:30px;font-weight:900}
+.handoff .to{font-size:14px;color:var(--ivory-deep);font-weight:700}
+.handoff .who{font-size:clamp(22px, 7cqw, 32px);font-weight:900;line-height:1.2}
+.handoff .key{min-width:220px;margin-top:6px}
+.handoff small{font-size:12px;color:#b8ad98}
+/* الورقة الطائرة: نسخةٌ ثابتة الموضع تُحرَّك من اليد إلى المرمى أو من المسحب إلى اليد */
+.fly{position:fixed;z-index:50;pointer-events:none;transform-origin:50% 50%;transition:transform .38s cubic-bezier(.2,.7,.2,1)}
+.fly .card{width:100%;height:100%;aspect-ratio:auto}
 
 /* ---------- نهاية الجولة ---------- */
 .over{position:absolute;left:8%;right:8%;top:20%;z-index:3;direction:rtl;text-align:center;padding:14px 12px;border-radius:16px;
@@ -592,6 +645,9 @@ button:disabled{cursor:default}
       <div class="felt" id="felt"></div>
       <div class="hand" data-fan id="hand"></div>
       <div class="over" id="over" hidden></div>
+      <div class="veil" id="veil"></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="handoff" id="handoff" hidden><span class="av" id="ho-av"></span><div class="to">مرّر الجوّال إلى</div><div class="who" id="ho-who"></div><button class="key acc" id="handoffok"></button><small>لا يظهر ورقك حتى تضغط، فلا يراه من قبلك.</small></div>
     </div>
   </div>
   <div class="acts" id="acts"></div>
@@ -608,6 +664,7 @@ button:disabled{cursor:default}
       <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div>
       <div class="lbl">الأسماء</div>
       <div class="namelist" id="namelist"></div>
+      <button class="toggle" id="privacy" role="switch" aria-checked="true"><span>شاشة الخصوصية بين الأدوار</span><span class="sw"></span></button>
       <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد البيت</span><span class="sw"></span></button>
       <div class="subs dim" id="housesubs">
         <button class="toggle" role="switch" aria-checked="false" data-k="stack" disabled><span>تكديس سحب ثنتين</span><span class="sw"></span></button>
@@ -1161,22 +1218,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     wild: { c: '#2a2731', hi: '#443f4d', lo: '#0e0d12', fg: 'var(--cream)' }
   };
 
-  /* ---------- الأرقام العشرة مساراتٌ على عرف حرف ش: قلمٌ واحد ‏١١‏ في صندوق 100 ---------- */
-  var DIGIT = [
-    '<circle cx="50" cy="56" r="10" fill="currentColor" stroke="none"/>',
-    '<path d="M54 14 L46 88"/>',
-    '<path d="M84 20 C86 34 78 42 68 34 C62 29 54 27 50 28 C45 30 44 34 44 40 L44 88"/>',
-    '<path d="M90 22 L80 40 L70 24 L60 40 L50 24 C45 26 44 32 44 40 L44 88"/>',
-    '<path d="M36 14 L72 14 L34 46 L68 46 C46 50 28 62 32 76 C36 90 60 90 78 82"/>',
-    '<path d="M46 22 C66 20 78 38 76 56 C74 74 62 84 50 84 C38 84 26 74 24 58 C22 40 34 24 46 22 Z"/>',
-    '<path d="M26 18 L74 18 C76 46 64 70 46 88"/>',
-    '<path d="M20 18 L50 84 L80 18"/>',
-    '<path d="M20 84 L50 18 L80 84"/>',
-    '<circle cx="45" cy="38" r="17"/><path d="M62 38 C64 56 62 72 58 88"/>'
-  ];
-  function digitSVG(d) {
-    return '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + DIGIT[d] + '</svg>';
-  }
+  /* الأرقام نصّ النظام كما في العيّنات — المالك ردّ المسارات المرسومة من الجوّال */
+  function digitText(d) { return '<span class="num">' + fmt(d) + '</span>'; }
   /* حرف ش كما في العيّنات */
   var SHEEN = '<path d="M92 62 L83 42 L74 62 L65 42 L56 62 L47 42 L38 62 C38 84 31 90 22 90 C13 90 8 82 10 64" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<circle cx="56" cy="24" r="5.5" fill="currentColor"/><circle cx="74" cy="24" r="5.5" fill="currentColor"/><circle cx="65" cy="12" r="5.5" fill="currentColor"/>';
@@ -1214,11 +1257,11 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function cardHTML(id, o) {
     o = o || {};
     var c = S.card(id), s = SUIT[c.colour || 'wild'], mid, idx, name, act = c.kind !== 'number';
-    if (!act) { mid = digitSVG(c.value); idx = digitSVG(c.value); name = NUM[c.value]; }
+    if (!act) { mid = digitText(c.value); idx = fmt(c.value); name = NUM[c.value]; }
     else {
       name = KIND[c.kind];
-      if (c.kind === 'draw2') { mid = ICON.draw2; idx = '<span>+</span>' + digitSVG(2); }
-      else if (c.kind === 'wild4') { mid = ICON.draw4; idx = '<span>+</span>' + digitSVG(4); }
+      if (c.kind === 'draw2') { mid = ICON.draw2; idx = '+' + fmt(2); }
+      else if (c.kind === 'wild4') { mid = ICON.draw4; idx = '+' + fmt(4); }
       else if (c.kind === 'wild') { mid = ICON.wild; idx = ICON.dot; }
       else if (c.kind === 'skip') { mid = ICON.skip; idx = ICON.skip; }
       else { mid = ICON.reverse; idx = ICON.reverse; }
@@ -1235,7 +1278,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'log', 'scene', 'felt', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume'].forEach(function (id) {
+  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'log', 'scene', 'felt', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
   });
   var scenewrap = el.scene.parentElement;
@@ -1245,6 +1288,52 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var seats = 3, house = { stack: false, jumpIn: false, sevenZero: false };
   var nameVals = ['', '', '', '', ''], names = [];
   var lines = [], sel = null, armOne = false, lastDrawn = null, hintText = '';
+  var privacy = true, shownSeat = null, lastPrompt = '';   // المقعد الذي يرى الجوّالُ يدَه، وآخر نداءٍ نُودي
+  var reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  /* ---------- التنبيهات المنبثقة: طابورٌ يعرض كلمةً ثم يطويها وحده ---------- */
+  var toastQ = [], toastTimer = null;
+  /* نداءُ الموقف يحلّ محلّ أي نداءٍ قبله لم يُعرض بعد، والطابور لا يطول عن ثلاثة:
+     لاعبٌ سريع لا يُطارَد بكلماتٍ فات وقتها. */
+  function toast(text, big, prompt) {
+    if (prompt) toastQ = toastQ.filter(function (t) { return !t.prompt; });
+    toastQ.push({ text: text, big: !!big, prompt: !!prompt });
+    while (toastQ.length > 3) toastQ.shift();
+    if (!toastTimer) nextToast();
+  }
+  function nextToast() {
+    var t = toastQ.shift();
+    if (!t) { el.toast.classList.remove('on'); el.veil.classList.remove('on'); toastTimer = null; return; }
+    el.toast.textContent = t.text;
+    el.toast.classList.toggle('big', t.big);
+    el.toast.classList.add('on'); el.veil.classList.add('on');
+    toastTimer = setTimeout(function () {
+      el.toast.classList.remove('on');
+      toastTimer = setTimeout(nextToast, 140);
+    }, t.big ? 1400 : 950);
+  }
+  function clearToasts() {
+    toastQ = []; if (toastTimer) clearTimeout(toastTimer); toastTimer = null;
+    el.toast.classList.remove('on'); el.veil.classList.remove('on');
+  }
+
+  /* ---------- الورقة الطائرة ---------- */
+  function rect(e) { return e ? e.getBoundingClientRect() : null; }
+  function fly(from, to, html) {
+    if (reduced || !from || !to || !from.width || !to.width) return;
+    var f = document.createElement('div');
+    f.className = 'fly'; f.innerHTML = html;
+    f.style.left = from.left + 'px'; f.style.top = from.top + 'px';
+    f.style.width = from.width + 'px'; f.style.height = from.height + 'px';
+    document.body.appendChild(f);
+    var dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+    var dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+    f.getBoundingClientRect();                       // يثبّت موضع البداية قبل الانتقال
+    f.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + (to.width / from.width).toFixed(3) + ',' + (to.height / from.height).toFixed(3) + ')';
+    var done = function () { if (f.parentNode) f.parentNode.removeChild(f); };
+    f.addEventListener('transitionend', done);
+    setTimeout(done, 700);
+  }
   var q = new URLSearchParams(location.search), urlSeed = q.get('seed');
   var seed = urlSeed !== null && /^-?\d+$/.test(urlSeed) ? (parseInt(urlSeed, 10) | 0) : ((Math.random() * 0x7fffffff) | 0);
 
@@ -1261,18 +1350,19 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       else if (e.t === 'played') say(nameOf(e.seat) + ' لعب ' + label(e.card) + '.');
       else if (e.t === 'drew' && e.n) {
         say(nameOf(e.seat) + ' سحب ' + fmt(e.n) + '.');
-        if (e.seat === me && e.n === 1) lastDrawn = e.cards[0];
+        if (e.seat === me) lastDrawn = e.cards[e.cards.length - 1];
+        if (e.n > 1) toast(nameOf(e.seat) + ' سحب ' + fmt(e.n));
       }
       else if (e.t === 'colourChosen') say(nameOf(e.seat) + ' اختار ' + CLR[e.colour] + '.');
-      else if (e.t === 'skipped') say(nameOf(e.seat) + ' وقف دوره.');
-      else if (e.t === 'directionReversed') say('انعكس الاتجاه.');
-      else if (e.t === 'saidOne') say(nameOf(e.seat) + ' قال «واحدة».', true);
-      else if (e.t === 'challenged') say(nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'), true);
-      else if (e.t === 'penalised') say(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards) + '.', true);
-      else if (e.t === 'stockReshuffled') say('نفد المسحب، فأُعيد خلط المرميّ (' + fmt(e.cards) + ').');
-      else if (e.t === 'handsSwapped') say(nameOf(e.a) + ' بدّل يده مع ' + nameOf(e.b) + '.');
-      else if (e.t === 'handsRotated') say('دارت الأيدي.');
-      else if (e.t === 'jumpedIn') say(nameOf(e.seat) + ' قفز بـ' + label(e.card) + '.');
+      else if (e.t === 'skipped') { say(nameOf(e.seat) + ' وقف دوره.'); toast(nameOf(e.seat) + ' وقف دوره'); }
+      else if (e.t === 'directionReversed') { say('انعكس الاتجاه.'); toast('انعكس الاتجاه'); }
+      else if (e.t === 'saidOne') { say(nameOf(e.seat) + ' قال «واحدة».', true); toast(nameOf(e.seat) + ': «واحدة»!', true); }
+      else if (e.t === 'challenged') { var ch = nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'); say(ch, true); toast(ch, true); }
+      else if (e.t === 'penalised') { say(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards) + '.', true); if (e.why !== 'bluff' && e.why !== 'badChallenge') toast(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards)); }
+      else if (e.t === 'stockReshuffled') { say('نفد المسحب، فأُعيد خلط المرميّ (' + fmt(e.cards) + ').'); toast('أُعيد خلط المرميّ'); }
+      else if (e.t === 'handsSwapped') { say(nameOf(e.a) + ' بدّل يده مع ' + nameOf(e.b) + '.'); toast('تبادلت الأيدي'); }
+      else if (e.t === 'handsRotated') { say('دارت الأيدي.'); toast('دارت الأيدي'); }
+      else if (e.t === 'jumpedIn') { say(nameOf(e.seat) + ' قفز بـ' + label(e.card) + '.'); toast(nameOf(e.seat) + ' قفز!'); }
       else if (e.t === 'roundStarted') say('— الجولة ' + fmt(e.round) + ' —', true);
       else if (e.t === 'roundEnded') say('انتهت الجولة: فاز ' + nameOf(e.winner) + ' بـ' + fmt(e.points) + ' نقطة.', true);
       else if (e.t === 'matchEnded') say('انتهت المباراة: ' + nameOf(e.winner) + ' يفوز.', true);
@@ -1282,7 +1372,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   function send(seat, action) {
     var out = S.applyAction(G, seat, action, null);
-    if (out.error) { hintText = ERR[out.error] || out.error; render(); return false; }
+    if (out.error) { hintText = ERR[out.error] || out.error; toast(hintText); render(); return false; }
     G = out.state;
     tell(out.events, actorOf(G));
     hintText = '';
@@ -1302,7 +1392,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       var rot = 270 - deg, sc = edge ? .84 : 1;
       var cnt = v.counts[seat], m = Math.min(cnt, 7), backs = '';
       for (var k = 0; k < m; k++) backs += backHTML({ style: '--a:' + ((k - (m - 1) / 2) * 10).toFixed(1) + 'deg' });
-      html += '<div class="seat' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;--rot:' + rot + 'deg;--sc:' + sc + '">' +
+      html += '<div class="seat' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;--rot:' + rot + 'deg;--nrot:' + (-rot) + 'deg;--sc:' + sc + '">' +
         '<div class="oppfan">' + backs + '</div>' +
         '<div class="ntag"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><b class="cnt' + (v.said[seat] ? ' one' : '') + '">' + fmt(cnt) + '</b></div></div>';
     }
@@ -1311,7 +1401,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function pilesHTML(v) {
     var top = v.discard[v.discard.length - 1], under = v.discard.length > 1 ? v.discard[v.discard.length - 2] : null;
     var stock = v.stockCount > 20 ? 3 : v.stockCount > 5 ? 2 : v.stockCount > 0 ? 1 : 0, s = '';
-    for (var k = 0; k < stock; k++) s += backHTML({ style: '--i:' + k });
+    for (var k = 0; k < stock; k++) s += backHTML({ style: '--ox:' + (-0.6 * k) + 'cqw' });
     var rot = function (id) { return ((id * 37) % 13 - 6) + 'deg'; };
     return '<div class="dir' + (v.dir < 0 ? ' ccw' : '') + '">' + DIRSVG + '</div>' +
       '<div class="piles"><div class="stock">' + s + '</div>' +
@@ -1339,7 +1429,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       html += cardHTML(id, {
         tag: 'button',
         cls: (ok ? 'ok' : '') + (id === sel ? ' up' : '') + (id === lastDrawn ? ' fresh' : ''),
-        style: '--cw:' + cw.toFixed(1) + 'px;--dx:' + dx.toFixed(1) + 'px;--dy:' + dy.toFixed(1) + 'px;--a:' + a.toFixed(2) + 'deg;z-index:' + (n - i),
+        style: '--cw:' + cw.toFixed(1) + 'px;--tx:' + (dx - cw / 2).toFixed(1) + 'px;--ty:' + dy.toFixed(1) + 'px;--a:' + a.toFixed(2) + 'deg;z-index:' + (n - i),
         attrs: ' data-id="' + id + '"' + (ok ? '' : ' disabled')
       });
     }
@@ -1359,12 +1449,15 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function render() {
     if (!G) return;
     var me = actorOf(G), v = V = S.viewFor(G, me);
+    /* بلا شاشة خصوصية، أو بعد انتهاء الجولة، الجوّال يرى صاحب الموقف مباشرةً */
+    if (!privacy || v.phase === 'over') shownSeat = me;
+    var handoff = shownSeat !== me;
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
     el.felt.innerHTML = seatsHTML(v, me) + pilesHTML(v);
 
     var W = scenewrap.clientWidth || 360, sl = el.hand.scrollLeft;
     if (sel !== null && v.hand.indexOf(sel) < 0) sel = null;
-    el.hand.innerHTML = v.phase === 'over' ? '' : handHTML(v, me, W);
+    el.hand.innerHTML = (v.phase === 'over' || handoff) ? '' : handHTML(v, me, W);
     el.hand.scrollLeft = sl;
 
     var top = v.discard[v.discard.length - 1];
@@ -1373,6 +1466,20 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     el.acts.textContent = '';
     el.over.hidden = true;
     var can = v.phase === 'play' ? S.legalMoves(v) : [], hint = hintText;
+
+    if (handoff) {
+      /* نافذة تبديل الأدوار: لا يدَ ولا مفاتيح حتى يقول التالي إنه هو */
+      el.turn.textContent = 'الدور لـ' + nameOf(me);
+      el.hint.textContent = 'مرّر الجوّال إلى ' + nameOf(me) + '.';
+      el.hoAv.textContent = nameOf(me).charAt(0);
+      el.hoWho.textContent = 'مرّر الجوّال إلى ' + nameOf(me);
+      el.handoffok.textContent = 'أنا ' + nameOf(me) + ' — أرني ورقي';
+      el.handoff.hidden = false;
+      clearToasts();                                 // ما قيل قبل التسليم قاله من مضى، والتالي يقرأ السجلّ
+      drawLog();
+      return;
+    }
+    el.handoff.hidden = true;
 
     if (v.phase === 'over') {
       el.turn.textContent = v.over ? 'انتهت المباراة' : 'انتهت الجولة';
@@ -1400,8 +1507,12 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (!hint) hint = 'إن كان ' + nameOf(v.challenge.from) + ' يملك اللون الجاري فقد كذب ويسحب أربعاً — وإن صدق سحبتَ ستّاً.';
     } else {
       el.turn.textContent = nameOf(me) + '، دورك';
-      if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', function () { send(me, { type: 'draw' }); }));
-      else if (!v.drew) el.acts.appendChild(btn('اسحب', '', function () { send(me, { type: 'draw' }); }));
+      var drawFly = function () {
+        var from = rect(el.felt.querySelector('.stock .card:last-child'));
+        if (send(me, { type: 'draw' })) fly(from, rect(el.hand.querySelector('.card.fresh')), backHTML({}));
+      };
+      if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', drawFly));
+      else if (!v.drew) el.acts.appendChild(btn('اسحب', '', drawFly));
       else el.acts.appendChild(btn('مرّر', '', function () { send(me, { type: 'pass' }); }));
       if (v.hand.length === 2) {
         el.acts.appendChild(btn('واحدة!', armOne ? 'on' : '', function () { armOne = !armOne; render(); }, { 'aria-pressed': String(armOne) }));
@@ -1419,7 +1530,18 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       }
     }
     el.hint.textContent = hint;
+    drawLog();
 
+    /* نداءُ الموقف يُنادى مرّةً واحدة لكل موقفٍ جديد */
+    var key = me + ':' + v.phase + ':' + v.round;
+    if (v.phase !== 'over' && key !== lastPrompt) {
+      lastPrompt = key;
+      if (v.phase === 'colour') toast('اختر اللون', false, true);
+      else if (v.phase === 'challenge') toast('«سحب أربعة» عليك — اعترض أو اقبل', true, true);
+      else toast('دورك يا ' + nameOf(me), false, true);
+    }
+  }
+  function drawLog() {
     el.log.textContent = '';
     for (var j = 0; j < lines.length; j++) {
       var d = document.createElement('div');
@@ -1439,8 +1561,11 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var a = { type: 'play', card: id };
     if (V && V.hand.length === 2 && armOne) a.sayOne = true;
     sel = null; armOne = false;
-    send(me, a);
+    var from = rect(b), html = cardHTML(id, {});
+    if (send(me, a)) fly(from, rect(el.felt.querySelector('.pile .tc')), html);
   });
+  el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); render(); } });
+  el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
   window.addEventListener('resize', function () { if (G && el.start.hidden) render(); });
 
   /* ---------- شاشة البداية ---------- */
@@ -1488,7 +1613,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     for (var i = 0; i < seats; i++) names.push((nameVals[i] || '').trim() || ('اللاعب ' + fmt(i + 1)));
     var out = S.createGame({ seats: seats, seed: seed, house: house });
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
-    G = out.state; lines = []; sel = null; armOne = false; lastDrawn = null; hintText = '';
+    G = out.state; lines = []; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
+    shownSeat = actorOf(G);                          // من يمسك الجوّال الآن هو البادئ
+    clearToasts();
     tell(out.events, actorOf(G));
     el.start.hidden = true;
     el.resume.hidden = false;
@@ -1496,7 +1623,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
   el.startbtn.addEventListener('click', function () { seed = G ? ((seed + 1) | 0) : seed; startGame(); });
   el.resume.addEventListener('click', function () { el.start.hidden = true; render(); });
-  el.menu.addEventListener('click', function () { el.start.hidden = false; });
+  el.menu.addEventListener('click', function () { clearToasts(); el.start.hidden = false; });
   drawNames();
 })();
 </script>

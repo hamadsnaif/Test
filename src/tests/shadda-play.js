@@ -68,6 +68,8 @@ async function playFirstLive(p) {
 /* دورٌ واحد: يُنظر إلى ما هو معروضٌ الآن ويُتصرّف كما يتصرّف لاعب.
    sayOne: إن كانت في اليد ورقتان قيلت «واحدة» مع اللعب؛ وإلا نُسيت عمداً. */
 async function oneMove(p, sayOne) {
+  /* نافذة تبديل الأدوار تسبق كل شيء: اللاعب التالي يقول إنه هو ثم يرى يده */
+  if (await p.$eval('#handoff', e => !e.hidden)) { await p.click('#handoffok'); await sleep(20); return 'handoff'; }
   const acts = await texts(p, '#acts button');
   if (acts.indexOf('أحمر') >= 0) { await clickByText(p, '#acts button', 'أحمر'); return 'colour'; }
   if (acts.indexOf('اعترض') >= 0) { await clickByText(p, '#acts button', 'اعترض'); return 'challenge'; }
@@ -186,6 +188,29 @@ async function open(browser, w, h, query) {
     }
     ok('a card was played by tapping within the first turns', moved);
 
+    /* ---- تبديل الأدوار نافذة: لا يدَ ولا مفاتيح حتى يضغط التالي، ثم يده تظهر ---- */
+    let hoSeen = false;
+    for (let k = 0; k < 20 && !hoSeen; k++) {
+      if (await p.$eval('#handoff', e => !e.hidden)) { hoSeen = true; break; }
+      const what = await oneMove(p, true);
+      if (!what) break;
+    }
+    ok('when the turn passes to another seat the hand-off window comes up', hoSeen);
+    if (hoSeen) {
+      const who = await p.$eval('#ho-who', e => e.textContent.trim());
+      ok('the window says whom to pass the phone to', /^مرّر الجوّال إلى /.test(who), who);
+      ok('and no card of that hand is drawn before they press', (await handCards(p)).length === 0 && (await texts(p, '#acts button')).length === 0);
+      await p.click('#handoffok'); await sleep(60);
+      ok('pressing «أنا فلان» shows that hand and names them in the status',
+        (await handCards(p)).length > 0 && await p.$eval('#handoff', e => e.hidden) &&
+        (await turnText(p)).indexOf(who.replace(/^مرّر الجوّال إلى /, '')) === 0, await turnText(p));
+      let t = '';
+      for (let k = 0; k < 30 && !/^دورك/.test(t); k++) { t = await p.$eval('#toast', e => e.classList.contains('on') ? e.textContent.trim() : ''); if (!/^دورك/.test(t)) await sleep(100); }
+      ok('and «دورك» pops up over the table on its own', /^دورك/.test(t), t);
+      await sleep(1400);
+      ok('and goes away by itself', !(await p.$eval('#toast', e => e.classList.contains('on'))));
+    }
+
     /* ---- جولةٌ كاملة بالنقر وحده، و«واحدة» تُقال حين تبقى ورقتان ---- */
     let moves = 0, kinds = {};
     while (moves < 800) {
@@ -254,9 +279,21 @@ async function open(browser, w, h, query) {
     ok('nothing on the page threw, and nothing left the machine', errs.length === 0, errs[0]);
     await ctx.close();
 
+    /* ============ الخصوصية مطفأة: لا نافذة، واليد تتبدّل مباشرةً ============ */
+    ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=11'));
+    await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
+    let hoOff = false;
+    for (let k = 0; k < 20; k++) {
+      if (await p.$eval('#handoff', e => !e.hidden)) { hoOff = true; break; }
+      const what = await oneMove(p, true);
+      if (!what || what === 'handoff') break;
+    }
+    ok('with the privacy switch off the hand-off window never appears', !hoOff && (await handCards(p)).length > 0);
+    await ctx.close();
+
     /* ============ ‎320‎ عرضاً: يدٌ كبيرة تنزلق، وكل ورقةٍ ظاهرةٍ تملك طرفها ============ */
     ({ ctx, p, errs } = await open(browser, 320, 568, '?seed=3'));
-    await p.click('#startbtn'); await sleep(150);
+    await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
     let big = 0;
     for (let k = 0; k < 400; k++) {
       const acts = await texts(p, '#acts button');
