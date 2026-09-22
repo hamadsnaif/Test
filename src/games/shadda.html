@@ -284,6 +284,21 @@
     prefers-reduced-motion nothing flies and the toasts appear without
     their fade.
 
+    A draw penalty shows its card.  When a سحب ثنتين or سحب أربعة lands on
+    a seat, the toast carries the card itself: it slides in from the right
+    to the toast's left side with the total to be drawn under it («+٢»,
+    «+٤», or the stacked sum when the house rule is on and the seat must
+    press «خذ»), and the words say who draws how many.  The owner asked for
+    it (2026-09-22).
+
+    Drawn cards are shown before they are held.  A draw by the seat holding
+    the phone — one card, or the four of an accepted سحب أربعة, or a stacked
+    pile — lays the drawn cards face up in the middle of the table for
+    750ms, then each flies to its place in the fan, where its button has
+    been waiting invisible since the state changed.  Another seat's forced
+    draw shows no faces: only the toast above.  Under prefers-reduced-motion
+    the cards simply appear in the hand.
+
     The hand reflows instead of redrawing.  When a card leaves or arrives
     the fan's buttons are kept and only their positions change, so the
     remaining cards slide to their new places (a 250ms transition on the
@@ -629,6 +644,17 @@ button:disabled{cursor:default}
   box-shadow:0 0 0 1px rgba(255,255,255,.16), 0 10px 26px rgba(0,0,0,.55);transition:opacity .15s, transform .15s}
 .toast.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .toast.big{font-size:clamp(18px, 6.4cqw, 26px);padding:14px 22px;color:var(--acc-hi)}
+/* تنويهُ السحب يحمل الورقة نفسها: تنزلق من اليمين إلى يسار التنويه، وتحتها المجموع */
+.toast.withcard{display:flex;align-items:center;gap:12px;padding:10px 14px}
+.toast .tcard{display:flex;flex-direction:column;align-items:center;gap:3px;flex:none;order:2}
+.toast .tcard .card{--cw:15cqw;transform:translateX(40%);opacity:0;transition:transform .35s cubic-bezier(.2,.7,.2,1) .1s, opacity .25s .1s}
+.toast.on .tcard .card{transform:none;opacity:1}
+.toast .tsum{font-size:1.05em;font-weight:900;color:var(--acc-hi);line-height:1}
+/* كشفُ المسحوب: الورق وجهاً لأعلى وسط الطاولة قبل أن يطير إلى اليد */
+.reveal{position:absolute;left:50%;top:44%;z-index:5;transform:translate(-50%,-50%);display:flex;gap:2cqw;pointer-events:none;direction:ltr}
+.reveal .card{--cw:var(--rw,24cqw);transform:translateY(6cqw) scale(.6);opacity:0;transition:transform .24s cubic-bezier(.2,.7,.2,1), opacity .2s}
+.reveal.on .card{transform:none;opacity:1}
+.reveal.out .card{opacity:0;transition:opacity .15s}
 /* تبديل الأدوار نافذةٌ لا كلمة: الطاولة تغبّش خلفها ولا تُرسم اليد حتى يُضغط */
 .handoff{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
   text-align:center;direction:rtl;padding:16px;background:rgba(20,17,16,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -1356,26 +1382,59 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var toastQ = [], toastTimer = null;
   /* نداءُ الموقف يحلّ محلّ أي نداءٍ قبله لم يُعرض بعد، والطابور لا يطول عن ثلاثة:
      لاعبٌ سريع لا يُطارَد بكلماتٍ فات وقتها. */
-  function toast(text, big, prompt) {
+  function toast(text, big, prompt, cardId, sum) {
     if (prompt) toastQ = toastQ.filter(function (t) { return !t.prompt; });
-    toastQ.push({ text: text, big: !!big, prompt: !!prompt });
+    toastQ.push({ text: text, big: !!big, prompt: !!prompt, card: typeof cardId === 'number' ? cardId : null, sum: sum });
     while (toastQ.length > 3) toastQ.shift();
     if (!toastTimer) nextToast();
   }
   function nextToast() {
     var t = toastQ.shift();
     if (!t) { el.toast.classList.remove('on'); el.veil.classList.remove('on'); toastTimer = null; return; }
-    el.toast.textContent = t.text;
+    el.toast.textContent = '';
+    var span = document.createElement('span'); span.textContent = t.text; el.toast.appendChild(span);
+    if (t.card !== null) {
+      var fig = document.createElement('span'); fig.className = 'tcard';
+      fig.innerHTML = cardHTML(t.card, {}) + '<span class="tsum">+' + fmt(t.sum) + '</span>';
+      el.toast.appendChild(fig);
+    }
     el.toast.classList.toggle('big', t.big);
+    el.toast.classList.toggle('withcard', t.card !== null);
     el.toast.classList.add('on'); el.veil.classList.add('on');
     toastTimer = setTimeout(function () {
       el.toast.classList.remove('on');
       toastTimer = setTimeout(nextToast, 140);
-    }, t.big ? 1400 : 950);
+    }, t.card !== null ? 1600 : t.big ? 1400 : 950);
   }
   function clearToasts() {
     toastQ = []; if (toastTimer) clearTimeout(toastTimer); toastTimer = null;
     el.toast.classList.remove('on'); el.veil.classList.remove('on');
+  }
+
+  /* ---------- كشفُ المسحوب ---------- */
+  var REVEAL_HOLD = 750;
+  function reveal(ids) {
+    if (reduced || !ids.length) return;
+    var old = el.scene.querySelector('.reveal');
+    if (old) old.parentNode.removeChild(old);
+    var W = scenewrap.clientWidth || 360, n = ids.length;
+    var cw = Math.min(W * .24, (W * .92 - (n - 1) * W * .02) / n), html = '';
+    for (var i = 0; i < n; i++) html += cardHTML(ids[i], { style: 'transition-delay:' + (i * 60) + 'ms', attrs: ' data-id="' + ids[i] + '"' });
+    clearToasts();                                   // الكشف يحتاج وسط الطاولة
+    var box = document.createElement('div');
+    box.className = 'reveal'; box.style.setProperty('--rw', cw.toFixed(1) + 'px'); box.innerHTML = html;
+    el.scene.appendChild(box);
+    box.getBoundingClientRect();
+    box.classList.add('on');
+    setTimeout(function () {
+      var cards = box.querySelectorAll('.card');
+      for (var k = 0; k < cards.length; k++) {
+        var id = cards[k].getAttribute('data-id');
+        fly(rect(cards[k]), rect(el.hand.querySelector('.card[data-id="' + id + '"]')), cardHTML(+id, {}));
+      }
+      box.classList.add('out');
+      setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 200);
+    }, REVEAL_HOLD + n * 60);
   }
 
   /* ---------- الورقة الطائرة ---------- */
@@ -1405,16 +1464,22 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- السجلّ ---------- */
   function say(text, hi) { lines.push({ text: text, hi: !!hi }); if (lines.length > 80) lines.shift(); }
+  var lastPlayed = null, revealIds = null;              // آخر ورقةٍ لُعبت، وما سُحب لمن يمسك الجوّال
   function tell(events, me) {
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
       if (e.t === 'dealt') say('وُزّعت ' + fmt(e.each) + ' لكل لاعب، و' + nameOf(e.first) + ' يبدأ.', true);
-      else if (e.t === 'flipped') say('المكشوفة: ' + label(e.card) + '.');
-      else if (e.t === 'played') say(nameOf(e.seat) + ' لعب ' + label(e.card) + '.');
+      else if (e.t === 'flipped') { say('المكشوفة: ' + label(e.card) + '.'); lastPlayed = e.card; }   // المكشوفة قد تكون عقوبةً على البادئ
+      else if (e.t === 'played') { say(nameOf(e.seat) + ' لعب ' + label(e.card) + '.'); lastPlayed = e.card; }
       else if (e.t === 'drew' && e.n) {
         say(nameOf(e.seat) + ' سحب ' + fmt(e.n) + '.');
         if (e.seat === me) lastDrawn = e.cards[e.cards.length - 1];
-        if (e.n > 1) toast(nameOf(e.seat) + ' سحب ' + fmt(e.n));
+        if (e.seat === shownSeat) revealIds = e.cards.slice();
+        if (e.n > 1) {
+          var pk = lastPlayed !== null ? S.card(lastPlayed).kind : null;
+          var pc = (pk === 'draw2' || pk === 'wild4') ? lastPlayed : null;
+          toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n), true, false, pc, e.n);
+        }
       }
       else if (e.t === 'colourChosen') say(nameOf(e.seat) + ' اختار ' + CLR[e.colour] + '.');
       else if (e.t === 'skipped') { say(nameOf(e.seat) + ' وقف دوره.'); toast(nameOf(e.seat) + ' وقف دوره'); }
@@ -1639,14 +1704,24 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (!hint) hint = 'اللون الذي تختاره هو ما يُطابَق بعدك.';
     } else if (v.phase === 'challenge') {
       el.turn.textContent = nameOf(me) + '، «سحب أربعة» عليك';
-      el.acts.appendChild(btn('اعترض', 'acc', function () { send(me, { type: 'challenge' }); }));
-      el.acts.appendChild(btn('اقبل الأربع', '', function () { send(me, { type: 'accept' }); }));
+      var takeFly = function (action) {
+        revealIds = null;
+        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 500;
+        if (!send(me, action)) { flightUntil = 0; return; }
+        if (revealIds && revealIds.length && el.hand.querySelector('.card')) reveal(revealIds);
+      };
+      el.acts.appendChild(btn('اعترض', 'acc', function () { takeFly({ type: 'challenge' }); }));
+      el.acts.appendChild(btn('اقبل الأربع', '', function () { takeFly({ type: 'accept' }); }));
       if (!hint) hint = 'إن كان ' + nameOf(v.challenge.from) + ' يملك اللون الجاري فقد كذب ويسحب أربعاً — وإن صدق سحبتَ ستّاً.';
     } else {
       el.turn.textContent = nameOf(me) + '، دورك';
       var drawFly = function () {
         var from = rect(el.felt.querySelector('.stock .card:last-child'));
-        if (send(me, { type: 'draw' })) fly(from, rect(el.hand.querySelector('.card.fresh')), backHTML({}));
+        revealIds = null;
+        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 500;   // الأزرار الجديدة تنتظر خفيّةً حتى يطير المسحوب إليها
+        if (!send(me, { type: 'draw' })) { flightUntil = 0; return; }
+        if (revealIds && revealIds.length) reveal(revealIds);
+        else fly(from, rect(el.hand.querySelector('.card.fresh')), backHTML({}));
       };
       if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', drawFly));
       else if (!v.drew) el.acts.appendChild(btn('اسحب', '', drawFly));
@@ -1674,7 +1749,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (v.phase !== 'over' && key !== lastPrompt) {
       lastPrompt = key;
       if (v.phase === 'colour') toast('اختر اللون', false, true);
-      else if (v.phase === 'challenge') toast('«سحب أربعة» عليك — اعترض أو اقبل', true, true);
+      else if (v.phase === 'challenge') toast('«سحب أربعة» عليك — اعترض أو اقبل', true, true, top, 4);
+      else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ أو خذ', true, true, top, v.pending);
       else toast('دورك يا ' + nameOf(me), false, true);
     }
   }

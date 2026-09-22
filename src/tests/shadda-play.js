@@ -311,7 +311,7 @@ async function open(browser, w, h, query) {
       await sleep(20);
     }
     ok('on 320 a hand of fifteen can be built by drawing', big >= 15, 'hand=' + big);
-    await sleep(400);                                            // الورق ينزلق إلى مواضعه الجديدة (‏٢٥٠‏ ملّي ثانية) قبل القياس
+    await sleep(1500);                                           // كشف المسحوب ثم طيرانه ثم انزلاق الباقي، قبل القياس
     const wide = await p.$eval('#hand', e => e.scrollWidth > e.clientWidth + 1);
     ok('a hand that wide slides sideways instead of burying its cards', wide);
     patches = await fanPatches(p);
