@@ -38,8 +38,8 @@ const logText = p => p.$eval('#log', e => e.innerText);
 const capText = p => p.$eval('#cap-n', e => e.textContent.trim());
 const turnText = p => p.$eval('#turn', e => e.textContent.trim());
 const hintText = p => p.$eval('#hint', e => e.textContent.trim());
-const tags = p => texts(p, '#felt .ntag');
-const tagCounts = p => p.$$eval('#felt .ntag .cnt', es => es.map(e => e.textContent.trim()));
+const tags = p => texts(p, '#tags .ntag');
+const tagCounts = p => p.$$eval('#tags .ntag .cnt', es => es.map(e => e.textContent.trim()));
 const handCards = p => p.$$('#hand button.card');
 const liveCards = p => p.$$('#hand button.card:not([disabled])');
 
@@ -84,6 +84,8 @@ async function oneMove(p, sayOne) {
   if (acts.some(t => /^خذ /.test(t))) { await clickByText(p, '#acts button', /^خذ /); return 'take'; }
   if (acts.indexOf('اسحب') >= 0) { await clickByText(p, '#acts button', 'اسحب'); return 'draw'; }
   if (acts.indexOf('مرّر') >= 0) { await clickByText(p, '#acts button', 'مرّر'); return 'pass'; }
+  /* مهلة التسليم: الورقة تطير ويدُ من لعب معطّلةٌ على الشاشة، والنافذة لم تُرفع بعد */
+  if (await p.$eval('#turn', e => /^الدور لـ/.test(e.textContent))) { await sleep(150); return 'wait'; }
   return null;
 }
 
@@ -190,7 +192,7 @@ async function open(browser, w, h, query) {
 
     /* ---- تبديل الأدوار نافذة: لا يدَ ولا مفاتيح حتى يضغط التالي، ثم يده تظهر ---- */
     let hoSeen = false;
-    for (let k = 0; k < 20 && !hoSeen; k++) {
+    for (let k = 0; k < 60 && !hoSeen; k++) {
       if (await p.$eval('#handoff', e => !e.hidden)) { hoSeen = true; break; }
       const what = await oneMove(p, true);
       if (!what) break;
@@ -283,7 +285,7 @@ async function open(browser, w, h, query) {
     ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=11'));
     await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
     let hoOff = false;
-    for (let k = 0; k < 20; k++) {
+    for (let k = 0; k < 40; k++) {
       if (await p.$eval('#handoff', e => !e.hidden)) { hoOff = true; break; }
       const what = await oneMove(p, true);
       if (!what || what === 'handoff') break;

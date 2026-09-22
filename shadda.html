@@ -242,12 +242,26 @@
     .64w with the solid shadow of the samples.  ٠ is a diamond on Windows
     and a dot on iPhone; the card's name above it settles which digit it is.
 
-    No calc() inside a transform function.  The samples wrote the name tag
-    as rotate(calc(var(--rot) * -1)) rotateX(calc(var(--tilt) * -1)); on the
-    iPhone that whole transform was dropped and the tags lay flat on the
-    felt, squashed to a sliver (seen in the owner's screenshot, 2026-09-22).
-    Every angle and offset a transform needs is now written out by the
-    script as its own custom property (--nrot, --ntilt, --ox, --tx, --ty).
+    The name tags are not in the 3D scene at all.  In the samples a tag was
+    a billboard inside its seat, turned back by -rot and -tilt so it stood
+    upright; on the iPhone it lay flat on the felt, squashed to a sliver
+    (the owner's screenshot, 2026-09-22), and writing the angles without
+    calc() did not cure it — Safari flattens that nested 3D context in some
+    way this machine cannot reproduce (Playwright's WebKit will not launch
+    here).  So the tags are ordinary 2D elements in a layer over the table:
+    each seat carries an invisible 10cqw-wide anchor on the felt, the script
+    reads the anchor's PROJECTED rectangle after layout, and puts the tag at
+    its centre-top, scaled by projected-over-natural width so a far seat's
+    tag is smaller like everything else there.  Nothing about that depends
+    on how a browser composes preserve-3d.  Offsets inside transforms are
+    still written out as their own properties (--ox, --tx, --ty).
+
+    The hand-off window waits for the card.  A play that passes the turn
+    used to raise «مرّر الجوّال» at once, while the played card was still in
+    the air.  Now the window is held for 700ms (the 380ms flight plus a
+    rest) — the outgoing player's hand stays on screen, every card disabled,
+    the card lands, and only then does the table blur behind the window.
+    No hold under prefers-reduced-motion, since nothing flies.
 
     The rim shows.  The felt's near edge was under the hand; the owner asked
     to see the table's base, so the felt is shallower (100cqh - 34cqw) and
@@ -527,11 +541,13 @@ button:disabled{cursor:default}
 .seat{position:absolute;transform:translate(-50%,-50%) rotate(var(--rot)) scale(var(--sc,1));transform-style:preserve-3d;width:30cqw;height:26cqw}
 .oppfan{position:absolute;left:50%;top:0;width:0;height:0}
 .oppfan .card{--cw:9cqw;position:absolute;left:0;top:0;transform-origin:50% 140%;transform:translate(-50%,-75%) rotate(var(--a))}
+/* المرساة: عنصرٌ شفّاف على الجوخ بعرضٍ معلوم، يُقرأ مستطيله المُسقَط بعد الرسم
+   فتوضع بطاقة الاسم فوقه في طبقةٍ مسطّحة — لا بطاقةَ داخل الفضاء ثلاثيّ الأبعاد. */
+.seat .anchor{position:absolute;left:50%;top:50%;width:10cqw;height:1px;transform:translate(-50%,-50%);pointer-events:none}
+.tags{position:absolute;inset:0;z-index:3;pointer-events:none}
 .ntag{
-  position:absolute;left:50%;top:50%;transform-origin:0 0;
-  /* لا ‎calc()‎ داخل دالّة تحويل: سفاري أسقط التحويل كلّه فاستلقت البطاقة على الجوخ.
-     الزاويتان تُكتبان جاهزتين: ‎--nrot‎ من السكربت و‎--ntilt‎ من الجذر. */
-  transform:rotate(var(--nrot)) rotateX(var(--ntilt)) translate(-50%,-100%);
+  position:absolute;left:0;top:0;transform-origin:50% 100%;
+  transform:translate(-50%,-100%);
   display:flex;align-items:center;gap:1.4cqw;direction:rtl;white-space:nowrap;
   padding:.8cqw 2cqw .8cqw 1.2cqw;border-radius:5cqw;background:rgba(20,17,16,.86);color:var(--cream);
   box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 1.5cqw 3cqw rgba(0,0,0,.5);font-size:3.3cqw;font-weight:800;
@@ -540,7 +556,7 @@ button:disabled{cursor:default}
 .ntag .nm{max-width:22cqw;overflow:hidden;text-overflow:ellipsis}
 .ntag .cnt{background:var(--acc);color:#2a1a05;border-radius:3cqw;padding:.4cqw 1.6cqw;font-size:3.2cqw}
 .ntag .cnt.one{background:var(--cream);box-shadow:0 0 0 .5cqw var(--acc), 0 0 3cqw var(--acc-hi)}
-.seat.turn .ntag .av{box-shadow:0 0 0 .8cqw var(--acc), 0 0 3cqw var(--acc-hi)}
+.ntag.turn .av{box-shadow:0 0 0 .8cqw var(--acc), 0 0 3cqw var(--acc-hi)}
 .piles{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);width:44cqw;height:22cqw;transform-style:preserve-3d}
 /* المرمى أكبر ممّا في العيّنات (‎18cqw‎ لا ‎12‎) والكومتان تتّكئان إلى الخلف
    ‎36°‎ خارج الجوخ، فيبقى الاسم يُقرأ: انظر رأس الملفّ. */
@@ -655,6 +671,7 @@ button:disabled{cursor:default}
   <div class="scenewrap">
     <div class="scene" data-table id="scene">
       <div class="felt" id="felt"></div>
+      <div class="tags" id="tags"></div>
       <div class="hand" data-fan id="hand"></div>
       <div class="over" id="over" hidden></div>
       <div class="veil" id="veil"></div>
@@ -1290,7 +1307,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'log', 'scene', 'felt', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy'].forEach(function (id) {
+  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'log', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
   });
   var scenewrap = el.scene.parentElement;
@@ -1301,6 +1318,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var nameVals = ['', '', '', '', ''], names = [];
   var lines = [], sel = null, armOne = false, lastDrawn = null, hintText = '';
   var privacy = true, shownSeat = null, lastPrompt = '';   // المقعد الذي يرى الجوّالُ يدَه، وآخر نداءٍ نُودي
+  var handoffAt = 0, handoffTimer = null;                 // متى تُرفع نافذة التسليم: بعد أن تحطّ الورقة
   var reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   /* ---------- التنبيهات المنبثقة: طابورٌ يعرض كلمةً ثم يطويها وحده ---------- */
@@ -1385,17 +1403,22 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function send(seat, action) {
     var out = S.applyAction(G, seat, action, null);
     if (out.error) { hintText = ERR[out.error] || out.error; toast(hintText); render(); return false; }
+    var wasSeat = shownSeat;
     G = out.state;
     tell(out.events, actorOf(G));
     hintText = '';
+    /* إن انتقل الموقف إلى مقعدٍ آخر أُمهلت النافذة حتى تصل الورقة الطائرة وتستقرّ */
+    if (privacy && actorOf(G) !== wasSeat && G.phase !== 'over') handoffAt = Date.now() + (reduced ? 0 : 700);
     render();
     return true;
   }
 
   /* ---------- الطاولة: المقاعد على القوس بترتيب اللعب، والتالي على اليسار ---------- */
   var SEATS = { 2: [90], 3: [150, 30], 4: [172, 90, 8], 5: [168, 118, 62, 12] };
+  var tagsHTML = '';                                   // بطاقات الأسماء تُجمع هنا وتُرسم في طبقتها
   function seatsHTML(v, me) {
     var n = v.seats, angles = SEATS[n], html = '', actor = actorOf(v);
+    tagsHTML = '';
     for (var i = 0; i < angles.length; i++) {
       var seat = (me + 1 + i) % n, deg = angles[i], th = deg * Math.PI / 180;
       var edge = n === 5 && (deg < 30 || deg > 150);
@@ -1404,9 +1427,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       var rot = 270 - deg, sc = edge ? .84 : 1;
       var cnt = v.counts[seat], m = Math.min(cnt, 7), backs = '';
       for (var k = 0; k < m; k++) backs += backHTML({ style: '--a:' + ((k - (m - 1) / 2) * 10).toFixed(1) + 'deg' });
-      html += '<div class="seat' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;--rot:' + rot + 'deg;--nrot:' + (-rot) + 'deg;--sc:' + sc + '">' +
-        '<div class="oppfan">' + backs + '</div>' +
-        '<div class="ntag"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><b class="cnt' + (v.said[seat] ? ' one' : '') + '">' + fmt(cnt) + '</b></div></div>';
+      html += '<div class="seat" data-seat="' + seat + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;--rot:' + rot + 'deg;--sc:' + sc + '">' +
+        '<div class="oppfan">' + backs + '</div><span class="anchor"></span></div>';
+      tagsHTML += '<div class="ntag' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" data-seat="' + seat + '"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><b class="cnt' + (v.said[seat] ? ' one' : '') + '">' + fmt(cnt) + '</b></div>';
     }
     return html;
   }
@@ -1448,6 +1471,23 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     return '<div class="fanrow" style="width:' + Math.max(W, Math.ceil(total)) + 'px">' + html + '</div>';
   }
 
+  /* بطاقات الأسماء: تُقرأ مراسي المقاعد مُسقَطةً على الشاشة بعد الرسم، وتوضع
+     البطاقات فوقها في طبقةٍ مسطّحة، مصغَّرةً بنسبة العرض المُسقَط إلى الطبيعي. */
+  function placeTags() {
+    el.tags.innerHTML = tagsHTML;
+    var sr = rect(el.scene), W = scenewrap.clientWidth || 360;
+    var seats = el.felt.querySelectorAll('.seat');
+    for (var i = 0; i < seats.length; i++) {
+      var a = rect(seats[i].querySelector('.anchor'));
+      var tag = el.tags.querySelector('.ntag[data-seat="' + seats[i].getAttribute('data-seat') + '"]');
+      if (!a || !tag) continue;
+      var sc = Math.max(.6, Math.min(1.25, 1.15 * a.width / (W * .10)));
+      tag.style.left = (a.left + a.width / 2 - sr.left).toFixed(1) + 'px';
+      tag.style.top = (a.top - sr.top).toFixed(1) + 'px';
+      tag.style.transform = 'translate(-50%,-100%) scale(' + sc.toFixed(3) + ')';
+    }
+  }
+
   function btn(text, cls, on, attrs) {
     var b = document.createElement('button');
     b.className = 'key' + (cls ? ' ' + cls : '');
@@ -1463,13 +1503,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var me = actorOf(G), v = V = S.viewFor(G, me);
     /* بلا شاشة خصوصية، أو بعد انتهاء الجولة، الجوّال يرى صاحب الموقف مباشرةً */
     if (!privacy || v.phase === 'over') shownSeat = me;
-    var handoff = shownSeat !== me;
+    var handoff = shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
+    if (handoffTimer) { clearTimeout(handoffTimer); handoffTimer = null; }
+    if (waiting) handoffTimer = setTimeout(render, handoffAt - Date.now() + 10);
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
     el.felt.innerHTML = seatsHTML(v, me) + pilesHTML(v);
+    placeTags();
 
     var W = scenewrap.clientWidth || 360, sl = el.hand.scrollLeft;
     if (sel !== null && v.hand.indexOf(sel) < 0) sel = null;
-    el.hand.innerHTML = (v.phase === 'over' || handoff) ? '' : handHTML(v, me, W);
+    /* في المهلة تبقى يدُ من لعب على الشاشة معطّلةً كلّها، حتى تحطّ الورقة */
+    el.hand.innerHTML = v.phase === 'over' ? '' : waiting ? handHTML(S.viewFor(G, shownSeat), -1, W) : handoff ? '' : handHTML(v, me, W);
     el.hand.scrollLeft = sl;
 
     var top = v.discard[v.discard.length - 1];
@@ -1479,6 +1523,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     el.over.hidden = true;
     var can = v.phase === 'play' ? S.legalMoves(v) : [], hint = hintText;
 
+    if (waiting) {
+      el.turn.textContent = 'الدور لـ' + nameOf(me);
+      el.hint.textContent = '';
+      el.handoff.hidden = true;
+      drawLog();
+      return;
+    }
     if (handoff) {
       /* نافذة تبديل الأدوار: لا يدَ ولا مفاتيح حتى يقول التالي إنه هو */
       el.turn.textContent = 'الدور لـ' + nameOf(me);
@@ -1576,7 +1627,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var from = rect(b), html = cardHTML(id, {});
     if (send(me, a)) fly(from, rect(el.felt.querySelector('.pile .tc')), html);
   });
-  el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); render(); } });
+  el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; render(); } });
   el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
   window.addEventListener('resize', function () { if (G && el.start.hidden) render(); });
 
@@ -1626,7 +1677,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var out = S.createGame({ seats: seats, seed: seed, house: house });
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
     G = out.state; lines = []; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
-    shownSeat = actorOf(G);                          // من يمسك الجوّال الآن هو البادئ
+    shownSeat = actorOf(G); handoffAt = 0;           // من يمسك الجوّال الآن هو البادئ
     clearToasts();
     tell(out.events, actorOf(G));
     el.start.hidden = true;
