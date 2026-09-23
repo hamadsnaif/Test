@@ -558,6 +558,32 @@
            using nothing but legal actions — draw then pass, or accept, or a
            colour.  No action was added to the engine for it.
 
+
+    A WIRE THAT DROPS IS NOT A ROOM THAT ENDED
+
+      Found by the owner on the first evening, not by a test: cutting the
+      phone's network mid-hand threw the player out to the start sheet, while
+      the host was still holding that seat and those cards for him.  The
+      reference has the guest redial on a backoff and never give up; that had
+      been carried into the signalling socket and forgotten in the play
+      channel, which is exactly the kind of gap a same-machine test cannot
+      show you.
+
+      So the two facts are now told apart.  A `bye` from the host ends the
+      room.  Anything else is a wire that fell, and on a fallen wire the table
+      stays where it is behind a veil that names the room, every control is
+      dead so nothing can be pressed into a wire that is not there, and the
+      page redials on 1/2/4/8/10s until the host answers — which returns the
+      same seat and the same hand, because the host reserved both and the
+      return ticket sits in sessionStorage.  Only when the redials run out
+      does it fall back to the start sheet, and then with one key that goes
+      straight back to that room.
+
+      src/tests/shadda-play.js drives it by crashing the host's page, which is
+      the only way to make it go silent with no goodbye: closing it cleanly
+      sends the `bye`, and stopping its timers does not silence it at all,
+      because it answers messages by event and not by tick.  Both were tried.
+
     ONE SEAT TABLE, AND COMING BACK TO YOUR OWN SEAT
 
       Seat 0 is the host's and is never given away.  The rest are claimed in
@@ -615,6 +641,8 @@
       No TURN.  With STUN alone, two peers behind symmetric NAT or CGNAT —
       common on mobile networks — will not connect, and the reference is
       blunt that this is the likeliest reason a real family session fails.
+      One real pair has since been tried and worked (see below), which is
+      evidence and not a guarantee.
       The socket for it is here from the first day rather than at the end of
       the plan: body[data-net-turn="turns:host:443|user|pass"] is read, and
       refused unless its host is also named in data-net-hosts, so a server
@@ -627,11 +655,13 @@
       The broker is public.  It sees room codes and IP addresses.  It does
       not see the game: that goes peer to peer, encrypted.
 
-      It has not been played between two real networks.  Everything here was
-      driven between tabs of one machine, and the reference is emphatic that
-      this proves nothing at all about NAT.  That is the first real test, and
-      it wants a phone on mobile data against a second network — not this
-      machine.
+      It HAS now been played between two real networks.  On 2026-09-23 the
+      owner ran a room between a phone on mobile data and a machine on Wi-Fi,
+      and it connected and played smoothly: STUN alone carried it across two
+      NATs.  That does not retire TURN — a symmetric or carrier-grade NAT can
+      still refuse, and this is one pair of carriers on one evening, not a
+      proof — but the reference's likeliest failure was tried here and did not
+      happen.  The measure line is what will say so the day it does.
 
     MEASURE, DO NOT GUESS
 
@@ -771,6 +801,15 @@ button:disabled{cursor:default}
   color:var(--acc-lo);background:rgba(13,11,16,.74);text-align:center;
   padding:2px 6px calc(2px + env(safe-area-inset-bottom));
 }
+
+/* الطاولة تبقى تحته: انقطاعٌ لحظيّ ليس نهايةَ اللعبة */
+.netdown{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  text-align:center;direction:rtl;padding:16px;background:rgba(20,17,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.netdown .sp{width:34px;height:34px;border-radius:50%;border:3px solid rgba(243,236,217,.22);border-top-color:var(--acc)}
+@media (prefers-reduced-motion: no-preference){.netdown .sp{animation:spin 1s linear infinite}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.netdown .why{font-size:clamp(15px, 4.6cqw, 19px);font-weight:800;line-height:1.5;max-width:22em}
+.netdown small{font-size:12px;color:#b8ad98}
 
 /* ---------- الشريط العلوي: صفّ الهيكل الذي يشترطه العقد، ومحتواه لاتيني ---------- */
 .cap{
@@ -1067,6 +1106,7 @@ button:disabled{cursor:default}
       <div class="over" id="over" hidden></div>
       <div class="veil" id="veil"></div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="netdown" id="netdown" hidden><span class="sp"></span><div class="why" id="netdowntxt"></div><button class="key" id="retrynow">أعد المحاولة الآن</button><small>مقعدك وورقك محفوظان عند المضيف حتى تعود.</small></div>
       <div class="handoff" id="handoff" hidden><span class="av" id="ho-av"></span><div class="to">مرّر الجوّال إلى</div><div class="who" id="ho-who"></div><button class="key acc" id="handoffok"></button><small>لا يظهر ورقك حتى تضغط، فلا يراه من قبلك.</small></div>
     </div>
   </div>
@@ -1081,6 +1121,7 @@ button:disabled{cursor:default}
         <button class="key mode" data-m="cpu"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="18" height="18" rx="3"/><rect x="12" y="12" width="8" height="8" rx="1"/><path d="M11 3v4M16 3v4M21 3v4M11 25v4M16 25v4M21 25v4M3 11h4M3 16h4M3 21h4M25 11h4M25 16h4M25 21h4"/></svg><span>ضد الحاسب<small>خصومٌ آليّون — من اثنين حتى خمسة</small></span></button>
       </div>
       <div class="net" id="net" hidden>
+        <button class="key acc" id="rejoin" hidden></button>
         <div class="netpick" id="netpick">
           <button class="key" id="mkroom" data-net-probe>أنشئ غرفة</button>
           <button class="key" id="joinroom">انضمّ برمز</button>
@@ -1242,6 +1283,11 @@ var ShaddaNet = (function () {
       ch.postMessage({ room: code, from: me, to: to, m: txt });
     }
     function note(id) { seen[id] = Date.now(); }
+    /* صمتُ المضيف انقطاع: لا حدث close على قناةٍ محلّية، فالسكوت هو الخبر. */
+    function watchHost() {
+      if (hostGone) clearTimeout(hostGone);
+      hostGone = setTimeout(function () { if (!dead && on.closed) on.closed('lost'); }, STALE * 2);
+    }
     function sweep() {
       var now = Date.now(), id;
       for (id in seen) if (peers[id] && now - seen[id] > STALE) {
@@ -1254,7 +1300,8 @@ var ShaddaNet = (function () {
       if (!d || d.room !== code || typeof d.from !== 'string' || d.from === me) return;
       if (d.to !== me && d.to !== '*') return;
       if (typeof d.m === 'string') meter.inn(d.m.length);
-      if (d.beat) { if (isHost) note(d.from); else if (hostGone) { clearTimeout(hostGone); hostGone = null; } return; }
+      if (!isHost) watchHost();                       /* كل نبضةٍ أو رسالةٍ من المضيف تُجدّد المهلة */
+      if (d.beat) { if (isHost) note(d.from); return; }
       var m = parse(d.m);
       if (!m) return;
       if (isHost) {
@@ -1262,7 +1309,7 @@ var ShaddaNet = (function () {
         if (!peers[d.from]) { peers[d.from] = true; if (on.peer) on.peer(d.from); }
         if (on.msg) on.msg(d.from, m);
       } else {
-        if (m.t === 'bye') { if (on.closed) on.closed('hostLeft'); return; }
+        if (m.t === 'bye') { if (hostGone) { clearTimeout(hostGone); hostGone = null; } if (on.closed) on.closed('hostLeft'); return; }
         if (on.msg) on.msg('H', m);
       }
     };
@@ -1411,7 +1458,7 @@ var ShaddaNet = (function () {
       delete links[peer];
       try { L.pc.close(); } catch (e) {}
       if (isHost) { if (on.gone) on.gone(peer, why); }
-      else if (!dead && on.closed) on.closed(why === 'failed' ? 'failed' : 'hostLeft');
+      else if (!dead && on.closed) on.closed('lost');   /* سلكٌ سقط، لا مضيفٌ ودّع */
     }
     function flush(L) { while (L.q.length) L.pc.addIceCandidate(L.q.shift())['catch'](function () {}); }
     function offer() {
@@ -2151,7 +2198,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   /* ---------- العناصر ---------- */
   var el = {};
   ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
-   'net', 'netpick', 'mkroom', 'joinroom', 'joinbox', 'codein', 'joingo', 'roombox', 'codehead', 'roomcode', 'roomlink', 'copylink', 'roster', 'netnote', 'countrow', 'namehead', 'statsw', 'meas'].forEach(function (id) {
+   'net', 'netpick', 'mkroom', 'joinroom', 'joinbox', 'codein', 'joingo', 'roombox', 'codehead', 'roomcode', 'roomlink', 'copylink', 'roster', 'netnote', 'countrow', 'namehead', 'statsw', 'meas',
+   'netdown', 'netdowntxt', 'retrynow', 'rejoin'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
   });
   var scenewrap = el.scene.parentElement;
@@ -2166,7 +2214,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var mySeat = null, amHost = false, link = null, tbl = null, netView = null;
   var netPhase = 'off', netCode = '', netNote = '', netSeen = -1, netN = [], netHere = [];
   var netBusy = false, netBusyTimer = null, snapTimer = null, pingTimer = null, measTimer = null;
-  var pingAt = 0, statsOn = false, joinTimer = null, VER = '85f1007b1f';
+  var pingAt = 0, statsOn = false, joinTimer = null, VER = '8beb2f089a';
+  /* العودة بعد الانقطاع: تراجعٌ تصاعدي بلا استسلام (المرجع ٤ و١٣) */
+  var netDown = false, retryStep = 0, retryTimer = null, lastCode = '';
+  var RETRY = [1000, 2000, 4000, 8000, 10000, 10000, 10000, 10000];
   var NET_VIA = /[?&]net=loop(?:&|$)/.test(location.search) ? 'loop' : 'rtc';
   var SNAP_MS = 1500, PING_MS = 2000, MEAS_MS = 1000, BUSY_MS = 4000;
   var CPU_NAMES = ['فهد', 'منى', 'سعد', 'هند'];
@@ -2721,7 +2772,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       else toast('دورك يا ' + nameOf(me), false, true);
     }
     /* الضيفُ بعد فعله لا يضغط ثانيةً قبل أن يصل حكم المضيف */
-    if (netBusy) {
+    el.netdown.hidden = !netDown;
+    if (netBusy || netDown) {
       var stop = el.acts.querySelectorAll('button'), z;
       for (z = 0; z < stop.length; z++) stop[z].disabled = true;
       stop = el.hand.querySelectorAll('button');
@@ -2896,10 +2948,14 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   function roomLink(code) { return location.origin + location.pathname + '?join=' + code + (NET_VIA === 'loop' ? '&net=loop' : ''); }
 
-  function leaveRoom() {
+  function dropLink() {
     if (link) { try { link.close(); } catch (e) {} link = null; }
     if (snapTimer) { clearInterval(snapTimer); snapTimer = null; }
     if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+  }
+  function leaveRoom() {
+    dropLink();
+    clearDown();
     if (netBusyTimer) { clearTimeout(netBusyTimer); netBusyTimer = null; }
     if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
     amHost = false; tbl = null; netView = null; netSeen = -1; netN = []; netHere = [];
@@ -2912,6 +2968,50 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (pingTimer) clearInterval(pingTimer);
     if (amHost) snapTimer = setInterval(snapTick, SNAP_MS);   /* الدفاع الثاني */
     pingTimer = setInterval(pingTick, PING_MS);
+  }
+
+  /* ---------- انقطاعٌ لا يُفقدك مقعدك ----------
+     المضيف يحجز المقعد لصاحبه ويعرف معرّف عودته، فلا معنى لأن يُرمى الضيف من
+     الطاولة لأن السلك تعثّر ثانية. الطاولة تبقى خلف ضبابة، ويُعاد الطرق
+     بتراجعٍ تصاعدي؛ وحين يُجيب المضيف تعود اللعبة من حيث كانت — ولا يُعاد
+     نداءُ حدثٍ قيل، لأن اللقطة تحمل رقمها. */
+  function clearDown() {
+    netDown = false; retryStep = 0;
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+    if (el.netdown) el.netdown.hidden = true;
+  }
+  function showDown(text) {
+    netDown = true;
+    el.netdowntxt.textContent = text;
+    el.netdown.hidden = false;
+    render();
+  }
+  function redial() {
+    if (amHost || !netCode) return;
+    dropLink();
+    link = ShaddaNet.open({ via: NET_VIA, host: false, code: netCode, ver: VER, ice: iceOpts(),
+      name: cleanName(nameVals[0]), rid: myRid(), on: { status: onStatus, msg: guestMsg, closed: onClosed } });
+    beat();
+  }
+  function scheduleRetry() {
+    if (retryTimer) return;
+    if (retryStep >= RETRY.length) { hardLeave('تعذّرت العودة إلى الغرفة.', true); return; }
+    var w = RETRY[retryStep++];
+    showDown('انقطع الاتصال — نحاول العودة إلى الغرفة ' + netCode + '…');
+    retryTimer = setTimeout(function () { retryTimer = null; redial(); }, w);
+  }
+  /* ‎held‎: هل يُرجى أن يكون المقعد ما زال محجوزاً؟ لا يُقال ذلك لمن ودّعه
+     المضيفُ صراحةً — غرفةٌ أُغلقت لا مقعدَ فيها يُحجز. */
+  function hardLeave(msg, held) {
+    var code = amHost ? '' : netCode;
+    leaveRoom();
+    lastCode = code;
+    netPhase = 'lost';
+    setNote(msg + (code && held ? ' مقعدك محفوظٌ ما دام المضيف على الطاولة.' : ''));
+    G = null; V = null; netView = null;
+    clearToasts();
+    el.start.hidden = false; el.resume.hidden = true;
+    paintNet();
   }
 
   var takenTries = 0, joinOpen = false;
@@ -2955,19 +3055,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (amHost && takenTries++ < 5) { setNote('الرمز مشغول — نجرّب غيره.'); makeRoom(); return; }
       netPhase = 'lost'; setNote(amHost ? 'تعذّر حجز رمزٍ للغرفة.' : 'لا غرفة بهذا الرمز.');
     }
-    else if (kind === 'noRoom') { netPhase = 'lost'; setNote('لا غرفة بهذا الرمز، أو أُغلقت.'); }
-    else if (kind === 'brokerError') { netPhase = 'lost'; setNote('تعذّر الوصول إلى وسيط التوقيع. تأكّد من الإنترنت.'); }
-    else if (kind === 'failed') { netPhase = 'lost'; setNote('تعذّر فتح الاتصال. قد يمنعه نوع الشبكة — ولا TURN بعد.'); }
+    else if (kind === 'noRoom') { if (netDown) { scheduleRetry(); return; } netPhase = 'lost'; setNote('لا غرفة بهذا الرمز، أو أُغلقت.'); }
+    else if (kind === 'brokerError') { if (netDown) { scheduleRetry(); return; } netPhase = 'lost'; setNote('تعذّر الوصول إلى وسيط التوقيع. تأكّد من الإنترنت.'); }
+    else if (kind === 'failed') { if (netDown) { scheduleRetry(); return; } netPhase = 'lost'; setNote('تعذّر فتح الاتصال. قد يمنعه نوع الشبكة — ولا TURN بعد.'); }
     paintNet();
   }
+  /* ودعٌ صريحٌ من المضيف ينهي الغرفة؛ وسلكٌ سقط لا ينهي شيئاً — يُعاد الطرق. */
   function onClosed(why) {
-    var msg = why === 'hostLeft' ? 'أُغلقت الغرفة — خرج المضيف.' : 'انقطع الاتصال بالمضيف.';
-    leaveRoom();
-    netPhase = 'lost'; setNote(msg);
-    G = null; V = null; netView = null;
-    clearToasts();
-    el.start.hidden = false; el.resume.hidden = true;
-    paintNet();
+    dropLink();
+    if (why === 'hostLeft') { hardLeave('أُغلقت الغرفة — خرج المضيف.', false); return; }
+    if (amHost || !netCode || (!G && !netView)) { hardLeave('انقطع الاتصال بالغرفة.', true); return; }
+    scheduleRetry();
   }
   /* الدفاع الثالث: يُفلَت المقعد لحظةَ اختفاء صاحبه، لا بعد مهلة. وقبل التوزيع
      يُطوى صفّه فتبقى المقاعد متتابعة؛ وبعده يبقى محجوزاً ليعود إليه هو. */
@@ -3057,6 +3155,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (m.t === 'seat') {
       if (typeof m.seat !== 'number') return;
       if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
+      clearDown();
       mySeat = m.seat | 0; shownSeat = mySeat;
       if (m.code) netCode = String(m.code).slice(0, 8);
       if (Array.isArray(m.names)) names = m.names.map(cleanName);
@@ -3080,6 +3179,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (!m.v || typeof m.v !== 'object' || !Array.isArray(m.v.discard)) return;
       netView = m.v;
       if (typeof m.v.you === 'number') { mySeat = m.v.you; shownSeat = mySeat; }
+      clearDown();
       netBusy = false;
       if (netBusyTimer) { clearTimeout(netBusyTimer); netBusyTimer = null; }
       if (netPhase !== 'playing') { netPhase = 'playing'; clearToasts(); setNote(''); el.start.hidden = true; el.resume.hidden = false; lastPrompt = ''; paintNet(); }
@@ -3140,6 +3240,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       }
       el.roster.innerHTML = html;
     }
+    el.rejoin.hidden = inRoom || !lastCode;
+    if (!el.rejoin.hidden) el.rejoin.textContent = 'عُد إلى الغرفة ' + lastCode;
     el.startbtn.textContent = amHost ? 'ابدأ اللعب' : inRoom ? 'ينتظر المضيف' : 'أنشئ غرفةً أو انضمّ';
     el.startbtn.disabled = !amHost || !tbl || tbl.rows().length < 2;
   }
@@ -3156,6 +3258,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
   measTimer = setInterval(measTick, MEAS_MS);
 
+  el.retrynow.addEventListener('click', function () { if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; } retryStep = 0; showDown('نحاول العودة إلى الغرفة ' + netCode + '…'); redial(); });
+  el.rejoin.addEventListener('click', function () { joinOpen = false; joinRoom(lastCode); });
   el.mkroom.addEventListener('click', function () { takenTries = 0; joinOpen = false; makeRoom(); });
   el.joinroom.addEventListener('click', function () { joinOpen = true; paintNet(); el.codein.focus(); });
   el.joingo.addEventListener('click', function () { joinRoom(el.codein.value); });

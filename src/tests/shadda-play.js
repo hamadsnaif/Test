@@ -690,6 +690,78 @@ async function open(browser, w, h, query) {
       await rctx.close();
     }
 
+
+    /* ---- سلكٌ يسقط في منتصف اليد ----
+       المالك قطع شبكة جوّاله وهو يلعب فوجد نفسه على شاشة البداية، ومقعده
+       وورقه محجوزان عند المضيف. الفرق بين «ودّعك المضيف» و«سقط السلك» هو
+       الفرق بين انتهاء الغرفة وبين ثانيةٍ عابرة، ولم يكن يُفرَّق بينهما.
+       ويُقاد هنا بإسقاط صفحة المضيف إسقاطاً يُسكتها بلا وداع — إغلاقُها
+       إغلاقاً نظيفاً يرسل ‎bye‎، وتعطيلُ مؤقّتاتها لا يُسكتها لأنها تجيب
+       الرسائل بالحدث لا بالمؤقّت (جُرّب، فلم يسقط السلك). */
+    {
+      const dctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
+      const de = [];
+      const DH = await openIn(dctx, '?net=loop&seed=61', de);
+      await DH.fill('#namelist input', 'حمد');
+      await DH.click('.modes .key[data-m="online"]');
+      await DH.click('#mkroom');
+      await sleep(600);
+      const dcode = (await DH.textContent('#roomcode')).trim();
+      const DG = await openIn(dctx, '?net=loop&join=' + dcode, de);
+      await DG.fill('#namelist input', 'سارة');
+      await DG.click('#joingo');
+      await sleep(900);
+      await DH.click('#startbtn');
+      await sleep(1200);
+      const dealt = (await handCards(DG)).length;
+
+      await DH.goto('chrome://crash').catch(() => {});
+      let down = false;
+      for (let k = 0; k < 14 && !down; k++) {
+        await sleep(1000);
+        down = await DG.evaluate(() => !document.getElementById('netdown').hidden);
+        if (!(await DG.evaluate(() => document.getElementById('start').hidden))) break;
+      }
+      ok('a wire that drops mid-hand does not throw the player off the table',
+        down && await DG.evaluate(() => document.getElementById('start').hidden) && (await handCards(DG)).length === dealt,
+        'down=' + down + ' sheet hidden=' + await DG.evaluate(() => document.getElementById('start').hidden) +
+        ' hand ' + dealt + '->' + (await handCards(DG)).length);
+      ok('and it says so, names the room, and keeps trying to get back in',
+        /نحاول العودة إلى الغرفة/.test(await DG.textContent('#netdowntxt')) &&
+        (await DG.textContent('#netdowntxt')).indexOf(dcode) > 0, (await DG.textContent('#netdowntxt')).trim());
+      ok('nothing threw while the wire was down', de.length === 0, de[0]);
+      await dctx.close();
+    }
+
+    /* ---- ومضيفٌ يُغلق غرفته فعلاً: ذاك انتهاءٌ لا انقطاع ---- */
+    {
+      const bctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
+      const be = [];
+      const BH = await openIn(bctx, '?net=loop&seed=62', be);
+      await BH.fill('#namelist input', 'حمد');
+      await BH.click('.modes .key[data-m="online"]');
+      await BH.click('#mkroom');
+      await sleep(600);
+      const bcode = (await BH.textContent('#roomcode')).trim();
+      const BG = await openIn(bctx, '?net=loop&join=' + bcode, be);
+      await BG.fill('#namelist input', 'سارة');
+      await BG.click('#joingo');
+      await sleep(900);
+      await BH.click('#startbtn');
+      await sleep(1200);
+      await BH.close();
+      await sleep(2500);
+      const note = (await BG.textContent('#netnote')).trim();
+      ok('a host that closes its room sends the guest back with the reason said',
+        !(await BG.evaluate(() => document.getElementById('start').hidden)) && /خرج المضيف/.test(note), note);
+      ok('and does not promise a seat in a room that is gone', !/مقعدك محفوظ/.test(note), note);
+      ok('and the way back in is one press, with the code already in it',
+        (await BG.evaluate(() => { const b = document.getElementById('rejoin'); return b.hidden ? '' : b.textContent; })).indexOf(bcode) > 0,
+        await BG.evaluate(() => { const b = document.getElementById('rejoin'); return b.hidden ? '(hidden)' : b.textContent; }));
+      ok('nothing threw when the room closed', be.length === 0, be[0]);
+      await bctx.close();
+    }
+
     /* ---- غرفةٌ ممتلئة: خمسةٌ حدُّ الطاولة، والسادس يُخبَر صراحةً ---- */
     {
       const fctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
