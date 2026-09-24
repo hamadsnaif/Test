@@ -726,9 +726,21 @@ async function open(browser, w, h, query) {
         down && await DG.evaluate(() => document.getElementById('start').hidden) && (await handCards(DG)).length === dealt,
         'down=' + down + ' sheet hidden=' + await DG.evaluate(() => document.getElementById('start').hidden) +
         ' hand ' + dealt + '->' + (await handCards(DG)).length);
-      ok('and it says so, names the room, and keeps trying to get back in',
+      ok('and it says so and names the room',
         /نحاول العودة إلى الغرفة/.test(await DG.textContent('#netdowntxt')) &&
         (await DG.textContent('#netdowntxt')).indexOf(dcode) > 0, (await DG.textContent('#netdowntxt')).trim());
+      /* ‏الطرقُ يجب أن **يتقدّم**. أوّل إصلاحٍ لهذا العطب كان يعلّق عند المحاولة
+         الأولى إلى الأبد: لا مهلةَ لمحاولةٍ تذهب إلى فراغ، فلا يُستدعى
+         ‎closed‎، فلا تُجدوَل التالية. عدّادُ المحاولة على الشاشة هو الأثر. */
+      const lines = new Set([(await DG.textContent('#netdowntxt')).trim()]);
+      for (let k = 0; k < 12; k++) {
+        await sleep(1500);
+        const t = (await DG.textContent('#netdowntxt')).trim();
+        if (t) lines.add(t);
+        if (lines.size >= 3) break;
+      }
+      ok('and the backoff actually moves on instead of hanging on one attempt',
+        lines.size >= 3, [...lines].join(' | '));
       ok('nothing threw while the wire was down', de.length === 0, de[0]);
       await dctx.close();
     }

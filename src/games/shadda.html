@@ -1209,7 +1209,9 @@ var ShaddaNet = (function () {
       of: function (peer) { for (var i = 0; i < rows.length; i++) if (rows[i].peer === peer) return i; return -1; },
       claim: function (peer, rid, name) {
         var i;
-        for (i = 1; i < rows.length; i++) if (rid && rows[i].rid === rid && !rows[i].here) {
+        for (i = 1; i < rows.length; i++) if (rid && rows[i].rid === rid) {
+          /* عاد بتذكرته نفسها: يأخذ مقعده هو، حاضراً كان الصفُّ أو غائباً —
+             فمن سقط سلكُه قد يطرق قبل أن يلحظ المضيفُ سقوطه. */
           rows[i].peer = peer; rows[i].here = true; if (name) rows[i].name = name;
           return i;
         }
@@ -1406,7 +1408,7 @@ var ShaddaNet = (function () {
 
     function mkLink(peer) {
       var pc = new RTCPeerConnection(conf);
-      var L = { pc: pc, dc: null, q: [], remote: false, cid: 'sh' + Math.random().toString(36).slice(2, 9) };
+      var L = { pc: pc, dc: null, q: [], remote: false, wobble: null, cid: 'sh' + Math.random().toString(36).slice(2, 9) };
       links[peer] = L;
       pc.onicecandidate = function (e) {
         if (!e.candidate) return;
@@ -1417,7 +1419,13 @@ var ShaddaNet = (function () {
       };
       pc.onconnectionstatechange = function () {
         var s = pc.connectionState;
-        if (s === 'failed' || s === 'closed' || s === 'disconnected') drop(peer, s === 'failed' ? 'failed' : 'left');
+        if (s === 'connected') { if (L.wobble) { clearTimeout(L.wobble); L.wobble = null; } return; }
+        if (s === 'failed' || s === 'closed') { drop(peer, s === 'failed' ? 'failed' : 'left'); return; }
+        /* ‎disconnected‎ حالةٌ يُرجع منها: تُمهل قليلاً قبل أن تُعدّ سقوطاً */
+        if (s === 'disconnected' && !L.wobble) L.wobble = setTimeout(function () {
+          L.wobble = null;
+          if (pc.connectionState === 'disconnected') drop(peer, 'failed');
+        }, 5000);
       };
       return L;
     }
@@ -1444,6 +1452,7 @@ var ShaddaNet = (function () {
       var L = links[peer];
       if (!L) return;
       delete links[peer];
+      if (L.wobble) { clearTimeout(L.wobble); L.wobble = null; }
       try { L.pc.close(); } catch (e) {}
       if (isHost) { if (on.gone) on.gone(peer, why); }
       else if (!dead && on.closed) on.closed('lost');   /* سلكٌ سقط، لا مضيفٌ ودّع */
@@ -2966,6 +2975,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   function clearDown() {
     netDown = false; retryStep = 0;
     if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+    if (joinTimer) { clearTimeout(joinTimer); joinTimer = null; }
     if (el.netdown) el.netdown.hidden = true;
   }
   function showDown(text) {
@@ -2974,18 +2984,29 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     el.netdown.hidden = false;
     render();
   }
+  /* ولكل محاولةٍ مهلةٌ تنتهي. بلا مهلةٍ لا يُستدعى ‎closed‎ إن ذهبت المحاولة
+     إلى فراغ — لا وسيطَ يجيب، أو مضيفٌ لم يعد هناك — فيقف التراجع التصاعدي
+     عند أوّل محاولةٍ ويبقى الستار إلى الأبد. وهو العطب الذي وقع فيه المالك. */
   function redial() {
     if (amHost || !netCode) return;
     dropLink();
     link = ShaddaNet.open({ via: NET_VIA, host: false, code: netCode, ver: VER, ice: iceOpts(),
       name: cleanName(nameVals[0]), rid: myRid(), on: { status: onStatus, msg: guestMsg, closed: onClosed } });
     beat();
+    if (joinTimer) clearTimeout(joinTimer);
+    joinTimer = setTimeout(function () {
+      joinTimer = null;
+      if (!netDown) return;                       // عاد قبل أن تنتهي المهلة
+      dropLink();
+      scheduleRetry();
+    }, NET_VIA === 'loop' ? 2500 : 9000);
   }
   function scheduleRetry() {
     if (retryTimer) return;
-    if (retryStep >= RETRY.length) { hardLeave('تعذّرت العودة إلى الغرفة.', true); return; }
+    if (retryStep >= RETRY.length) { hardLeave('تعذّرت العودة إلى الغرفة ' + netCode + ' بعد عدّة محاولات.', true); return; }
     var w = RETRY[retryStep++];
-    showDown('انقطع الاتصال — نحاول العودة إلى الغرفة ' + netCode + '…');
+    showDown('انقطع الاتصال — نحاول العودة إلى الغرفة ' + netCode +
+      ' (المحاولة ' + fmt(retryStep) + ' من ' + fmt(RETRY.length) + ')…');
     retryTimer = setTimeout(function () { retryTimer = null; redial(); }, w);
   }
   /* ‎held‎: هل يُرجى أن يكون المقعد ما زال محجوزاً؟ لا يُقال ذلك لمن ودّعه
