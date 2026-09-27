@@ -22,6 +22,12 @@
  * وفيه قياسان يُطلبان بالاسم في المرحلة ٢: طرفُ كل ورقةٍ المكشوف في المروحة —
  * أكبر مستطيلٍ تملكه الورقة وحدها، بالطريقة نفسها التي يقيس بها contract.js —
  * على عرض ‎390‎ بيدٍ من سبع، وعلى عرض ‎320‎ بيدٍ من خمس عشرة.
+ *
+ * والمرحلة ٥ أضافت إليه فقرتين، وكلتاهما تقرأ المرسوم لا الحالة: ألّا يظهر في
+ * ‏كل ما يُقاد من الأدوار‏ مفتاحُ «واحدة» ولا نداءٍ ولا اعتراض، وأن تتكوّن
+ * الكومة فيسمّي مفتاحُها مجموعَها ويسمّي السطرُ تحته نوعَ ما يردّ عليها، وأن
+ * تُرفع نافذةُ القفل فتشرح الورقة المعطّلة ويموت ما تحتها؛ ثم المفتاح المطفأ
+ * «لعبٌ مُيسَّر» فلا نافذةَ قفلٍ ولا كومةَ أربعٍ، مع بقاء تكديس الثنتين.
  */
 const { spawn } = require('child_process');
 const path = require('path');
@@ -77,21 +83,16 @@ async function playFirstLive(p) {
   return true;
 }
 
-/* دورٌ واحد: يُنظر إلى ما هو معروضٌ الآن ويُتصرّف كما يتصرّف لاعب.
-   sayOne: إن كانت في اليد ورقتان قيلت «واحدة» مع اللعب؛ وإلا نُسيت عمداً. */
-async function oneMove(p, sayOne) {
+/* دورٌ واحد: يُنظر إلى ما هو معروضٌ الآن ويُتصرّف كما يتصرّف لاعب. */
+async function oneMove(p) {
   /* نافذة تبديل الأدوار تسبق كل شيء: اللاعب التالي يقول إنه هو ثم يرى يده */
   if (await p.$eval('#handoff', e => !e.hidden)) { await p.click('#handoffok'); await sleep(20); return 'handoff'; }
+  /* ونافذة تنويه القفل تسبق كل شيء كذلك: لا يُضغط شيءٌ تحتها */
+  if (await p.$eval('#locknote', e => !e.hidden)) { await p.click('#locknoteok'); await sleep(20); return 'locknote'; }
   const acts = await texts(p, '#acts button');
   if (acts.indexOf('أحمر') >= 0) { await clickByText(p, '#acts button', 'أحمر'); return 'colour'; }
-  if (acts.indexOf('اعترض') >= 0) { await clickByText(p, '#acts button', 'اعترض'); return 'challenge'; }
   const live = await liveCards(p);
   if (live.length) {
-    if (sayOne && (await handCards(p)).length === 2 && acts.indexOf('واحدة!') >= 0) {
-      const pressed = await p.$eval('#acts button[aria-pressed]', b => b.getAttribute('aria-pressed'));
-      if (pressed !== 'true') await clickByText(p, '#acts button', 'واحدة!');
-      if (await playFirstLive(p)) return 'one';
-    }
     if (await playFirstLive(p)) return 'play';
   }
   if (acts.some(t => /^خذ /.test(t))) { await clickByText(p, '#acts button', /^خذ /); return 'take'; }
@@ -156,19 +157,20 @@ async function settled(p) {
   }
   return false;
 }
-/* على أيّ جهازٍ يقع الفعل الآن؟ الحالة الكبيرة تقولها بثلاث صيغ لا بواحدة:
-   «فلان، دورك» في اللعب، و«فلان، اختر اللون» بعد ورقةٍ حرّة، و«فلان، «سحب
-   أربعة» عليك» عند الاعتراض. وقياسُ الأولى وحدها يترك الغرفة تقف على مقعدٍ
-   مفاتيحُه أمامه — وهو ما ظنّه هذا الملفّ عطباً في الغرفة وليس فيه. */
-const ACTS_HERE = /، دورك$|، اختر اللون$|عليك$/;
+/* على أيّ جهازٍ يقع الفعل الآن؟ الحالة الكبيرة تقولها بصيغتين لا بواحدة:
+   «فلان، دورك» في اللعب، و«فلان، اختر اللون» بعد ورقةٍ حرّة. وقياسُ الأولى
+   وحدها يترك الغرفة تقف على مقعدٍ مفاتيحُه أمامه — وهو ما ظنّه هذا الملفّ
+   عطباً في الغرفة وليس فيه. (وكانت ثالثةٌ — «سحب أربعة» عليك — فذهبت مع
+   الاعتراض في المرحلة ٥.) */
+const ACTS_HERE = /، دورك$|، اختر اللون$/;
 /* دورٌ واحد على أي تبويبٍ يقع عليه الفعل — كما يفعل اللاعب على جهازه هو.
    وإن انتهت الجولة فلا أحد يحمل دوراً: من يملك المفتاح يمضي بها، وإلا وقف
    كلُّ حلقةٍ تقود الغرفة عند أول جولةٍ تنتهي. */
-async function roomMove(pages, sayOne) {
+async function roomMove(pages) {
   for (const p of pages) {
     if (!ACTS_HERE.test(await turnText(p))) continue;
     if (!(await settled(p))) return { p, what: 'stuck' };
-    return { p, what: await oneMove(p, sayOne) };
+    return { p, what: await oneMove(p) };
   }
   for (const p of pages) {
     const acts = await texts(p, '#acts button');
@@ -243,7 +245,7 @@ async function open(browser, w, h, query) {
         ok('the second tap plays it, and the colour chip names the card now on the pile',
           (await p.$eval('#clr', e => e.textContent)).indexOf(name) >= 0, await p.$eval('#clr', e => e.textContent));
         moved = true;
-      } else if (!(await oneMove(p, true))) break;
+      } else if (!(await oneMove(p))) break;
     }
     ok('a card was played by tapping within the first turns', moved);
 
@@ -251,7 +253,7 @@ async function open(browser, w, h, query) {
     let hoSeen = false;
     for (let k = 0; k < 60 && !hoSeen; k++) {
       if (await p.$eval('#handoff', e => !e.hidden)) { hoSeen = true; break; }
-      const what = await oneMove(p, true);
+      const what = await oneMove(p);
       if (!what) break;
     }
     ok('when the turn passes to another seat the hand-off window comes up', hoSeen);
@@ -270,13 +272,18 @@ async function open(browser, w, h, query) {
       ok('and goes away by itself', !(await p.$eval('#toast', e => e.classList.contains('on'))));
     }
 
-    /* ---- جولةٌ كاملة بالنقر وحده، و«واحدة» تُقال حين تبقى ورقتان ---- */
-    let moves = 0, kinds = {};
+    /* ---- جولةٌ كاملة بالنقر وحده ----
+       «wait» ليس دوراً: هو انتظارُ الطاولة حتى تحطّ الورقة ويُقرأ آخرُ تنويه،
+       فلا يُعدّ في الميزانية. وتتابعُه هو ما يُقاس بدله: انتظارٌ يطول عن تسع
+       ثوانٍ متّصلة ليس مهلةً بل وقوف. */
+    let moves = 0, waits = 0, kinds = {};
     while (moves < 800) {
       if (await overText(p)) break;
-      const what = await oneMove(p, true);
+      const what = await oneMove(p);
       if (!what) break;
       kinds[what] = (kinds[what] || 0) + 1;
+      if (what === 'wait') { if (++waits > 60) break; continue; }
+      waits = 0;
       moves++;
     }
     const over = await overText(p);
@@ -284,7 +291,6 @@ async function open(browser, w, h, query) {
     ok('a whole round is played through to a winner, by tapping only', !!m,
       moves + ' moves, panel: ' + over.replace(/\n/g, ' / '));
     ok('the round took real play, not one lucky card', moves > 6, 'moves=' + moves + ' ' + JSON.stringify(kinds));
-    ok('«واحدة» was pressed on the way, with two cards in hand', kinds.one > 0, JSON.stringify(kinds));
     if (m) {
       const cap = await capText(p);
       const w = await p.$eval('#over .sc .w', e => e.textContent.trim());          // «فلان ٤٢»
@@ -299,24 +305,6 @@ async function open(browser, w, h, query) {
     ok('the next round deals again and keeps the score',
       (await capText(p)).indexOf('round 2') >= 0 && ((await handCards(p)).length > 0 || await p.$eval('#handoff', e => !e.hidden)), await capText(p));
 
-    /* ---- «واحدة» منسيّة: مفتاح النداء يظهر، والعقوبة ورقتان — من الشاشة ---- */
-    let called = false;
-    for (let k = 0; k < 1500 && !called; k++) {
-      const acts = await texts(p, '#acts button');
-      if (acts.indexOf('الجولة التالية') >= 0 || acts.indexOf('مباراة جديدة') >= 0) {
-        await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
-      }
-      const call = acts.find(t => /^نادِ على /.test(t));
-      if (call) { await clickByText(p, '#acts button', call); called = true; break; }
-      if (!(await oneMove(p, false))) break;
-    }
-    ok('forgetting «واحدة» puts a call-out key on the screen', called);
-    if (called) {
-      let pt = '';
-      /* التنويه قد ينتظر خلف تنويهين قبله (نحو أربع ثوانٍ) */
-      for (let k = 0; k < 80 && !/نسي «واحدة» ويسحب ٢/.test(pt); k++) { pt = await p.$eval('#toast', e => e.classList.contains('on') ? e.textContent.trim() : ''); if (!/نسي «واحدة»/.test(pt)) await sleep(80); }
-      ok('and the call-out is punished with two cards, said on the screen', /نسي «واحدة» ويسحب ٢/.test(pt), pt);
-    }
 
     /* ---- القائمة تعود إلى البداية، والعودة تعود إلى الطاولة نفسها ---- */
     const before = await capText(p);
@@ -335,7 +323,7 @@ async function open(browser, w, h, query) {
       ok(n + ' players: that many opponents stand on the felt', (await tags(p)).length === n - 1, (await tags(p)).join(' | '));
       let played = false;
       for (let k = 0; k < 40 && !played; k++) {
-        const what = await oneMove(p, true);
+        const what = await oneMove(p);
         if (!what) break;
         if (what === 'play') played = true;
       }
@@ -350,10 +338,101 @@ async function open(browser, w, h, query) {
     let hoOff = false;
     for (let k = 0; k < 40; k++) {
       if (await p.$eval('#handoff', e => !e.hidden)) { hoOff = true; break; }
-      const what = await oneMove(p, true);
+      const what = await oneMove(p);
       if (!what || what === 'handoff') break;
     }
     ok('with the privacy switch off the hand-off window never appears', !hoOff && (await handCards(p)).length > 0);
+    await ctx.close();
+
+    /* ============ المرحلة ٥ على الشاشة ============
+       لا أثر لـ«واحدة» ولا للاعتراض، والكومتان تُقالان بنوعيهما، ونافذةُ القفل
+       تُرفع فتشرح ورقةً معطّلة. تُقاد جولاتٌ طويلة ويُلتقط ما يظهر — فما دون
+       ذلك تصريحٌ لا فحص.
+
+       وفي **صفحةٍ جديدة** بقصد: نافذةُ القفل تُرفع مرّةً واحدة لكل مقعدٍ في
+       المباراة، و‎oneMove‎ يضغطها حيثما وجدها — فلو قادت هذه الفقرةُ الطاولةَ
+       التي سبقتها لكانت المقاعد الثلاثة قد رأتها كلَّها وانصرفت، ولسقط الفحص
+       على شيءٍ يعمل. (سقط فعلاً مرّتين قبل أن يُفهم السبب.) والخصوصية مطفأة
+       فلا تبتلع نافذةُ التسليم الأدوار. ============ */
+    ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=23'));
+    await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
+    let sawLock = false, lockWhy = '', lockShot = null, pileHints = {}, pileKeys = {};
+    let strayOne = null, strayCh = null, turns = 0;
+    for (let k = 0; k < 2500 && turns < 400; k++) {
+      /* تُقاد اللعبة حتى يُرى كلُّ ما تبحث عنه هذه الفقرة، ثم تُترك */
+      if (sawLock && pileHints['سحب ثنتين'] && pileHints['سحب أربعة']) break;
+      const acts = await texts(p, '#acts button');
+      if (acts.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
+        await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
+      }
+      /* لا يوجد على الشاشة، في أي لحظةٍ من كل هذه الجولات، مفتاحٌ لهما */
+      const one = acts.find(t => /واحدة|نادِ على/.test(t));
+      if (one && !strayOne) strayOne = one;
+      const ch = acts.find(t => /اعترض|اقبل الأربع/.test(t));
+      if (ch && !strayCh) strayCh = ch;
+      /* الكومة تُسمّى بنوعها في المفتاح وفي السطر تحته */
+      const take = acts.find(t => /^خذ /.test(t));
+      if (take) { pileKeys[take] = (pileKeys[take] || 0) + 1; const h = await hintText(p); const mk = h.match(/ردّ بـ(سحب [^ ]+)/); if (mk) pileHints[mk[1]] = (pileHints[mk[1]] || 0) + 1; }
+      /* نافذة القفل: تُلتقط قبل أن يضغطها oneMove */
+      if (!sawLock && await p.$eval('#locknote', e => !e.hidden)) {
+        sawLock = true;
+        lockWhy = (await p.$eval('#locknote .why', e => e.textContent.trim()));
+        lockShot = await p.$$eval('#locknote .lc .card', es => es.length);
+        const dead = await p.$$eval('#hand button.card:not([disabled])', es => es.length);
+        ok('while the lock window is up, nothing underneath it can be pressed',
+          dead === 0 && (await p.$$eval('#acts button:not([disabled])', es => es.length)) === 0, 'live cards ' + dead);
+      }
+      const w = await oneMove(p);
+      if (!w) break;
+      if (w !== 'wait') turns++;
+    }
+    console.log('     stage-5 rules watched over ' + turns + ' turns of play');
+    ok('not once in all those turns does a «واحدة» or a call-out key appear', strayOne === null && turns > 60, strayOne || ('only ' + turns + ' turns'));
+    ok('and not once does a challenge key appear either', strayCh === null, strayCh);
+    ok('a pile forms and its key names the sum to take', Object.keys(pileKeys).length > 0, JSON.stringify(pileKeys));
+    ok('and the hint under it names which card answers that pile, by its own kind',
+      Object.keys(pileHints).length > 0 && Object.keys(pileHints).every(x => x === 'سحب ثنتين' || x === 'سحب أربعة'),
+      JSON.stringify(pileHints));
+    ok('the lock window comes up on its own the first time the lock falls', sawLock);
+    if (sawLock) {
+      ok('and it says why, with the disabled card drawn inside it',
+        /ورقٌ قويّ/.test(lockWhy) && lockShot === 1, lockWhy + ' / cards ' + lockShot);
+    }
+    ok('and nothing threw while the stage-5 rules were driven', errs.length === 0, errs[0]);
+    await ctx.close();
+
+    /* ============ المفتاح المطفأ «لعبٌ مُيسَّر»: يرفع القفل وتراكمَ الأربع ============
+       الفرق يُقاس من الشاشة لا من الحالة: نافذةُ القفل لا تُرفع أبداً، وسطرُ
+       الكومة لا يقول «ردّ بسحب أربعة» مرّةً واحدة — بينما تكديسُ الثنتين باقٍ
+       لأنه صار أصلاً لا مفتاحاً. والجولة قبل هذه (بالمفتاح مطفأً) رأت القفل
+       والكومتين، فالمقارنة قائمةٌ بين تشغيلين لا تصريحاً. */
+    ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=11'));
+    ok('the eased switch is on the start sheet, and it is off',
+      await p.$eval('#easy', e => e.getAttribute('aria-checked')) === 'false');
+    await p.click('#easy');
+    ok('pressing it arms it', await p.$eval('#easy', e => e.getAttribute('aria-checked')) === 'true');
+    await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
+    /* ‏٣٠٠‏ دورٍ كافيةٌ للنفي: القفل يقع في نحو ‏٢٪‏ من الأدوار حين يكون
+       مشتغلاً، فمرورُ ثلاثمئةٍ بلا نافذةٍ واحدة ليس صدفة. */
+    let easyLock = false, easyHints = {}, easyTurns = 0;
+    for (let k = 0; k < 2000 && easyTurns < 300; k++) {
+      if (await p.$eval('#locknote', e => !e.hidden)) { easyLock = true; break; }
+      const acts = await texts(p, '#acts button');
+      if (acts.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
+        await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
+      }
+      if (acts.some(t => /^خذ /.test(t))) { const mk = (await hintText(p)).match(/ردّ بـ(سحب [^ ]+)/); if (mk) easyHints[mk[1]] = (easyHints[mk[1]] || 0) + 1; }
+      const w = await oneMove(p);
+      if (!w) break;
+      if (w !== 'wait') easyTurns++;
+    }
+    console.log('     eased rules watched over ' + easyTurns + ' turns of play');
+    ok('with the eased switch on the lock window never comes up at all', !easyLock);
+    ok('and no pile of fours is ever owed — a four is taken at once as it used to be',
+      !easyHints['سحب أربعة'], JSON.stringify(easyHints));
+    ok('while the stacking of twos is still there, because that one is the rule now',
+      !!easyHints['سحب ثنتين'] && easyTurns >= 200, JSON.stringify(easyHints) + ' over ' + easyTurns + ' turns');
+    ok('and nothing threw on the eased rules either', errs.length === 0, errs[0]);
     await ctx.close();
 
     /* ============ ‎320‎ عرضاً: يدٌ كبيرة تنزلق، وكل ورقةٍ ظاهرةٍ تملك طرفها ============ */
@@ -367,7 +446,6 @@ async function open(browser, w, h, query) {
       if (acts.indexOf('اسحب') >= 0) { await clickByText(p, '#acts button', 'اسحب'); await sleep(20); await clickByText(p, '#acts button', 'مرّر'); }
       else if (acts.indexOf('مرّر') >= 0) await clickByText(p, '#acts button', 'مرّر');
       else if (acts.indexOf('أحمر') >= 0) await clickByText(p, '#acts button', 'أحمر');
-      else if (acts.indexOf('اقبل الأربع') >= 0) await clickByText(p, '#acts button', 'اقبل الأربع');
       else if (acts.some(t => /^خذ /.test(t))) await clickByText(p, '#acts button', /^خذ /);
       else if (acts.indexOf('الجولة التالية') >= 0) await clickByText(p, '#acts button', 'الجولة التالية');
       else break;
@@ -406,23 +484,25 @@ async function open(browser, w, h, query) {
     const cpuNames = await p.$$eval('#namelist .in:not(:has(input)) span:last-child', es => es.map(e => e.textContent.split(' — ')[0]));
     ok('two computer seats stand on the felt, named as promised', (await tags(p)).length === 2 && cpuNames.length === 2);
 
-    let handoffSeen = false, minHand = 99, kindsCpu = {}, seenCpuToast = false, seenCpuSayOne = false, movesCpu = 0;
+    let handoffSeen = false, minHand = 99, kindsCpu = {}, seenCpuToast = false, movesCpu = 0;
     for (let k = 0; k < 900 && movesCpu < 400; k++) {
-      if (await overText(p)) break;
-      if (await p.$eval('#handoff', e => !e.hidden)) { handoffSeen = true; break; }
-      const n = (await handCards(p)).length;
-      if (n < minHand) minHand = n;
+      /* الجولة قد تنتهي بين سؤالٍ وسؤال — والانتهاء يمسح اليد — فيُقرأ
+         اللوحان في استعلامٍ واحد كي لا يُقاس فراغُ يدٍ انتهت جولتها على أنه
+         يدٌ فارغة في أثناء اللعب. (سقط الفحص عليه حين أبطأ إيقاعُ المرحلة ٥
+         الطاولةَ فاتّسعت النافذة بين السؤالين.) */
+      const snap = await p.evaluate(() => ({
+        over: !document.getElementById('over').hidden,
+        handoff: !document.getElementById('handoff').hidden,
+        hand: document.querySelectorAll('#hand button.card').length
+      }));
+      if (snap.over) break;
+      if (snap.handoff) { handoffSeen = true; break; }
+      if (snap.hand < minHand) minHand = snap.hand;
       const tt = await p.$eval('#toast', e => e.classList.contains('on') ? e.textContent.trim() : '');
-      if (tt && cpuNames.some(nm => tt.indexOf(nm) === 0)) {
-        seenCpuToast = true;
-        if (/«واحدة»/.test(tt)) seenCpuSayOne = true;
-      }
+      if (tt && cpuNames.some(nm => tt.indexOf(nm) === 0)) seenCpuToast = true;
       const t = await turnText(p);
       if (/، دوره$/.test(t)) { await sleep(120); continue; }
-      const acts = await texts(p, '#acts button');
-      const call = acts.find(x => /^نادِ على /.test(x));
-      if (call) { await clickByText(p, '#acts button', call); movesCpu++; kindsCpu.callOut = (kindsCpu.callOut || 0) + 1; continue; }
-      const what = await oneMove(p, true);
+      const what = await oneMove(p);
       if (!what) break;
       kindsCpu[what] = (kindsCpu[what] || 0) + 1;
       movesCpu++;
@@ -431,7 +511,6 @@ async function open(browser, w, h, query) {
     ok('the human always has a hand to look at — never the computer\'s', minHand > 0, 'minHand=' + minHand);
     ok('the game actually moved (played, drew or passed) while the computer took its turns', movesCpu > 0, JSON.stringify(kindsCpu));
     ok('a computer\'s move popped up in its own name — no shared log', seenCpuToast, JSON.stringify(kindsCpu));
-    ok('a computer said «واحدة» on its own', seenCpuSayOne);
     const overCpu = await overText(p);
     ok('a whole round against the computer reaches a winner', /^فاز /.test(overCpu) || /انتهت المباراة/.test(overCpu), overCpu.replace(/\n/g, ' / '));
     ok('nothing threw against the computer either', errs.length === 0, errs[0]);
@@ -447,7 +526,7 @@ async function open(browser, w, h, query) {
       const r = await open(browser, 390, 844, '?seed=' + seed);
       await r.p.click('.modes .key[data-m="cpu"]');
       await r.p.click('#startbtn'); await sleep(150);
-      if (!/، دوره$/.test(await turnText(r.p))) await oneMove(r.p, true);   // فعلٌ واحد من الإنسان، إن كان دوره
+      if (!/، دوره$/.test(await turnText(r.p))) await oneMove(r.p);   // فعلٌ واحد من الإنسان، إن كان دوره
       for (let k = 0; k < 400; k++) {
         if (await overText(r.p)) break;
         if (!/، دوره$/.test(await turnText(r.p))) break;                   // عاد الدور إلى الإنسان — نقطةٌ حتميّة
@@ -543,7 +622,7 @@ async function open(browser, w, h, query) {
           const v = m.v;
           if (!v || typeof v !== 'object') return false;
           if ('hands' in v || 'stock' in v || 'seed' in v || 'rng' in v || 'wild4' in v) return false;
-          if (v.challenge && 'legal' in v.challenge) return false;
+          if ('challenge' in v || 'said' in v || 'callable' in v) return false;   // زالت في المرحلة ٥، فلا تعود
           if (typeof v.you !== 'number' || v.you < 1) return false;
           return typeof v.stockCount === 'number' && Array.isArray(v.counts) &&
                  Array.isArray(v.hand) && v.hand.length === v.counts[v.you];
@@ -556,7 +635,7 @@ async function open(browser, w, h, query) {
          فحصٌ يقنع بالسحب يمرّ على يدٍ ميّتةٍ تماماً عند الضيف. */
       let guestPlayed = false;
       for (let k = 0; k < 150 && !guestPlayed; k++) {
-        const step = await roomMove(seats, true);
+        const step = await roomMove(seats);
         if (!step || !step.what || step.what === 'stuck') break;
         if (step.what === 'play' && step.p !== H) guestPlayed = true;
         await sleep(160);
@@ -609,7 +688,7 @@ async function open(browser, w, h, query) {
       let turnHolder = null, idle = 0;
       for (let k = 0; k < 150 && !turnHolder; k++) {
         if (ACTS_HERE.test(await turnText(G1))) { turnHolder = true; break; }
-        const step = await roomMove(seats, true);
+        const step = await roomMove(seats);
         if (!step || !step.what) { if (++idle > 8) break; await sleep(300); continue; }
         idle = 0;
         await sleep(200);
@@ -632,17 +711,17 @@ async function open(browser, w, h, query) {
       const filt = await H.evaluate(() => {
         const ev = [
           { t: 'drew', seat: 1, n: 2, cards: [5, 6] },
-          { t: 'challenged', by: 2, from: 1, bluff: true, hand: [1, 2, 3], drew: 4 },
-          { t: 'played', seat: 1, card: 9 }
+          { t: 'played', seat: 1, card: 9 },
+          { t: 'penalised', seat: 1, cards: 6, why: 'pile' }
         ];
         return { one: ShaddaNet.eventsFor(ev, 1), two: ShaddaNet.eventsFor(ev, 2), three: ShaddaNet.eventsFor(ev, 3) };
       });
       ok('a draw keeps its cards for the seat that drew, and loses them for everyone else',
         filt.one[0].cards.length === 2 && filt.two[0].cards === undefined && filt.three[0].cards === undefined &&
         filt.two[0].n === 2 && filt.three[0].n === 2, JSON.stringify(filt.two[0]));
-      ok('a challenge shows the revealed hand to the two seats in it and to nobody else',
-        filt.one[1].hand.length === 3 && filt.two[1].hand.length === 3 && filt.three[1].hand === undefined &&
-        filt.three[1].bluff === true, JSON.stringify(filt.three[1]));
+      ok('and everything that is nobody\'s secret passes through untouched, to every seat',
+        [filt.one, filt.two, filt.three].every(f => f.length === 3 && f[1].card === 9 && f[2].cards === 6),
+        JSON.stringify(filt.three));
 
       /* ---- سطر القياس خلف مفتاح ---- */
       await H.click('#menu'); await sleep(150);
@@ -670,7 +749,7 @@ async function open(browser, w, h, query) {
             break;
           }
         }
-        const step = await roomMove([H, G1], true);
+        const step = await roomMove([H, G1]);
         if (!step || !step.what) { await sleep(200); continue; }
         await sleep(220);
       }
@@ -841,7 +920,7 @@ async function open(browser, w, h, query) {
           hands.every(k => k === 7 || k === 9), hands.join('/'));
         let moved = false;
         for (let k = 0; k < 60 && !moved; k++) {
-          const step = await roomMove([H, G], true);
+          const step = await roomMove([H, G]);
           if (!step) { await sleep(300); continue; }
           if (step.what === 'play' || step.what === 'one') moved = true;
           await sleep(300);
@@ -876,7 +955,7 @@ async function open(browser, w, h, query) {
         if (await r.p.$eval('#handoff', e => !e.hidden)) { hoff = true; break; }
         const t = await turnText(r.p);
         if (/، دوره$/.test(t)) { await sleep(120); continue; }
-        const what = await oneMove(r.p, true);
+        const what = await oneMove(r.p);
         if (!what) break;
         if (what === 'play') played = true;
       }

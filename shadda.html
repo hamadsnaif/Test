@@ -8,11 +8,19 @@
   Stage 1 of six built the ENGINE and its checks.  Stage 2 built the TABLE:
   a CSS 3D card table drawn in DOM and SVG, with no WebGL, no library and no
   bitmap.  Stage 3 added the HAND-OFF privacy window and a CPU OPPONENT on
-  top of that table.  Stage 4 — this page, still — adds the ONLINE ROOM: a
-  star of one trusted host and up to four remote seats, and with it the
-  collection's `data-net` clause.  Across all four the engine did not change
-  by a character (src/tests/shadda.js still runs its 108 checks on the slice
-  between the two ENGINE markers below).
+  top of that table.  Stage 4 added the ONLINE ROOM: a star of one trusted
+  host and up to four remote seats, and with it the collection's `data-net`
+  clause.  Across those four the engine did not change by a character.
+
+  Stage 5 — this page, still — is the first that DID change it.  The owner
+  played the finished game on his phone on 2026-09-24 and ruled that HIS
+  HOUSE RULES ARE THE RULES: the last plain card is locked, a Wild Draw Four
+  stacks like a Draw Two, and «واحدة» and the challenge are gone entirely.
+  Read THE HOUSE RULES ARE THE RULES below before anything else in here —
+  several paragraphs that follow were written about rules that no longer
+  exist, and every one of them has been corrected rather than left standing.
+  src/tests/shadda.js was rewritten with the engine and runs 132 checks on
+  the slice between the two ENGINE markers below.
 
   THE ENGINE TOUCHES NOTHING BUT ITS OWN STATE
 
@@ -29,8 +37,9 @@
       Shadda.legalMoves(view)          -> the ids that seat could play now
       Shadda.card(id) / points(id) / handScore(hand)
       Shadda.playable(id, colour, topId)
-      Shadda.wild4Legal(hand, colour)  -> was a سحب أربعة honest
-      Shadda.ACTIONS                   -> the closed list of action types
+      Shadda.strong(id)                -> is it سحب أربعة / سحب ثنتين / تغيير اللون
+      Shadda.locked(hand, id)          -> is it that hand's one locked plain card
+      Shadda.ACTIONS                   -> the closed list: play, draw, pass, colour
 
     The state is plain JSON with no cycles: numbers, strings, booleans and
     arrays of card ids.  A card id is 0..107 and `card(id)` decodes it by
@@ -77,6 +86,7 @@
                                 GAME IT ACTS AS A SKIP — the player who
                                 played it plays again.
     Draw Two                    W,U,A.  Next player draws 2 and is skipped.
+                                REPLACED IN STAGE 5: it now stacks.  See below.
     Wild                        W,U,A.  Name any colour, play continues.
     Wild Draw Four              W,U,A.  Name any colour; the next player draws
                                 4 and is skipped.  It may be played only by a
@@ -86,6 +96,10 @@
                                 against you.  The rule is NOT enforced at the
                                 moment of play; it is enforced by the
                                 challenge, which is the whole point of it.
+                                REPLACED IN STAGE 5: it stacks, and it may be
+                                played over anything on your turn.  There is
+                                no honesty condition left to enforce, so there
+                                is no challenge either.  See below.
     the challenge               W,U,A.  The player facing the four may
                                 challenge.  The challenged player shows that
                                 hand PRIVATELY to the challenger.
@@ -93,11 +107,15 @@
                                               challenger plays on
                                   honest   -> the challenger draws 6 (the 4,
                                               plus 2) and is skipped
+                                DELETED IN STAGE 5, with the condition it was
+                                the enforcement of.
     saying «واحدة»              W,U,A.  Called as you play your second-to-last
                                 card.  Caught before the next player's turn
                                 begins: draw 2.  (Older editions said 4; the
                                 current sheet says 2, and so does section 3 of
                                 the brief.)
+                                DELETED IN STAGE 5, whole: the call, the
+                                catch, the penalty and every word of them.
     scoring                     W,U,A.  The winner of a round takes the total
                                 left in every other hand:
                                   number card                 its face value
@@ -108,8 +126,12 @@
                                 is shuffled and becomes the new stock.
     stacking is NOT official    W,U,A agree: answering a Draw Two with another
                                 Draw Two is a house rule.  So are jump-in and
-                                7-0.  All three ship here behind a switch that
-                                is OFF.
+                                7-0.  That is still true of the sources and is
+                                why it is recorded here — but as of stage 5
+                                the owner's house rules ARE this game's rules,
+                                so stacking ships ON and unswitchable, and
+                                only jump-in and 7-0 are left behind a switch
+                                that is off.
 
   CHOSEN HERE, NOT MEASURED  (no source says it, so it is mine and argued)
 
@@ -128,30 +150,16 @@
     trip and buys the one thing stage 4 needs — the host never guesses what a
     seat meant.
 
-    When the «واحدة» window shuts.  The rule says "before the next player
-    begins their turn".  Here the window opens the moment a hand falls to one
-    without the call, and shuts on the first accepted action by any other
-    seat.  A player who remembers in time sends `sayOne` and is safe.
-
     A stock that cannot be refilled.  If the stock is empty and the discard
     holds only its top card — every card being in somebody's hand — a draw
     yields fewer cards than asked and the `drew` event says how many actually
     came.  Nobody is made to conjure a card, and no round deadlocks: the seat
     may still pass.
 
-    Stacking is Draw Two only.  The house switch lets a Draw Two answer a Draw
-    Two and the count accumulate.  It deliberately does NOT let a Wild Draw
-    Four be stacked, because the challenge is the only thing keeping that card
-    honest and stacking would quietly delete it.
-
     Playing something else after you draw.  The rule is written about the card
     you just drew.  The engine lets you play any legal card once you have
     drawn, because every one of them was legal a moment earlier too, so the
     permission adds nothing a player did not already have.
-
-    A swapped hand has said nothing.  Under 7-0, «واحدة» was called about a
-    hand that is no longer yours, so the call drops from both seats and no
-    catch window opens — nobody played a second-to-last card.
 
     Jump-in means identical.  Same colour AND same number or symbol; a Wild
     can never jump in, since every Wild is identical to every other and the
@@ -170,10 +178,112 @@
 
     What the host may send.  `viewFor(state, seat)` drops every other hand
     (keeping the counts), the whole stock (keeping its size), the generator
-    cursor, the seed, and the truth of whether a Wild Draw Four was a bluff.
-    That truth lives in `state.challenge.legal`, and the `challenged` event
-    carries the revealed hand — which stage 4 delivers to the two seats
-    involved and to nobody else (ShaddaNet.eventsFor, checked on the wire).
+    cursor and the seed.  What is left is public by construction, and after
+    stage 5 that is the whole of it: the one secret the view used to carry —
+    whether a Wild Draw Four was a bluff — went with the challenge.  The one
+    event that still knows more than the view is `drew`, which carries the
+    ids drawn and is stripped per seat on the wire (ShaddaNet.eventsFor).
+    The pile's KIND (`pendingKind`) is deliberately public: a seat that must
+    answer a pile has to be told what answers it.
+
+  THE HOUSE RULES ARE THE RULES  (stage 5)
+
+    None of this section has a source and none of it claims one.  The owner
+    played the finished game on his phone on 2026-09-24 and said plainly that
+    the rules his house plays are the rules he wants, overruling section 3 of
+    the brief, which had asked for the official rules with the house rules
+    behind a switch that was off.  So everything below is HIS, recorded as
+    his; the sources above are kept because they are true about the sources,
+    and each row that this section overturns now says so in place.
+
+    1  THE LAST PLAIN CARD IS LOCKED
+
+       The three STRONG cards are سحب أربعة, سحب ثنتين and تغيير اللون.
+       Everything else is PLAIN: the numbers, وقّف and عكس — all coloured, and
+       the owner settled the doubtful one himself: a Skip is matched the way
+       a number is matched, so a Skip is plain.
+
+       If your hand holds exactly ONE plain card and at least one strong card,
+       that plain card cannot be played, even when it matches the colour or
+       the number.  Play a strong card, or draw.
+
+         hand [سحب أربعة · ٩ أخضر]                  the 9 is locked
+         hand [سحب أربعة · تغيير اللون · ٩ أخضر]    locked too: one plain
+         hand [٩ أخضر · ٣ أحمر · سحب أربعة]         not locked: two plain
+         hand [سحب أربعة · تغيير اللون]             does not apply: no plain
+
+       Why: so that a player cannot empty their hand of the ordinary cards and
+       be left standing on the strong ones.  And note what the rule can never
+       do: a hand of ONE card has one plain and no strong, so your last card
+       is never locked and nobody can be stopped from going out — checked in
+       src/tests/shadda.js, not reasoned about and left.
+
+       `Shadda.locked(hand, id)` is the whole of it, a pure question about a
+       hand, asked by the engine when a card is played and by legalMoves when
+       the screen decides which cards may be tapped.  The screen also asks it
+       once more, to explain itself: the FIRST time the lock falls on a seat,
+       that seat is shown a window with the disabled card in it and the reason
+       under it.  A card that is dead for a reason the player cannot see is
+       worse than a card that is simply not allowed.
+
+       That window is raised on the SHAPE OF THE HAND, not on the coincidence
+       of the locked card also matching the pile.  Once your hand is one plain
+       card beside a strong one, that card is dead whatever turns up next, so
+       that is the moment to say why.  Measured, not supposed: 400 rounds of
+       three seats played out against the engine, always taking the first
+       legal card, on 2026-09-27.  The lock arises in 190 of those rounds
+       (48%); the locked card ALSO happens to match the pile in only 91 (23%).
+       Waiting for the match would leave half the players looking at a dead
+       card with no word about it.
+
+    2  THE PILE CARRIES ITS KIND
+
+       سحب ثنتين is answered by سحب ثنتين of any colour and the count
+       accumulates.  سحب أربعة is answered by سحب أربعة and accumulates the
+       same way — which reverses stage 1's deliberate exclusion of it, and the
+       paragraph that argued for that exclusion is gone from this header
+       because the decision that it argued for is gone.
+
+       The two never mix.  `state.pendingKind` is 'draw2' or 'wild4', and a
+       pile is answered only by its own kind: a سحب ثنتين cannot be laid on a
+       pile of fours, nor a سحب أربعة on a pile of twos.  That is a new idea
+       in the state and it is the reason the kind exists at all.  Whoever does
+       not answer draws the whole sum and stands their turn.
+
+       One case is deliberately left alone: the OPENING FLIP.  A سحب ثنتين
+       turned up at the deal was not played by anybody, so there is nobody to
+       have answered and the official immediate penalty stands.  A choice,
+       not a source, and stated here so it is not mistaken for an oversight.
+
+    3  «واحدة» AND THE CHALLENGE ARE GONE
+
+       Both systems are deleted to the root: the `sayOne` and `callOut`
+       actions, the `said` and `callable` fields, the `challenge` and `accept`
+       actions, the challenge phase, `state.challenge`, `wild4Legal`, the
+       `challenged` event, the windows, the penalties, the keys on the screen
+       and the words.  `Shadda.ACTIONS` is four names long.
+
+       The challenge went because the thing it enforced went.  The official
+       condition on a Wild Draw Four — that you hold no card of the colour in
+       play — is REPLACED by rule 1 above, and two conditions do not sit on
+       one card.  A سحب أربعة is now played over anything, on your turn.
+
+       Deleting `challenged` took half the work out of ShaddaNet.eventsFor,
+       leaving only `drew`.  The function stays: it is the guard that keeps a
+       card from reaching a seat that may not see it, and it is where the next
+       event that carries a secret will have to be handled.
+
+    4  ONE SWITCH, OFF, THAT PUTS IT BACK
+
+       «لعبٌ مُيسَّر» — eased play — is off by default and restores exactly two
+       things: no lock on the last plain card, and no stacking on سحب أربعة
+       (it is taken at once by the next seat, who is skipped, as it was before
+       this stage minus the challenge).  It does NOT touch the stacking of
+       سحب ثنتين, which is now the rule rather than an option.
+
+       The old «قواعد البيت» group loses its stacking switch for that reason
+       and is renamed «قواعد زائدة» — rules ADDED on top — since the two left
+       in it, jump-in and 7-0, are additions and stacking no longer is.
 
   THE TABLE  (stage 2)
 
@@ -273,8 +383,8 @@
     Words pop up in the middle, not at the edges.  The status line stays
     (the log did not — see below), but what a player must notice — «دورك», «اختر اللون», «فلان وقف
     دوره», a refused move — pops up as a toast over the table with a light
-    blur behind it and leaves on its own (0.95s, 1.4s for the challenge) so
-    the rhythm holds.  A change of hands is a window, not a toast: when the
+    blur behind it and leaves on its own so the rhythm holds.  A change of
+    hands is a window, not a toast: when the
     seat that must act is not the seat the phone was showing, the table
     blurs behind «مرّر الجوّال إلى فلان» and the hand is NOT rendered until
     «أنا فلان — أرني ورقي» is pressed.  The owner asked for both on the
@@ -290,18 +400,23 @@
     Every card with an effect shows itself in its notice.  When a سحب ثنتين
     or سحب أربعة lands on a seat, the toast carries the card itself: it
     slides in from the right to the toast's left side with the total to be
-    drawn under it («+٢», «+٤», or the stacked sum when the house rule is on
-    and the seat must press «خذ»), and the words say who draws how many and
-    that they stand.  The same for the rest: عكس with «انعكس الاتجاه», وقّف
-    with «فلان وقف دوره», a wild with the colour chosen shown as a disc
-    under it, a jump-in, and the seven and the zero of the house rule.  A «stood» or a «penalised» that merely follows a penalty draw (or a
-    reverse between two) is folded into that notice instead of a second
-    one: «فلان يسحب ٢ ويقف دوره», «فلان نسي «واحدة» ويسحب ٢».  The owner asked
-    for the draw card first and then for all of them (2026-09-22).
+    drawn under it («+٢», «+٤», or the pile's running sum, which the seat
+    must press «خذ» to take), and the words say who draws how many and that
+    they stand.  The same for the rest: عكس with «انعكس الاتجاه», وقّف with
+    «فلان وقف دوره», a wild with the colour chosen shown as a disc under it,
+    a jump-in, and the seven and the zero of the added rules.  A «stood» or a
+    «penalised» that merely follows a penalty draw (or a reverse between two)
+    is folded into that notice instead of a second one: «فلان يسحب ٢ ويقف
+    دوره».  The owner asked for the draw card first and then for all of them
+    (2026-09-22).
+
+    And one thing on the table is a window rather than a notice, for the same
+    reason the hand-off is: «هذه الورقة مقفلة», stage 5's explanation of the
+    lock, raised once per seat the first time the lock falls on it, with the
+    disabled card drawn inside it.  See THE HOUSE RULES ARE THE RULES above.
 
     Drawn cards are shown before they are held.  A draw by the seat holding
-    the phone — one card, or the four of an accepted سحب أربعة, or a stacked
-    pile — lays the drawn cards face up in the middle of the table for a
+    the phone — one card, or a whole pile taken — lays the drawn cards face up in the middle of the table for a
     second, then each flies to its place in the fan, where its button has
     been waiting invisible since the state changed.  Another seat's forced
     draw shows no faces: only the toast above.  Under prefers-reduced-motion
@@ -437,38 +552,34 @@
     Shadda.viewFor(G, 0), never through the acting seat's own view, so the
     computer's hand is simply never drawn on a human's screen.  The action
     keys are built only when the acting seat IS 0 — otherwise the panel says
-    whose turn it is and offers only the one thing a bystander may always do,
-    «نادِ على», if the window is open.
+    whose turn it is and there are no keys at all.  (There used to be one,
+    «نادِ على»; it went with «واحدة» in stage 5.)
 
     The policy, one send() per tick.  A computer's move is `cpuAct(seat)` in
     the drawing layer, reading only Shadda.viewFor(G, seat) — never G — so it
     cannot see a hand it should not:
-      callable        call the human out first if the window is open on them
       has a legal play  prefer an action card (Skip/Reverse/Draw Two) when the
                       next seat's count is 2 or fewer; otherwise the card whose
                       colour it holds most of (bestByColour) — keeping its
-                      spread wide rather than narrow; a Wild Draw Four only
-                      when Shadda.wild4Legal says it is honest, and it never
-                      is played bluffing; a plain Wild only when nothing else
-                      is legal.  A 7 under the house rule swaps with the seat
-                      after it (an arbitrary, declared pick — the rule gives
-                      no better default than any other seat).
-      no legal play, pending>0   take the pile (draw), since only a Draw Two
-                      could answer it and none is legal
+                      spread wide rather than narrow; a Wild Draw Four when
+                      nothing coloured is legal, and a plain Wild last of all,
+                      since the four also makes the next seat answer or draw.
+                      (Before stage 5 the four was held back unless
+                      Shadda.wild4Legal called it honest.  There is no honesty
+                      condition on it any more, so there is nothing to hold
+                      back for.)  A 7 under the added rules swaps with the
+                      seat after it (an arbitrary, declared pick — the rule
+                      gives no better default than any other seat).
+      no legal play, pending>0   take the pile (draw): legalMoves already
+                      returned only the cards of the pile's own kind, so an
+                      empty list there means nothing in hand can answer it
       no legal play, not drawn   draw once
       no legal play, drawn already  pass
       colour phase    the colour it holds most of, excluding the card just
                       played (sent inside the SAME play action when the
                       played card was the Wild, so no extra tick is spent)
-      challenge phase challenge only holding three or more of the colour in
-                      play — a plain, stated threshold, not a probability
-                      model; it accepts otherwise.  Since this bot never
-                      bluffs a Wild Draw Four, accepting is always correct
-                      against it and challenging is always a mistake — which
-                      is the point of testing the challenge both ways.
-    «واحدة» is said with the same action, the moment the hand about to be
-    played would fall to one (hand.length === 2 before the play), never a
-    separate tick and never forgotten.
+    The lock needs no rule of its own in the bot: legalMoves already leaves
+    the locked card out, so the bot cannot try it and never has to know why.
 
     The pace is a timer, not a motion.  Each tick is scheduled 450-700ms
     after the last (scheduleCpu/cpuPending), a delay drawn from its own seeded
@@ -517,12 +628,14 @@
     WHAT A REMOTE SEAT MAY KNOW
 
       viewFor drops the other hands (keeping the counts), the stock (keeping
-      its size), the generator cursor, the seed, and the truth of a Wild Draw
-      Four.  Two engine events carry more than the view does, so the network
-      layer strips them per seat (ShaddaNet.eventsFor):
+      its size), the generator cursor and the seed.  One engine event carries
+      more than the view does, so the network layer strips it per seat
+      (ShaddaNet.eventsFor):
         drew        carries the ids drawn    -> only to the seat that drew
-        challenged  carries the revealed hand -> only to the two seats in it
-      Both are checked ON THE WIRE in src/tests/shadda-play.js: a third tab
+      (There were two until stage 5, when `challenged` and its revealed hand
+      went with the challenge itself.  The stripping stays, and so does the
+      check: it is the guard, not a workaround for one event.)
+      It is checked ON THE WIRE in src/tests/shadda-play.js: a third tab
       opens the same channel and records every envelope that passes, and the
       check is that no message addressed to a seat ever carried a key that
       seat may not see.  Proved, not asserted.
@@ -555,8 +668,10 @@
         3  A seat is let go the moment its channel closes, not after a
            timeout.  And because a card game still needs that seat to act,
            the host is given «امضِ عن فلان», which walks the absent seat on
-           using nothing but legal actions — draw then pass, or accept, or a
-           colour.  No action was added to the engine for it.
+           using nothing but legal actions — draw then pass, or take the pile,
+           or name a colour.  No action was added to the engine for it, and
+           stage 5 took one case OUT of it rather than adding any: there is no
+           challenge to accept on an absent seat's behalf any more.
 
 
     A WIRE THAT DROPS IS NOT A ROOM THAT ENDED
@@ -1038,6 +1153,16 @@ button:disabled{cursor:default}
 .handoff .who{font-size:clamp(22px, 7cqw, 32px);font-weight:900;line-height:1.2}
 .handoff .key{min-width:220px;margin-top:6px}
 .handoff small{font-size:12px;color:#b8ad98}
+/* تنويه القفل: الورقة المعطّلة نفسها معروضةٌ، فيُرى ما يُتحدَّث عنه لا اسمُه */
+.locknote{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  text-align:center;direction:rtl;padding:16px;background:rgba(20,17,16,.84);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  animation:rise .35s cubic-bezier(.22,.61,.36,1)}
+/* الورقة تُرسم بمقاسها هي: ‎--cw‎ هو ما يقرؤه ‎.card‎ لكل شيءٍ فيها لا العرض وحده */
+.locknote .lc{--cw:clamp(76px, 24cqw, 118px);opacity:.6;filter:grayscale(.4)}
+.locknote .who{font-size:clamp(19px, 6cqw, 27px);font-weight:900;line-height:1.2}
+.locknote .why{font-size:clamp(13px, 3.9cqw, 16px);font-weight:700;line-height:1.6;max-width:21em;color:var(--ivory)}
+.locknote .key{min-width:180px;margin-top:4px}
+.locknote small{font-size:11.5px;color:#b8ad98;max-width:24em;line-height:1.6}
 /* الورقة الطائرة: نسخةٌ ثابتة الموضع تُحرَّك من اليد إلى المرمى أو من المسحب إلى اليد */
 .fly{position:fixed;z-index:50;pointer-events:none;transform-origin:50% 50%;transition:transform .56s cubic-bezier(.22,.61,.36,1)}
 .fly .card{width:100%;height:100%;aspect-ratio:auto}
@@ -1074,7 +1199,8 @@ button:disabled{cursor:default}
 .namelist input::placeholder{color:rgba(243,236,217,.4)}
 /* المفتاح منطقيّ الاتجاه: يبدأ المقبض من اليمين ويمضي يساراً كمفاتيح النظام
    في واجهةٍ عربية — ‎inset-inline-start‎ لا ‎left‎، وإزاحةٌ بعلامتين. */
-.toggle{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:0 4px;font-size:14px;font-weight:700;color:var(--cream)}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:0 4px;font-size:14px;font-weight:700;color:var(--cream);text-align:start}
+.toggle small{display:block;font-size:11.5px;font-weight:600;color:#b8ad98;line-height:1.5;margin-top:2px}
 .sw{width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);position:relative;flex:none;transition:background .15s}
 .sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:22px;height:22px;border-radius:50%;background:var(--ivory);transition:transform .15s}
 .toggle[aria-checked="true"] .sw{background:var(--acc)}
@@ -1108,6 +1234,7 @@ button:disabled{cursor:default}
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <div class="netdown" id="netdown" hidden><span class="sp"></span><div class="why" id="netdowntxt"></div><button class="key" id="retrynow">أعد المحاولة الآن</button><small>مقعدك وورقك محفوظان عند المضيف حتى تعود.</small></div>
       <div class="handoff" id="handoff" hidden><span class="av" id="ho-av"></span><div class="to">مرّر الجوّال إلى</div><div class="who" id="ho-who"></div><button class="key acc" id="handoffok"></button><small>لا يظهر ورقك حتى تضغط، فلا يراه من قبلك.</small></div>
+      <div class="locknote" id="locknote" hidden><div class="lc" id="lockcard"></div><div class="who">هذه الورقة مقفلة</div><div class="why">لم يبقَ عندك من الورق العاديّ إلا هي، ومعك ورقٌ قويّ. العب القويّ أو اسحب.</div><button class="key acc" id="locknoteok">فهمت</button><small>القويّ: سحب أربعة · سحب ثنتين · تغيير اللون. وما عداه عاديّ.</small></div>
     </div>
   </div>
   <div class="acts" id="acts"></div>
@@ -1146,16 +1273,16 @@ button:disabled{cursor:default}
       <div class="lbl" id="namehead">الأسماء</div>
       <div class="namelist" id="namelist"></div>
       <button class="toggle" id="privacy" role="switch" aria-checked="true"><span>شاشة الخصوصية بين الأدوار</span><span class="sw"></span></button>
-      <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد البيت</span><span class="sw"></span></button>
+      <button class="toggle" id="easy" role="switch" aria-checked="false"><span>لعبٌ مُيسَّر<small>ورقتك العادية الأخيرة تُلعب، و«سحب أربعة» لا تتراكم</small></span><span class="sw"></span></button>
+      <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد زائدة</span><span class="sw"></span></button>
       <div class="subs dim" id="housesubs">
-        <button class="toggle" role="switch" aria-checked="false" data-k="stack" disabled><span>تكديس سحب ثنتين</span><span class="sw"></span></button>
         <button class="toggle" role="switch" aria-checked="false" data-k="jumpIn" disabled><span>القفز بالورقة المطابقة (jump-in)</span><span class="sw"></span></button>
         <button class="toggle" role="switch" aria-checked="false" data-k="sevenZero" disabled><span>٧ تبادل و٠ تدوير</span><span class="sw"></span></button>
       </div>
       <button class="toggle" id="statsw" role="switch" aria-checked="false"><span>سطر القياس (rtt وبايت/ث)</span><span class="sw"></span></button>
       <button class="key acc startbtn" id="startbtn">ابدأ</button>
       <button class="key resume" id="resume" hidden>عودة إلى الطاولة</button>
-      <p class="note">القواعد الرسمية كاملة: ١٠٨ ورقة، وسبعٌ لكل لاعب، و«عكس» تعمل عمل «وقّف» في لعبة اثنين، والاعتراض على «سحب أربعة»، وعقوبة من لم يقل «واحدة» ورقتان. وقواعد البيت مطفأةٌ لأنها ليست من الرسمية.</p>
+      <p class="note">قواعد البيت هي الأصل هنا: ١٠٨ ورقة، وسبعٌ لكل لاعب، و«عكس» تعمل عمل «وقّف» في لعبة اثنين، و«سحب ثنتين» تُردّ بمثلها و«سحب أربعة» بمثلها ولا تُخلطان، ومن لا يردّ يأخذ الكومة كلَّها ويقف دوره. وإذا لم يبقَ عندك من العاديّ إلا ورقةٌ واحدة ومعك ورقٌ قويّ فتلك العاديّة مقفلة. ولا «واحدة» ولا اعتراض. و«لعبٌ مُيسَّر» يرفع القفل وتراكمَ الأربع.</p>
     </div>
   </div>
 </div>
@@ -1572,10 +1699,13 @@ var ShaddaNet = (function () {
   }
 
   /* ---------- ما يحقّ لكل مقعدٍ أن يسمعه من الأحداث ----------------------
-     المحرّك يضع في الحدث كلَّ ما يعرفه هو: ‎drew‎ يحمل أرقام الورق المسحوب،
-     و‎challenged‎ يحمل اليد المكشوفة. فلا يُبثّان كما هما: المسحوبُ لصاحبه
-     وحده، واليدُ المكشوفة للمتنازعَين وحدهما، وبقيّةُ الغرفة تسمع الحكم بلا
-     الورق. دالّةٌ خالصة، تُفحص وحدها في ‎shadda-play.js‎. */
+     المحرّك يضع في الحدث كلَّ ما يعرفه هو، و‎drew‎ يحمل أرقام الورق المسحوب.
+     فلا يُبثّ كما هو: المسحوبُ لصاحبه وحده، وبقيّةُ الغرفة تسمع العدد بلا
+     الورق. دالّةٌ خالصة، تُفحص وحدها في ‎shadda-play.js‎.
+
+     وكان معه ‎challenged‎ باليد المكشوفة، فسقط بسقوط الاعتراض في المرحلة ٥.
+     والدالّة تبقى: هي الحارس الذي يمنع تسرّب ورقٍ إلى مقعدٍ لا يحقّ له، وهي
+     الموضع الذي يُضاف إليه أيُّ حدثٍ يحمل سرّاً بعد اليوم. */
   function eventsFor(events, seat) {
     if (!events || !events.length) return [];
     var out = [], i, k, e, c;
@@ -1584,10 +1714,6 @@ var ShaddaNet = (function () {
       if (e.t === 'drew' && e.seat !== seat) {
         c = {};
         for (k in e) if (k !== 'cards' && has(e, k)) c[k] = e[k];
-        out.push(c);
-      } else if (e.t === 'challenged' && e.by !== seat && e.from !== seat) {
-        c = {};
-        for (k in e) if (k !== 'hand' && has(e, k)) c[k] = e[k];
         out.push(c);
       } else out.push(e);
     }
@@ -1608,12 +1734,17 @@ var ShaddaNet = (function () {
 /* ===== SHADDA ENGINE START ===== *//* محرّك شدّة — منطقٌ خالص.
    لا يلمس DOM ولا CSS ولا نافذةً ولا مؤقّتاً، ولا يستدعي Math.random. حالته
    JSON صِرف بلا مرجعٍ دائري، وعشوائيته تُحقَن. وهذا شرطُ المرحلة ٤: المضيف
-   يمسك هذه الحالة، ويرسل لكل مقعدٍ ما يحقّ له وحده عبر viewFor. */
+   يمسك هذه الحالة، ويرسل لكل مقعدٍ ما يحقّ له وحده عبر viewFor.
+
+   والمرحلة ٥ بدّلت قواعده — وهي أوّل مرحلةٍ تمسّه: قواعد بيت المالك صارت
+   الأصل. قفلُ الورقة العادية الأخيرة، وتراكمُ «سحب أربعة» كما تتراكم «سحب
+   ثنتين»، وحذفُ «واحدة» والاعتراض من جذورهما. انظر «THE HOUSE RULES ARE THE
+   RULES» في رأس الصفحة: كلُّ بندٍ هناك بسببه. */
 var Shadda = (function () {
   'use strict';
 
   var COLOURS = ['red', 'blue', 'green', 'yellow'];
-  var ACTIONS = ['play', 'draw', 'pass', 'colour', 'challenge', 'accept', 'callOut', 'sayOne'];
+  var ACTIONS = ['play', 'draw', 'pass', 'colour'];
   var DECK = 108, HAND = 7, TARGET = 500;
 
   /* ---------- العشوائية: mulberry32، ومؤشّرها عددٌ واحد يُحفظ في الحالة ---- */
@@ -1672,15 +1803,18 @@ var Shadda = (function () {
     return false;
   }
 
-  /* «سحب أربعة» لا تُلعب إلا من لا يملك ورقةً باللون الجاري. الأرقام والأفعال
-     من ألوانٍ أخرى لا تمنع، والورق الحرّ في اليد لا يُحسب عليك. */
-  function wild4Legal(hand, colour) {
-    for (var i = 0; i < hand.length; i++) {
-      var c = card(hand[i]);
-      if (c.kind === 'wild' || c.kind === 'wild4') continue;
-      if (c.colour === colour) return false;
-    }
-    return true;
+  /* ---------- القويّ والعاديّ، وقفلُ العاديّة الأخيرة (قاعدة المالك) --------
+     القويّ ثلاثة: «سحب أربعة» و«سحب ثنتين» و«تغيير اللون». والعاديّ ما بقي —
+     الأرقام و«وقّف» و«عكس»، ملوّنةً كلَّها؛ فـ«القفزة» تُطابَق كما يُطابَق
+     الرقم فهي منه. ومن لم يبق بيده من العاديّ إلا واحدةٌ ومعها قويٌّ فأكثر
+     فتلك العاديّة مقفلة، ولو طابقت: كي لا يفرغ من العاديّ فيقف على القويّ
+     وحده. وهي دالّةٌ خالصة على اليد، فيسألها المحرّك وتسألها الشاشة. */
+  function strong(id) { var k = card(id).kind; return k === 'wild4' || k === 'wild' || k === 'draw2'; }
+  function locked(hand, id) {
+    if (strong(id)) return false;
+    var plain = 0, hard = 0, i;
+    for (i = 0; i < hand.length; i++) { if (strong(hand[i])) hard++; else plain++; }
+    return plain === 1 && hard >= 1;
   }
 
   /* ---------- أدواتٌ على الحالة ------------------------------------------ */
@@ -1689,6 +1823,9 @@ var Shadda = (function () {
   function from(st, seat, n) { return ((seat + st.dir * n) % st.seats + st.seats) % st.seats; }
 
   function to(st, seat, ev) { st.turn = seat; st.drew = false; ev.push({ t: 'turnPassed', seat: seat }); }
+
+  /* الكومة تحمل نوعها: لا يُردّ عليها إلا بنوعه هو. */
+  function owed(st) { return st.pendingKind === 'wild4' ? 'mustAnswerFours' : 'mustAnswerTwos'; }
 
   /* السحب. وإن نفد المسحب أُعيد خلط المرميّ عدا ورقته العليا — وهذا رسمي.
      وإن لم يبق ما يُخلط فالمسحوب أقلّ ممّا طُلب، ويقول الحدث كم جاء فعلاً. */
@@ -1707,7 +1844,6 @@ var Shadda = (function () {
       st.hands[seat].push(c);
       got.push(c);
     }
-    if (st.hands[seat].length > 1) st.said[seat] = false;
     ev.push({ t: 'drew', seat: seat, n: got.length, cards: got });
     return got;
   }
@@ -1717,8 +1853,8 @@ var Shadda = (function () {
     var all = [], i;
     for (i = 0; i < DECK; i++) all.push(i);
     shuffle(all, r);
-    st.hands = []; st.said = [];
-    for (i = 0; i < st.seats; i++) { st.hands.push(all.splice(0, HAND)); st.said.push(false); }
+    st.hands = [];
+    for (i = 0; i < st.seats; i++) st.hands.push(all.splice(0, HAND));
     st.stock = all;
     st.discard = [];
     ev.push({ t: 'dealt', seats: st.seats, each: HAND, first: st.turn });
@@ -1746,6 +1882,8 @@ var Shadda = (function () {
       ev.push({ t: 'directionReversed', dir: st.dir });
       to(st, from(st, st.turn, 1), ev);
     } else if (t.kind === 'draw2') {
+      /* المكشوفة لم يلعبها أحد، فلا كومةَ تُردّ عليها: عقوبةٌ فورية كما في
+         الرسمية. اختيارٌ مُصرَّحٌ به في الرأس، لا مصدرَ يحكمه. */
       give(st, st.turn, 2, ev, r);
       ev.push({ t: 'skipped', seat: st.turn });
       to(st, from(st, st.turn, 1), ev);
@@ -1765,12 +1903,15 @@ var Shadda = (function () {
     var h = opts.house || {};
     var r = rng(seed);
     var st = {
-      v: 1, seed: seed, rng: 0, seats: seats,
-      house: { stack: !!h.stack, jumpIn: !!h.jumpIn, sevenZero: !!h.sevenZero },
+      v: 2, seed: seed, rng: 0, seats: seats,
+      /* easy: المفتاح المطفأ الذي يعيد ما كان — بلا قفلٍ على العاديّة الأخيرة
+         وبلا تراكمٍ على «سحب أربعة». والاثنتان بعده قاعدتا بيتٍ زائدتان كما
+         كانتا. وتكديسُ «سحب ثنتين» صار أصلاً فلا مفتاح له. */
+      house: { easy: !!h.easy, jumpIn: !!h.jumpIn, sevenZero: !!h.sevenZero },
       hands: [], stock: [], discard: [], colour: null,
       turn: (opts.first | 0) % seats, dir: 1,
-      pending: 0, drew: false, said: [], callable: null,
-      phase: 'play', chooser: null, wildKind: null, challenge: null, wild4: null,
+      pending: 0, pendingKind: null, drew: false,
+      phase: 'play', chooser: null, wildKind: null,
       scores: [], target: opts.target === undefined ? TARGET : opts.target | 0,
       round: opts.round === undefined ? 1 : opts.round | 0,
       winner: null, over: false
@@ -1793,9 +1934,9 @@ var Shadda = (function () {
     st.round += 1;
     st.dir = 1;
     st.turn = (st.round - 1) % st.seats;
-    st.pending = 0; st.drew = false; st.callable = null;
+    st.pending = 0; st.pendingKind = null; st.drew = false;
     st.phase = 'play'; st.chooser = null; st.wildKind = null;
-    st.challenge = null; st.wild4 = null; st.winner = null;
+    st.winner = null;
     var ev = [{ t: 'roundStarted', round: st.round, first: st.turn }];
     deal(st, ev, gen);
     st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
@@ -1809,8 +1950,8 @@ var Shadda = (function () {
     st.scores[winner] += total;
     st.winner = winner;
     st.phase = 'over';
-    st.callable = null;
-    st.challenge = null;
+    st.pending = 0;
+    st.pendingKind = null;
     ev.push({ t: 'roundEnded', winner: winner, points: total, perSeat: per, scores: st.scores.slice() });
     if (st.scores[winner] >= st.target) {
       st.over = true;
@@ -1835,15 +1976,10 @@ var Shadda = (function () {
       return;
     }
     if (c.kind === 'draw2') {
-      if (st.house.stack) {                       // قاعدة بيتٍ مطفأةٌ افتراضاً
-        st.pending += 2;
-        to(st, from(st, seat, 1), ev);
-      } else {
-        var v = from(st, seat, 1);
-        give(st, v, 2, ev, r);
-        ev.push({ t: 'skipped', seat: v });
-        to(st, from(st, seat, 2), ev);
-      }
+      /* التراكم صار أصلاً لا مفتاحاً: من بعده يردّ بسحب ثنتين أو يأخذ الكومة */
+      st.pending += 2;
+      st.pendingKind = 'draw2';
+      to(st, from(st, seat, 1), ev);
       return;
     }
     /* رقم — وقاعدة ٧-٠ إن كانت مشتغلة */
@@ -1852,16 +1988,11 @@ var Shadda = (function () {
       var hold = st.hands[seat];
       st.hands[seat] = st.hands[w];
       st.hands[w] = hold;
-      /* «واحدة» قيلت عن يدٍ لم تعد يدَك: تسقط عن الاثنين، ولا تُفتح نافذة
-         نداءٍ على أحد — فلا أحد لعب ورقته قبل الأخيرة. */
-      st.said[seat] = false;
-      st.said[w] = false;
       ev.push({ t: 'handsSwapped', a: seat, b: w });
     } else if (st.house.sevenZero && c.kind === 'number' && c.value === 0) {
       var hs = [], i;
       for (i = 0; i < st.seats; i++) hs.push(st.hands[from(st, i, 1)]);
       st.hands = hs;
-      for (i = 0; i < st.seats; i++) st.said[i] = false;
       ev.push({ t: 'handsRotated', dir: st.dir });
     }
     to(st, from(st, seat, 1), ev);
@@ -1877,36 +2008,31 @@ var Shadda = (function () {
     var c = card(id);
 
     if (st.pending > 0) {
-      /* لا يقع إلا والتكديس مشتغل: إمّا أن يردّ بسحب ثنتين، وإمّا أن يأخذ */
-      if (c.kind !== 'draw2') return { error: 'mustTakeThePile' };
+      /* كومةٌ قائمة: لا يُردّ عليها إلا بنوعها هي — «ثنتين» على «ثنتين»
+         و«أربعة» على «أربعة»، ولا تُخلطان. */
+      if (c.kind !== st.pendingKind) return { error: owed(st) };
     } else if (!playable(id, st.colour, top(st))) {
       return { error: 'cardDoesNotMatch' };
     }
+    /* قفلُ العاديّة الأخيرة. والقويُّ لا يُقفل أبداً، فلا يقع هذا على ردٍّ على
+       كومة. ويرفعه مفتاح «لعبٌ مُيسَّر». */
+    if (!st.house.easy && locked(st.hands[seat], id)) return { error: 'lastPlainLocked' };
     if (st.house.sevenZero && c.kind === 'number' && c.value === 7 && st.pending === 0) {
       var w = action.swapWith;
       if (typeof w !== 'number' || w < 0 || w >= st.seats || w === seat) return { error: 'needSwapTarget' };
     }
 
-    var wasColour = st.colour;
     st.hands[seat].splice(at, 1);
     st.discard.push(id);
-    st.callable = null;
     ev.push({ t: 'played', seat: seat, card: id });
 
-    var left = st.hands[seat].length;
-    if (left === 1) {
-      st.said[seat] = !!action.sayOne;
-      if (action.sayOne) ev.push({ t: 'saidOne', seat: seat });
-      else st.callable = seat;
-    }
-    if (left === 0) { endRound(st, seat, ev); return; }
+    if (st.hands[seat].length === 0) { endRound(st, seat, ev); return; }
 
     if (c.kind === 'wild' || c.kind === 'wild4') {
       st.colour = null;
       st.phase = 'colour';
       st.chooser = seat;
       st.wildKind = c.kind;
-      if (c.kind === 'wild4') st.wild4 = { from: seat, legal: wild4Legal(st.hands[seat], wasColour) };
       if (action.colour !== undefined) return doColour(st, seat, action.colour, ev, r);
       return;
     }
@@ -1925,45 +2051,20 @@ var Shadda = (function () {
     st.chooser = null;
     st.phase = 'play';
     if (kind === 'wild4') {
-      st.phase = 'challenge';
-      st.challenge = { target: from(st, seat, 1), from: seat, legal: st.wild4.legal };
-      st.wild4 = null;
+      if (st.house.easy) {
+        /* ما كان قبل المرحلة ٥، بلا اعتراضٍ ولا تراكم: التالي يسحب أربعاً ويقف */
+        var v = from(st, seat, 1);
+        give(st, v, 4, ev, r);
+        ev.push({ t: 'skipped', seat: v });
+        to(st, from(st, seat, 2), ev);
+        return;
+      }
+      st.pending += 4;
+      st.pendingKind = 'wild4';
+      to(st, from(st, seat, 1), ev);
       return;
     }
     if (kind === 'open') { to(st, seat, ev); return; }   // الورقة الحرّة المكشوفة
-    to(st, from(st, seat, 1), ev);
-  }
-
-  /* ---------- الاعتراض على «سحب أربعة» ------------------------------------ */
-  function doChallenge(st, seat, ev, r) {
-    if (st.phase !== 'challenge') return { error: 'wrongPhase' };
-    if (seat !== st.challenge.target) return { error: 'notYourTurn' };
-    var ch = st.challenge, shown = st.hands[ch.from].slice();
-    st.phase = 'play';
-    st.challenge = null;
-    if (!ch.legal) {
-      /* كذب: يسحب أربعاً، والمعترض يلعب عادةً ولا يسحب شيئاً */
-      give(st, ch.from, 4, ev, r);
-      ev.push({ t: 'challenged', by: seat, from: ch.from, bluff: true, hand: shown, drew: 4 });
-      ev.push({ t: 'penalised', seat: ch.from, cards: 4, why: 'bluff' });
-      to(st, seat, ev);
-    } else {
-      /* صدق: المعترض يسحب ستّاً ويخسر دوره */
-      give(st, seat, 6, ev, r);
-      ev.push({ t: 'challenged', by: seat, from: ch.from, bluff: false, hand: shown, drew: 6 });
-      ev.push({ t: 'penalised', seat: seat, cards: 6, why: 'badChallenge' });
-      ev.push({ t: 'skipped', seat: seat });
-      to(st, from(st, seat, 1), ev);
-    }
-  }
-
-  function doAccept(st, seat, ev, r) {
-    if (st.phase !== 'challenge') return { error: 'wrongPhase' };
-    if (seat !== st.challenge.target) return { error: 'notYourTurn' };
-    st.phase = 'play';
-    st.challenge = null;
-    give(st, seat, 4, ev, r);
-    ev.push({ t: 'skipped', seat: seat });
     to(st, from(st, seat, 1), ev);
   }
 
@@ -1973,8 +2074,9 @@ var Shadda = (function () {
     if (st.pending > 0) {
       var n = st.pending;
       st.pending = 0;
+      st.pendingKind = null;
       give(st, seat, n, ev, r);
-      ev.push({ t: 'penalised', seat: seat, cards: n, why: 'stack' });
+      ev.push({ t: 'penalised', seat: seat, cards: n, why: 'pile' });
       ev.push({ t: 'skipped', seat: seat });
       to(st, from(st, seat, 1), ev);
       return;
@@ -1986,27 +2088,9 @@ var Shadda = (function () {
 
   function doPass(st, seat, ev) {
     if (st.phase !== 'play') return { error: 'wrongPhase' };
-    if (st.pending > 0) return { error: 'mustTakeThePile' };
+    if (st.pending > 0) return { error: owed(st) };
     if (!st.drew) return { error: 'drawFirst' };
     to(st, from(st, seat, 1), ev);
-  }
-
-  /* ---------- «واحدة»: قولُها، والنداء على من لم يقلها --------------------- */
-  function doSayOne(st, seat, ev) {
-    if (st.hands[seat].length !== 1) return { error: 'notAtOne' };
-    st.said[seat] = true;
-    if (st.callable === seat) st.callable = null;
-    ev.push({ t: 'saidOne', seat: seat });
-  }
-
-  function doCallOut(st, seat, action, ev, r) {
-    var on = action.on;
-    if (typeof on !== 'number' || on < 0 || on >= st.seats) return { error: 'noSuchSeat' };
-    if (on === seat) return { error: 'cannotCallYourself' };
-    if (st.callable !== on) return { error: 'nothingToCall' };
-    st.callable = null;
-    give(st, on, 2, ev, r);
-    ev.push({ t: 'penalised', seat: on, cards: 2, why: 'noOne' });
   }
 
   /* ---------- القفز (قاعدة بيتٍ مطفأةٌ افتراضاً) --------------------------- */
@@ -2036,29 +2120,20 @@ var Shadda = (function () {
     if (!r) gen.a = st.rng;
     var ev = [], out;
 
-    if (action.type === 'callOut') out = doCallOut(st, seat, action, ev, gen);
-    else if (action.type === 'sayOne') out = doSayOne(st, seat, ev);
-    else {
-      /* نافذة «واحدة» تُغلق بأوّل فعلٍ مقبولٍ من مقعدٍ آخر. وهي تُغلق هنا على
-         النسخة، فإن سقط الفعل بخطأٍ رُدّت النسخة كلّها ولم تُغلق النافذة. */
-      if (st.callable !== null && st.callable !== seat) st.callable = null;
-      if (st.house.jumpIn && action.type === 'play' && st.phase === 'play' && seat !== st.turn) {
-        out = doJumpIn(st, seat, action, ev, gen);
-        if (out && out.error) return out;
-        st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
-        return { state: st, events: ev };
-      }
-      var actor = st.phase === 'colour' ? st.chooser
-        : st.phase === 'challenge' ? st.challenge.target : st.turn;
-      if (seat !== actor) return { error: 'notYourTurn' };
-      if (action.type === 'play') out = doPlay(st, seat, action, ev, gen);
-      else if (action.type === 'draw') out = doDraw(st, seat, ev, gen);
-      else if (action.type === 'pass') out = doPass(st, seat, ev);
-      else if (action.type === 'colour') out = doColour(st, seat, action.colour, ev, gen);
-      else if (action.type === 'challenge') out = doChallenge(st, seat, ev, gen);
-      else if (action.type === 'accept') out = doAccept(st, seat, ev, gen);
-      else return { error: 'unknownAction' };
+    if (st.house.jumpIn && action.type === 'play' && st.phase === 'play' && seat !== st.turn) {
+      out = doJumpIn(st, seat, action, ev, gen);
+      if (out && out.error) return out;
+      st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
+      return { state: st, events: ev };
     }
+    var actor = st.phase === 'colour' ? st.chooser : st.turn;
+    if (seat !== actor) return { error: 'notYourTurn' };
+    if (action.type === 'play') out = doPlay(st, seat, action, ev, gen);
+    else if (action.type === 'draw') out = doDraw(st, seat, ev, gen);
+    else if (action.type === 'pass') out = doPass(st, seat, ev);
+    else if (action.type === 'colour') out = doColour(st, seat, action.colour, ev, gen);
+    else return { error: 'unknownAction' };
+
     if (out && out.error) return out;
     st.rng = typeof gen.a === 'number' ? gen.a : st.rng;
     return { state: st, events: ev };
@@ -2077,8 +2152,6 @@ var Shadda = (function () {
     delete v.stock;
     delete v.rng;
     delete v.seed;
-    delete v.wild4;
-    if (v.challenge) delete v.challenge.legal;
     return v;
   }
 
@@ -2088,9 +2161,10 @@ var Shadda = (function () {
     var hand = view.hand || (view.hands && view.hands[view.turn]) || [];
     if (view.phase !== 'play') return [];
     var t = view.discard[view.discard.length - 1], out = [], i;
+    var easy = !!(view.house && view.house.easy);
     for (i = 0; i < hand.length; i++) {
-      if (view.pending > 0) { if (card(hand[i]).kind === 'draw2') out.push(hand[i]); }
-      else if (playable(hand[i], view.colour, t)) out.push(hand[i]);
+      if (view.pending > 0) { if (card(hand[i]).kind === view.pendingKind) out.push(hand[i]); }
+      else if (playable(hand[i], view.colour, t) && (easy || !locked(hand, hand[i]))) out.push(hand[i]);
     }
     return out;
   }
@@ -2098,7 +2172,7 @@ var Shadda = (function () {
   return {
     COLOURS: COLOURS, ACTIONS: ACTIONS, DECK: DECK, HAND: HAND, TARGET: TARGET,
     rng: rng, card: card, points: points, handScore: handScore,
-    playable: playable, wild4Legal: wild4Legal,
+    playable: playable, strong: strong, locked: locked,
     createGame: createGame, applyAction: applyAction, nextRound: nextRound,
     viewFor: viewFor, legalMoves: legalMoves
   };
@@ -2125,8 +2199,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     notYourTurn: 'ليس دورك.', notInHand: 'الورقة ليست في يدك.', cardDoesNotMatch: 'هذه لا تطابق اللون ولا الرقم.',
     noSuchCard: 'لا ورقة بهذا الرقم.', noSuchSeat: 'لا مقعد بهذا الرقم.', unknownAction: 'فعلٌ غير معروف.',
     wrongPhase: 'ليس هذا وقته.', noSuchColour: 'لا لون بهذا الاسم.', alreadyDrew: 'سحبت مرّةً في هذا الدور.',
-    drawFirst: 'اسحب أوّلاً ثم مرّر.', mustTakeThePile: 'ردّ بسحب ثنتين أو خذ الكومة.', needSwapTarget: 'اختر من تبادله يدك.',
-    nothingToCall: 'لا أحد يُنادى عليه.', cannotCallYourself: 'لا تنادِ على نفسك.', notAtOne: 'ليست بيدك ورقةٌ واحدة.',
+    drawFirst: 'اسحب أوّلاً ثم مرّر.', needSwapTarget: 'اختر من تبادله يدك.',
+    mustAnswerTwos: 'ردّ بسحب ثنتين أو خذ الكومة.', mustAnswerFours: 'ردّ بسحب أربعة أو خذ الكومة.',
+    lastPlainLocked: 'آخر ورقةٍ عادية عندك مقفلة ما دام معك ورقٌ قويّ.',
     cannotJumpWithWild: 'لا قفز بورقةٍ حرّة.', notIdentical: 'القفز بالورقة المطابقة تماماً وحدها.',
     roundOver: 'انتهت الجولة.', gameOver: 'انتهت المباراة.', roundNotOver: 'الجولة لم تنتهِ.', noState: 'لا لعبة.',
     seatsOutOfRange: 'اللاعبون من اثنين إلى خمسة.'
@@ -2206,7 +2281,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
+  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'easy', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
+   'locknote', 'lockcard', 'locknoteok',
    'net', 'netpick', 'mkroom', 'joinroom', 'joinbox', 'codein', 'joingo', 'roombox', 'codehead', 'roomcode', 'roomlink', 'copylink', 'roster', 'netnote', 'countrow', 'namehead', 'statsw', 'meas',
    'netdown', 'netdowntxt', 'retrynow', 'rejoin'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
@@ -2215,7 +2291,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- الحالة (الرسم) ---------- */
   var G = null, V = null;               // حالة المحرّك، ورؤية المقعد صاحب الموقف
-  var seats = 3, house = { stack: false, jumpIn: false, sevenZero: false };
+  var seats = 3, house = { easy: false, jumpIn: false, sevenZero: false };
   var mode = 'local';                   // 'local' تسليمٌ محليّ، 'cpu' خصومٌ آليّون، 'online' غرفةٌ على الشبكة
   /* ---------- الأونلاين (المرحلة ٤): الحالةُ هنا، والنقلُ في ShaddaNet وحده ----------
      mySeat: المقعد الذي يملكه هذا الجهاز ثابتاً — ‎null‎ في التسليم المحلّي (إذ
@@ -2223,7 +2299,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var mySeat = null, amHost = false, link = null, tbl = null, netView = null;
   var netPhase = 'off', netCode = '', netNote = '', netSeen = -1, netN = [], netHere = [];
   var netBusy = false, netBusyTimer = null, snapTimer = null, pingTimer = null, measTimer = null;
-  var pingAt = 0, statsOn = false, joinTimer = null, VER = 'f07b107f25';
+  var pingAt = 0, statsOn = false, joinTimer = null, VER = 'f37a5b9faf';
   /* العودة بعد الانقطاع: تراجعٌ تصاعدي بلا استسلام (المرجع ٤ و١٣) */
   var netDown = false, retryStep = 0, retryTimer = null, lastCode = '';
   var RETRY = [1000, 2000, 4000, 8000, 10000, 10000, 10000, 10000];
@@ -2232,9 +2308,12 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var CPU_NAMES = ['فهد', 'منى', 'سعد', 'هند'];
   var cpuRng = S.rng(1), cpuTimer = null, cpuPending = false;
   var nameVals = ['', '', '', '', ''], names = [];
-  var sel = null, armOne = false, lastDrawn = null, hintText = '';
+  var sel = null, lastDrawn = null, hintText = '';
   var privacy = true, shownSeat = null, lastPrompt = '';   // المقعد الذي يرى الجوّالُ يدَه، وآخر نداءٍ نُودي
   var handoffAt = 0, handoffTimer = null;                 // متى تُرفع نافذة التسليم: بعد أن تحطّ الورقة
+  /* نافذة تنويه القفل: تُرفع مرّةً واحدة لكل مقعدٍ في المباراة، والورقة
+     المعطّلة معروضةٌ فيها — lockCard هي المعروضة الآن، lockTold من رآها. */
+  var lockCard = null, lockTold = {};
   var reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   /* ---------- الإيقاع: أبطأ وأنعم، والتنويه يبقى حتى يُقرأ (طلب المالك) ---------- */
@@ -2349,7 +2428,18 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var q = new URLSearchParams(location.search), urlSeed = q.get('seed');
   var seed = urlSeed !== null && /^-?\d+$/.test(urlSeed) ? (parseInt(urlSeed, 10) | 0) : ((Math.random() * 0x7fffffff) | 0);
 
-  function actorOf(st) { return st.phase === 'colour' ? st.chooser : st.phase === 'challenge' ? st.challenge.target : st.turn; }
+  function actorOf(st) { return st.phase === 'colour' ? st.chooser : st.turn; }
+  /* الورقةُ العاديّة الأخيرة المقفلة في هذه اليد، إن وُجدت. والعبرةُ بشكل اليد
+     لا بما على المرمى: متى صار في يدك عاديّةٌ واحدة ومعها قويّ فتلك الورقة
+     ميّتةٌ من تلك اللحظة مهما انقلب اللون — فذاك وقت قول السبب، لا انتظارُ
+     الدورة التي تصادف فيها المطابقة. (وقياساً: القفل يقع في نحو ‏٤٨٪‏ من
+     الجولات، أمّا مصادفةُ أن يكون المقفول مطابقاً كذلك فلا تقع إلا في ‏٢٣٪‏ —
+     فانتظارُها يترك نصف اللاعبين يرون ورقةً ميّتةً بلا كلمة.) */
+  function lockedNow(v) {
+    if (v.phase !== 'play' || v.pending > 0) return null;
+    for (var i = 0; i < v.hand.length; i++) if (S.locked(v.hand, v.hand[i])) return v.hand[i];
+    return null;
+  }
   function nameOf(i) { return names[i] || ('المقعد ' + fmt(i + 1)); }
 
   /* ---------- الحالة الكبيرة: تنطّ حين يتبدّل نصّها ---------- */
@@ -2380,13 +2470,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         if (e.seat === shownSeat && e.cards) revealIds = e.cards.slice();
         if (e.n > 1) {
           /* الوقوف والعقوبة اللذان يتبعان السحب يُقالان في تنويهه لا في تنويهٍ ثانٍ */
-          var stops = false, why = null;
+          var stops = false;
           for (var j = i + 1; j < events.length && j <= i + 2; j++) {
             if (events[j].seat !== e.seat) continue;
             if (events[j].t === 'skipped') { quiet[j] = true; stops = true; }
-            else if (events[j].t === 'penalised' && events[j].why !== 'bluff' && events[j].why !== 'badChallenge') { quiet[j] = true; why = events[j].why; }
+            else if (events[j].t === 'penalised') quiet[j] = true;
           }
-          toast(nameOf(e.seat) + (why === 'noOne' ? ' نسي «واحدة» ويسحب ' : ' يسحب ') + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
+          toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
         }
       }
       else if (e.t === 'colourChosen') toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour);
@@ -2397,9 +2487,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         if (nx) quiet[i + 1] = true;
         toast(nx ? 'انعكس الاتجاه — ' + nameOf(nx.seat) + ' يقف' : 'انعكس الاتجاه', false, false, effectCard(['reverse']));
       }
-      else if (e.t === 'saidOne') toast(nameOf(e.seat) + ': «واحدة»!', true);
-      else if (e.t === 'challenged') toast(nameOf(e.by) + ' اعترض على ' + nameOf(e.from) + ' — ' + (e.bluff ? 'كذب، فسحب أربعاً.' : 'صدق، فسحب المعترض ستّاً.'), true);
-      else if (e.t === 'penalised') { if (!quiet[i] && e.why !== 'bluff' && e.why !== 'badChallenge') toast(nameOf(e.seat) + ' عوقب بـ' + fmt(e.cards)); }
+      else if (e.t === 'penalised') { if (!quiet[i]) toast(nameOf(e.seat) + ' أخذ الكومة: ' + fmt(e.cards)); }
       else if (e.t === 'stockReshuffled') toast('أُعيد خلط المرميّ');
       else if (e.t === 'handsSwapped') toast('تبادلت الأيدي', false, false, effectCard(['number']));
       else if (e.t === 'handsRotated') toast('دارت الأيدي', false, false, effectCard(['number']));
@@ -2430,15 +2518,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     S.COLOURS.forEach(function (c) { if (cnt[c] > bestN) { bestN = cnt[c]; best = c; } });
     return best;
   }
-  function cpuWillChallenge(v) {
-    var n = 0;
-    v.hand.forEach(function (id) { if (S.card(id).colour === v.colour) n++; });
-    return n >= 3;
-  }
   function playChosen(seat, v, legal) {
-    var hand = v.hand, colour = v.colour;
+    var hand = v.hand;
     var nonWild = legal.filter(function (id) { var k = S.card(id).kind; return k !== 'wild' && k !== 'wild4'; });
-    var wild4s = legal.filter(function (id) { return S.card(id).kind === 'wild4' && S.wild4Legal(hand, colour); });
+    var wild4s = legal.filter(function (id) { return S.card(id).kind === 'wild4'; });
     var wilds = legal.filter(function (id) { return S.card(id).kind === 'wild'; });
     var chosen;
     if (nonWild.length) {
@@ -2448,7 +2531,6 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     } else if (wild4s.length) chosen = wild4s[0];
     else chosen = wilds[0];
     var action = { type: 'play', card: chosen };
-    if (hand.length === 2) action.sayOne = true;
     if (!S.card(chosen).colour) action.colour = cpuColour(v, chosen);
     else if (v.house.sevenZero && S.card(chosen).kind === 'number' && S.card(chosen).value === 7) action.swapWith = seatAfter(v, seat);
     send(seat, action);
@@ -2457,8 +2539,6 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (!G || actorOf(G) !== seat) return;                     // الحالة تبدّلت — لا فعل فائتاً
     var v = S.viewFor(G, seat);
     if (v.phase === 'colour') { send(seat, { type: 'colour', colour: cpuColour(v) }); return; }
-    if (v.phase === 'challenge') { send(seat, cpuWillChallenge(v) ? { type: 'challenge' } : { type: 'accept' }); return; }
-    if (v.callable !== null && v.callable !== seat) { send(seat, { type: 'callOut', on: v.callable }); return; }
     var legal = S.legalMoves(v);
     if (legal.length) { playChosen(seat, v, legal); return; }
     if (v.pending > 0 || !v.drew) { send(seat, { type: 'draw' }); return; }
@@ -2522,7 +2602,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       for (var k = 0; k < m; k++) backs += backHTML({ style: '--a:' + ((k - (m - 1) / 2) * 10).toFixed(1) + 'deg' });
       html += '<div class="seat" data-seat="' + seat + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;--rot:' + rot + 'deg;--sc:' + sc + '">' +
         '<div class="oppfan">' + backs + '</div><span class="anchor"></span></div>';
-      tagsHTML += '<div class="ntag' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" data-seat="' + seat + '"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><b class="cnt' + (v.said[seat] ? ' one' : '') + '">' + fmt(cnt) + '</b></div>';
+      tagsHTML += '<div class="ntag' + (seat === actor && v.phase !== 'over' ? ' turn' : '') + '" data-seat="' + seat + '"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span class="nm">' + esc(nameOf(seat)) + '</span><b class="cnt' + (cnt === 1 ? ' one' : '') + '">' + fmt(cnt) + '</b></div>';
     }
     return html;
   }
@@ -2644,6 +2724,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var me = mySeat === null ? actor : mySeat;
     if (mySeat !== null) shownSeat = me;
     else if (!privacy || v.phase === 'over') shownSeat = me;
+    /* تنويه القفل يخصّ صاحب الموقف وحده: إن مضى الدور عنه طُوي بلا ضغط، فلا
+       تبقى نافذةٌ تعطّل شاشةً لم يعد لصاحبها ما يفعله. */
+    if (actor !== me || v.phase === 'over') lockCard = null;
     var handoff = mySeat === null && shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
     if (handoffTimer) { clearTimeout(handoffTimer); handoffTimer = null; }
     if (waiting) handoffTimer = setTimeout(render, handoffAt - Date.now() + 10);
@@ -2707,13 +2790,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (!hint) hint = mode === 'online' && !amHost ? 'الجولة التالية بيد المضيف — ينتظره الجميع.'
         : v.over ? 'النقاط إلى ' + fmt(v.target) + ' تحسم المباراة.' : 'الفائز يأخذ ما بقي في أيدي الآخرين.';
     } else if (actor !== me) {
-      /* دور غيرك — حاسباً كان أو مقعداً بعيداً: لا يد ولا مفاتيح إلا نداءً على
-         «واحدة» منسيّة. والدفاع الثالث يظهر هنا: إن كان صاحبُ الدور قد انقطع،
-         فللمضيف مفتاحٌ يمضي بدوره بأفعالٍ مشروعةٍ لا غير، فلا تقف الغرفة. */
+      /* دور غيرك — حاسباً كان أو مقعداً بعيداً: لا يد ولا مفاتيح. والدفاع
+         الثالث يظهر هنا: إن كان صاحبُ الدور قد انقطع، فللمضيف مفتاحٌ يمضي
+         بدوره بأفعالٍ مشروعةٍ لا غير، فلا تقف الغرفة. */
       setTurn(nameOf(actor) + '، دوره');
-      if (v.callable !== null && v.callable !== me) {
-        el.acts.appendChild(btn('نادِ على ' + nameOf(v.callable), '', function () { send(me, { type: 'callOut', on: v.callable }); }));
-      }
       if (mode === 'online' && amHost && netHere[actor] === false) {
         el.acts.appendChild(btn('امضِ عن ' + nameOf(actor), 'acc', function () { standIn(actor); }));
         if (!hint) hint = nameOf(actor) + ' انقطع. تنتظره الغرفة، أو تمضي عنه.';
@@ -2726,18 +2806,6 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         el.acts.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }, { 'data-c': c }));
       });
       if (!hint) hint = 'اللون الذي تختاره هو ما يُطابَق بعدك.';
-    } else if (v.phase === 'challenge') {
-      setTurn(nameOf(me) + '، «سحب أربعة» عليك');
-      var takeFly = function (action) {
-        revealIds = null;
-        if (!reduced) flightUntil = Date.now() + REVEAL_HOLD + 1600;   // حدٌّ أعلى؛ الحطّ الدقيق في landIn
-        if (!send(me, action)) { flightUntil = 0; return; }
-        var end = revealIds && revealIds.length && el.hand.querySelector('.card') ? reveal(revealIds) : 0;
-        if (end) handoffAt = Math.max(handoffAt, end); else landAll(0);
-      };
-      el.acts.appendChild(btn('اعترض', 'acc', function () { takeFly({ type: 'challenge' }); }));
-      el.acts.appendChild(btn('اقبل الأربع', '', function () { takeFly({ type: 'accept' }); }));
-      if (!hint) hint = 'إن كان ' + nameOf(v.challenge.from) + ' يملك اللون الجاري فقد كذب ويسحب أربعاً — وإن صدق سحبتَ ستّاً.';
     } else {
       setTurn(nameOf(me) + '، دورك');
       var drawFly = function () {
@@ -2752,19 +2820,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', drawFly));
       else if (!v.drew) el.acts.appendChild(btn('اسحب', '', drawFly));
       else el.acts.appendChild(btn('مرّر', '', function () { send(me, { type: 'pass' }); }));
-      if (v.hand.length === 2) {
-        el.acts.appendChild(btn('واحدة!', armOne ? 'on' : '', function () { armOne = !armOne; render(); }, { 'aria-pressed': String(armOne) }));
-      } else if (v.hand.length === 1 && !v.said[me]) {
-        el.acts.appendChild(btn('واحدة!', 'acc', function () { send(me, { type: 'sayOne' }); }));
-      }
-      if (v.callable !== null && v.callable !== me) {
-        el.acts.appendChild(btn('نادِ على ' + nameOf(v.callable), '', function () { send(me, { type: 'callOut', on: v.callable }); }));
-      }
       if (!hint) {
-        if (v.pending > 0) hint = 'عليك ' + fmt(v.pending) + ': ردّ بسحب ثنتين أو خذها.';
-        else if (sel !== null) hint = 'انقر الورقة مرّةً أخرى لتلعبها' + (v.hand.length === 2 ? (armOne ? ' — و«واحدة» معها.' : ' — ولا تنسَ «واحدة».') : '.');
+        if (v.pending > 0) hint = 'عليك ' + fmt(v.pending) + ': ردّ بـ' + KIND[v.pendingKind] + ' أو خذها.';
+        else if (sel !== null) hint = 'انقر الورقة مرّةً أخرى لتلعبها.';
         else if (can.length) hint = 'اختر ورقةً تطابق اللون أو الرقم' + (v.drew ? '، أو مرّر.' : '، أو اسحب.');
         else hint = v.drew ? 'لا ورقة تُلعب — مرّر.' : 'لا ورقة تُلعب — اسحب.';
+      }
+      /* القفل يُشرح أوّل مرّةٍ يقع فيها على هذا المقعد — نافذةٌ لا كلمة عابرة،
+         فالورقة تبدو معطّلةً بلا سبب وذلك أسوأ من أن تكون ممنوعة. */
+      if (!v.house.easy && !lockTold[me]) {
+        var lk = lockedNow(v);
+        if (lk !== null) { lockTold[me] = true; lockCard = lk; }
       }
     }
     el.hint.textContent = hint;
@@ -2776,13 +2842,16 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (actor === me && v.phase !== 'over' && key !== lastPrompt) {
       lastPrompt = key;
       if (v.phase === 'colour') toast('اختر اللون', false, true);
-      else if (v.phase === 'challenge') toast('«سحب أربعة» عليك — اعترض أو اقبل', true, true, top, 4);
-      else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ أو خذ', true, true, top, v.pending);
+      else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ بـ' + KIND[v.pendingKind] + ' أو خذ', true, true, top, v.pending);
       else toast('دورك يا ' + nameOf(me), false, true);
     }
+    /* نافذة القفل: ورقتُك المعطّلة معروضةٌ ومعها سببها، ولا شيء يُضغط تحتها */
+    el.locknote.hidden = lockCard === null;
+    if (lockCard !== null) el.lockcard.innerHTML = cardHTML(lockCard, {});
+
     /* الضيفُ بعد فعله لا يضغط ثانيةً قبل أن يصل حكم المضيف */
     el.netdown.hidden = !netDown;
-    if (netBusy || netDown) {
+    if (netBusy || netDown || lockCard !== null) {
       var stop = el.acts.querySelectorAll('button'), z;
       for (z = 0; z < stop.length; z++) stop[z].disabled = true;
       stop = el.hand.querySelectorAll('button');
@@ -2798,13 +2867,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var id = +b.getAttribute('data-id'), me = mySeat === null ? actorOf(V) : mySeat;
     if (sel !== id) { sel = id; hintText = ''; render(); return; }
     var a = { type: 'play', card: id };
-    if (V && V.hand.length === 2 && armOne) a.sayOne = true;
-    sel = null; armOne = false;
+    sel = null;
     var from = rect(b), html = cardHTML(id, {});
     if (!reduced) toastHoldUntil = Date.now() + FLY_MS + 200;   // أثر الورقة يُنادى بعد أن تحطّ وتُرى
     if (send(me, a)) fly(from, rect(el.felt.querySelector('.pile .tc')), html);
   });
   el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; flightUntil = 0; render(); } });
+  el.locknoteok.addEventListener('click', function () { lockCard = null; render(); });
   el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
   window.addEventListener('resize', function () { if ((G || netView) && el.start.hidden) render(); });
 
@@ -2855,12 +2924,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     drawNames();
   });
   function setToggle(t, on) { t.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  /* المفتاح المطفأ الذي يعيد ما كان قبل قواعد البيت: بلا قفلٍ ولا تراكمِ أربع */
+  el.easy.addEventListener('click', function () {
+    house.easy = el.easy.getAttribute('aria-checked') !== 'true';
+    setToggle(el.easy, house.easy);
+  });
   el.house.addEventListener('click', function () {
     var on = el.house.getAttribute('aria-checked') !== 'true';
     setToggle(el.house, on);
     el.housesubs.classList.toggle('dim', !on);
     el.housesubs.querySelectorAll('button').forEach(function (b) { b.disabled = !on; });
-    if (!on) { house = { stack: false, jumpIn: false, sevenZero: false }; el.housesubs.querySelectorAll('button').forEach(function (b) { setToggle(b, false); }); }
+    if (!on) { house.jumpIn = false; house.sevenZero = false; el.housesubs.querySelectorAll('button').forEach(function (b) { setToggle(b, false); }); }
   });
   el.housesubs.addEventListener('click', function (e) {
     var b = e.target.closest('button');
@@ -2884,7 +2958,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     }
     var out = S.createGame({ seats: seats, seed: seed, house: house });
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
-    G = out.state; sel = null; armOne = false; lastDrawn = null; hintText = ''; lastPrompt = '';
+    G = out.state; sel = null; lastDrawn = null; hintText = ''; lastPrompt = '';
+    lockCard = null; lockTold = {};                    // تنويهُ القفل يُقال مرّةً في كل مباراة
     mySeat = mode === 'local' ? null : 0;             // محلّياً يمرّ الجوّال، وإلا فمقعدُنا ثابت
     shownSeat = mySeat === null ? actorOf(G) : mySeat;
     netBusy = false;
@@ -2926,9 +3001,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var o = { type: a.type };
     if (typeof a.card === 'number' && isFinite(a.card)) o.card = a.card | 0;
     if (typeof a.colour === 'string' && S.COLOURS.indexOf(a.colour) >= 0) o.colour = a.colour;
-    if (typeof a.on === 'number' && isFinite(a.on)) o.on = a.on | 0;
     if (typeof a.swapWith === 'number' && isFinite(a.swapWith)) o.swapWith = a.swapWith | 0;
-    if (a.sayOne === true) o.sayOne = true;
     return o;
   }
 
@@ -3222,7 +3295,6 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (!amHost || !G || netHere[seat] !== false) return;
     var v = S.viewFor(G, seat);
     if (v.phase === 'colour') { send(seat, { type: 'colour', colour: v.colour || S.COLOURS[0] }); return; }
-    if (v.phase === 'challenge') { send(seat, { type: 'accept' }); return; }
     if (v.pending > 0 || !v.drew) { send(seat, { type: 'draw' }); return; }
     send(seat, { type: 'pass' });
   }
