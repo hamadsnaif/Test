@@ -85,17 +85,22 @@ async function playFirstLive(p) {
 
 /* دورٌ واحد: يُنظر إلى ما هو معروضٌ الآن ويُتصرّف كما يتصرّف لاعب. */
 async function oneMove(p) {
+  /* نافذة «استمرار» تسبق حتى نافذة التسليم: القفز والعكس يُقرَّان أوّلاً
+     (الصقل، البند ٣) — وعلى نمط تنويه القفل بعينه فزرّها بذلك الاسم */
+  if (await p.$eval('#contnote', e => !e.hidden)) { await p.click('#contnoteok'); await sleep(20); return 'continue'; }
   /* نافذة تبديل الأدوار تسبق كل شيء: اللاعب التالي يقول إنه هو ثم يرى يده */
   if (await p.$eval('#handoff', e => !e.hidden)) { await p.click('#handoffok'); await sleep(20); return 'handoff'; }
   /* ونافذة تنويه القفل تسبق كل شيء كذلك: لا يُضغط شيءٌ تحتها */
   if (await p.$eval('#locknote', e => !e.hidden)) { await p.click('#locknoteok'); await sleep(20); return 'locknote'; }
-  const acts = await texts(p, '#acts button');
-  if (acts.indexOf('أحمر') >= 0) { await clickByText(p, '#acts button', 'أحمر'); return 'colour'; }
+  /* قرارات التوقّف — اللون و«خذ» — في طبقة #decision لا #acts (الصقل، البند ٢) */
+  const dec = await texts(p, '#decision button');
+  if (dec.indexOf('أحمر') >= 0) { await clickByText(p, '#decision button', 'أحمر'); return 'colour'; }
   const live = await liveCards(p);
   if (live.length) {
     if (await playFirstLive(p)) return 'play';
   }
-  if (acts.some(t => /^خذ /.test(t))) { await clickByText(p, '#acts button', /^خذ /); return 'take'; }
+  if (dec.some(t => /^خذ /.test(t))) { await clickByText(p, '#decision button', /^خذ /); return 'take'; }
+  const acts = await texts(p, '#acts button');
   if (acts.indexOf('اسحب') >= 0) { await clickByText(p, '#acts button', 'اسحب'); return 'draw'; }
   if (acts.indexOf('مرّر') >= 0) { await clickByText(p, '#acts button', 'مرّر'); return 'pass'; }
   /* مهلة التسليم: الورقة تطير ويدُ من لعب معطّلةٌ على الشاشة، والنافذة لم تُرفع بعد */
@@ -151,7 +156,7 @@ async function openIn(ctx, query, sink) {
 /* الضيف بعد فعله يُعطَّل حتى يصل حكم المضيف: لا تُنقر مفاتيحُه وهي معطّلة */
 async function settled(p) {
   for (let i = 0; i < 60; i++) {
-    const acts = await p.$$eval('#acts button', es => es.map(b => b.disabled));
+    const acts = await p.$$eval('#acts button, #decision button', es => es.map(b => b.disabled));
     if (!acts.length || acts.some(d => !d) || (await liveCards(p)).length) return true;
     await sleep(60);
   }
@@ -361,7 +366,7 @@ async function open(browser, w, h, query) {
     for (let k = 0; k < 2500 && turns < 400; k++) {
       /* تُقاد اللعبة حتى يُرى كلُّ ما تبحث عنه هذه الفقرة، ثم تُترك */
       if (sawLock && pileHints['سحب ثنتين'] && pileHints['سحب أربعة']) break;
-      const acts = await texts(p, '#acts button');
+      const acts = (await texts(p, '#acts button')).concat(await texts(p, '#decision button'));
       if (acts.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
         await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
       }
@@ -380,7 +385,7 @@ async function open(browser, w, h, query) {
         lockShot = await p.$$eval('#locknote .lc .card', es => es.length);
         const dead = await p.$$eval('#hand button.card:not([disabled])', es => es.length);
         ok('while the lock window is up, nothing underneath it can be pressed',
-          dead === 0 && (await p.$$eval('#acts button:not([disabled])', es => es.length)) === 0, 'live cards ' + dead);
+          dead === 0 && (await p.$$eval('#acts button:not([disabled]), #decision button:not([disabled])', es => es.length)) === 0, 'live cards ' + dead);
       }
       const w = await oneMove(p);
       if (!w) break;
@@ -417,7 +422,7 @@ async function open(browser, w, h, query) {
     let easyLock = false, easyHints = {}, easyTurns = 0;
     for (let k = 0; k < 2000 && easyTurns < 300; k++) {
       if (await p.$eval('#locknote', e => !e.hidden)) { easyLock = true; break; }
-      const acts = await texts(p, '#acts button');
+      const acts = (await texts(p, '#acts button')).concat(await texts(p, '#decision button'));
       if (acts.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
         await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
       }
@@ -435,18 +440,71 @@ async function open(browser, w, h, query) {
     ok('and nothing threw on the eased rules either', errs.length === 0, errs[0]);
     await ctx.close();
 
+    /* ============ الصقل: شريط المسار، القرارات في المنتصف، ونافذة «استمرار» ============
+       تُقاد جولةٌ طويلة حتى يُرى كلُّ ما تبحث عنه هذه الفقرة، كما فعلت فقرة
+       المرحلة ٥ أعلاه لنفس السبب. ============ */
+    ({ ctx, p, errs } = await open(browser, 390, 844, '?seed=31'));
+    await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
+    let trackSeen = false, oneTurnLit = true, ccwSeen = false, pendSeen = false;
+    let decSeen = false, decMinH = 0, decTopFrac = 0;
+    let contSeen = false, contWho = '', contWhy = '', contStyle = '', contBlocked = false;
+    for (let k = 0; k < 1200 && !(contSeen && ccwSeen && pendSeen && decSeen); k++) {
+      const slugs = await texts(p, '#track .sl');
+      if (slugs.length) {
+        trackSeen = true;
+        const lit = await p.$$eval('#track .sl.turn', es => es.length);
+        if (lit !== 1) oneTurnLit = false;
+      }
+      if (await p.$eval('#track', e => e.classList.contains('ccw'))) ccwSeen = true;
+      if ((await p.$$('#track .sl .pd')).length) pendSeen = true;
+      if (!decSeen) {
+        const decBtn = await p.$('#decision button');
+        if (decBtn) {
+          decSeen = true;
+          const r = await p.$eval('#decision', e => e.getBoundingClientRect()), scene = await p.$eval('#scene', e => e.getBoundingClientRect());
+          decMinH = (await decBtn.boundingBox()).height;
+          decTopFrac = ((r.top + r.bottom) / 2 - scene.top) / scene.height;   // منتصف الطبقة، لا طرف أوّل مفتاحٍ فيها
+        }
+      }
+      if (!contSeen && await p.$eval('#contnote', e => !e.hidden)) {
+        contSeen = true;
+        contWho = await p.$eval('#contwho', e => e.textContent.trim());
+        contWhy = await p.$eval('#contwhy', e => e.textContent.trim());
+        contStyle = await p.$eval('#contnote', e => e.className);
+        const deadHand = await p.$$eval('#hand button.card:not([disabled])', es => es.length);
+        const deadActs = await p.$$eval('#acts button:not([disabled]), #decision button:not([disabled])', es => es.length);
+        contBlocked = deadHand === 0 && deadActs === 0;
+      }
+      const w = await oneMove(p);
+      if (!w) break;
+    }
+    ok('the play-path track is drawn under the status, read from the screen', trackSeen);
+    ok('exactly one seat is lit as the current actor, every time it was checked', oneTurnLit);
+    ok('the arrow between seats flips when the direction reverses', ccwSeen);
+    ok('a standing pile is named on the track by its own kind (سحب ثنتين / سحب أربعة)', pendSeen);
+    ok('a stop-decision (colour or take-pile) sits nearer the middle of the scene', decSeen && decTopFrac > 0.2 && decTopFrac < 0.5, 'mid frac ' + decTopFrac.toFixed(2));
+    ok('and its buttons are bigger than the ordinary flow keys', decSeen && decMinH >= 48, 'h=' + decMinH);
+    ok('a skip or a reverse raises a «continue» window before play moves past it', contSeen);
+    if (contSeen) {
+      ok('on the locknote pattern itself — same class, not a second one', /\blocknote\b/.test(contStyle) && /\bcont\b/.test(contStyle), contStyle);
+      ok('it says who did it, and what happened', contWho.length > 0 && contWhy.length > 0, contWho + ' / ' + contWhy);
+      ok('and blocks the hand and the keys beneath it, like the lock window does', contBlocked);
+    }
+    ok('and nothing threw while the track and the continue window were driven', errs.length === 0, errs[0]);
+    await ctx.close();
+
     /* ============ ‎320‎ عرضاً: يدٌ كبيرة تنزلق، وكل ورقةٍ ظاهرةٍ تملك طرفها ============ */
     ({ ctx, p, errs } = await open(browser, 320, 568, '?seed=3'));
     await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
     let big = 0;
     for (let k = 0; k < 400; k++) {
-      const acts = await texts(p, '#acts button');
+      const acts = await texts(p, '#acts button'), dec = await texts(p, '#decision button');
       const n = (await handCards(p)).length;
       if (n >= 15) { big = n; break; }
       if (acts.indexOf('اسحب') >= 0) { await clickByText(p, '#acts button', 'اسحب'); await sleep(20); await clickByText(p, '#acts button', 'مرّر'); }
       else if (acts.indexOf('مرّر') >= 0) await clickByText(p, '#acts button', 'مرّر');
-      else if (acts.indexOf('أحمر') >= 0) await clickByText(p, '#acts button', 'أحمر');
-      else if (acts.some(t => /^خذ /.test(t))) await clickByText(p, '#acts button', /^خذ /);
+      else if (dec.indexOf('أحمر') >= 0) await clickByText(p, '#decision button', 'أحمر');
+      else if (dec.some(t => /^خذ /.test(t))) await clickByText(p, '#decision button', /^خذ /);
       else if (acts.indexOf('الجولة التالية') >= 0) await clickByText(p, '#acts button', 'الجولة التالية');
       else break;
       await sleep(20);

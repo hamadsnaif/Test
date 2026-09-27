@@ -827,6 +827,96 @@
     region is excused that scan and held to a stricter one in its place: every
     card in it must own, alone, an unbroken patch of at least 44 by 44 points.
     A buried card fails.  The hand here is that one region.
+
+  THE POLISH  (stage 6, mine and argued unless the owner's own words are
+  quoted — he played the finished game on his phone on 2026-09-24 and this
+  section is his notes turned into pixels)
+
+    A track under the status, not a mini-map.  The owner asked for something
+    that makes the order of play obvious and shows whose turn is next; he
+    offered either a horizontal strip or a small map.  The table is already a
+    map — seats sit on an arc in play order, each with its own card and
+    counter — so a second, smaller map would repeat it and cost width on a
+    narrow phone.  What the table cannot show is what the strip can: NEXT does
+    not exist on the table at all, and the far seats are foreshortened by the
+    perspective.  #track is a row of plain <span> chips (no <button> in it, so
+    it neither joins the 44px scan nor the touch-theft scan — [data-fan] stays
+    the hand's alone), one chip per seat in seat-number order starting at
+    yours, so your own position never moves and you never have to hunt for it.
+    The actor's chip lights up and grows a little; the seat that plays next
+    (Shadda.applyAction never runs twice to find out — seatAfter, already
+    written for the CPU, gives it) carries a dim ring; a chip holding a pending
+    pile shows its kind and sum, because after stage 5 "+4" alone no longer
+    says what answers it.  The arrow between two chips is the SAME chevron
+    for every pair — not one arrow per direction — flipped by one class,
+    `.ccw` on `#track` itself, exactly as `.dir.ccw` already flips the piles'
+    direction glyph; a second mechanism was not written because one already
+    existed.  A disconnected remote seat's chip dims (`netHere[seat] ===
+    false`), which was already tracked for the room panel and the stand-in key.
+
+    Two decisions, and only two, stop the game until you choose: naming a
+    colour, and taking a standing pile.  The owner asked for them nearer the
+    middle of the screen and a little larger; the fourth decision this brief
+    imagined — accept or challenge the four — is gone with the challenge
+    itself (stage 5), so #decision holds exactly the two that are left, a
+    floating layer above the felt (top 34%, its own bigger .key sizing) that
+    the ordinary flow keys (اسحب / مرّر) never join, because they do not stop
+    anything: play continues the instant one is pressed.
+
+    A turn does not vanish silently.  The owner, in his own words: "even if
+    the skip was applied to him, I want his turn to come first, then a tab
+    appears saying your turn was skipped, then he taps continue — the same
+    for reverse."  The engine already resolves a Skip or a Reverse inside
+    doPlay/effect before send() ever returns — there is no second phase in
+    the state to pause on — so the pause is drawn, not engineered into
+    Shadda.applyAction: `tell()` reads the very same `skipped` and
+    `directionReversed` events it already read for the toast, and when the
+    seat that lost its turn (or, for a bare reverse with nobody skipped, the
+    seat about to act next) is a seat THIS DEVICE actually shows — every seat
+    in local hand-off, seat 0 alone against the computer, your own seat alone
+    online — it queues a note.  A skip a player inflicts on themself (taking a
+    standing pile stands their own turn) queues nothing: there is no one else
+    to name, so no tab. `#contnote` is `#locknote` again, literally the same
+    CSS class (`.locknote.cont`, one z-index higher so the two never show at
+    once) — a second visual language for the same idea was not invented.  It
+    is drawn and checked before the hand-off window even asks whether to show
+    itself, so in local play the tab is what a player sees FIRST, exactly as
+    asked; the hand-off to the true next actor follows once "استمرار" is
+    tapped.  The CPU is held at the same gate (`scheduleCpu` returns while a
+    note the human has not acknowledged is queued), so a bot does not play a
+    second card while the tab is still up waiting for a tap.
+
+    The computer's pace varies with the decision, not a flat 450–700ms roll.
+    The owner: "rounds against the computer feel instant and hollow; I want
+    the pace to feel like a real player's, calmer than it is now."  Naming a
+    colour is the slower tick (900–1400ms); a turn with more than one legal
+    card is the middle one (700–1050ms); a forced draw or a single obvious
+    play is the fastest (500–850ms) — still drawn from cpuRng, seeded, so a
+    ?seed=N session's computer play still replays identically.  The rest of
+    the pace — FLY_MS, HANDOFF_WAIT, the toast durations — was measured once
+    already in stage 5 against exactly the complaint that a card must be SEEN
+    before its effect is announced, and stage 5's own measurement is what
+    argues against simply lengthening every notice further: three seats play
+    to a median of 58 actions and a card with an effect already holds its
+    toast 2400ms, so what grew the felt sense of speed after stage 5's new
+    piling rules was not any one notice's length but how many now fire in a
+    row.  That is why this stage answers the same complaint with fewer
+    surprises per round instead — a lock explained once and never again, a
+    pending pile's kind read off the track instead of asked about, a skip
+    acknowledged instead of silently absorbed — and leaves FLY_MS/HANDOFF_WAIT
+    where stage 5 measured them until the owner's phone says otherwise.
+
+    The start sheet reads like a rulebook, not a manual.  Every switch's
+    small print now carries one short example instead of only a definition —
+    "٧ swaps your hand with one you name; ٠ rotates every hand one seat along"
+    reads faster than the noun phrase it replaces — and the English parenthetical
+    "(jump-in)" the owner named directly is gone from the player-facing label;
+    the idea is named in Arabic alone, with its own example under it.  The
+    long note at the foot of the sheet is no longer one dense sentence: it is
+    now four short ones plus the one example the lock most needs, each ended
+    before the next rule starts, on the same logic as this file's own prose —
+    a fact stated once, plainly, is easier to trust than the same fact folded
+    into six others.
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -1163,6 +1253,36 @@ button:disabled{cursor:default}
 .locknote .why{font-size:clamp(13px, 3.9cqw, 16px);font-weight:700;line-height:1.6;max-width:21em;color:var(--ivory)}
 .locknote .key{min-width:180px;margin-top:4px}
 .locknote small{font-size:11.5px;color:#b8ad98;max-width:24em;line-height:1.6}
+/* نافذة «استمرار»: القفز والعكس على نمط تنويه القفل نفسه لا نمطٍ ثانٍ، وأعلى
+   طبقةً منه فلا يظهر الاثنان معاً */
+.locknote.cont{z-index:8}
+/* القرارات التي توقف اللعب — اختيار اللون و«خذ ن» — طبقةٌ فوق الطاولة قرب
+   المنتصف، أكبر من مفاتيح المجرى العادي التي تبقى في ‎.acts‎ */
+.decision{position:absolute;left:50%;top:34%;transform:translate(-50%,-50%);z-index:5;
+  display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:88%}
+.decision .key{min-height:56px;font-size:17px;padding:0 18px}
+.decision .key.c{min-width:88px;font-size:19px}
+.decision .key.acc{min-width:130px}
+/* شريط مسار اللعب: بترتيب اللعب ابتداءً من مقعدنا، فموضعنا ثابتٌ لا يُبحث عنه.
+   صاحب الدور مضيءٌ وأكبر، والتالي معلَّمٌ خافتاً، وسهمٌ بين كل شريحتين ينقلب
+   مع «عكس» — هو ‎.dir.ccw‎ نفسه معكوساً، لا آليّةٌ ثانية. */
+.track{display:flex;align-items:center;gap:3px;flex:none;overflow-x:auto;scrollbar-width:none;
+  direction:ltr;padding:2px 4px;margin-bottom:2px}
+.track::-webkit-scrollbar{display:none}
+.track .sl{display:flex;align-items:center;gap:4px;flex:none;padding:3px 8px;border-radius:11px;
+  background:rgba(255,255,255,.05);font-size:10.5px;font-weight:700;color:var(--ivory-deep);
+  white-space:nowrap;direction:rtl;opacity:.72;transition:opacity .2s,transform .2s}
+.track .sl .av{width:15px;height:15px;border-radius:50%;background:var(--ivory);color:var(--ink);
+  display:grid;place-items:center;font-size:8.5px;font-weight:900;flex:none}
+.track .sl .cnt{font-size:9.5px;color:var(--engrave)}
+.track .sl.turn{opacity:1;background:rgba(224,164,94,.18);color:var(--acc-hi);font-size:12px;transform:scale(1.06)}
+.track .sl.turn .av{background:var(--acc);color:#2a1a05;box-shadow:0 0 0 2px var(--acc-hi)}
+.track .sl.next .av{box-shadow:0 0 0 1.5px var(--acc)}
+.track .sl.off{opacity:.32}
+.track .sl .pd{background:var(--acc);color:#2a1a05;border-radius:8px;padding:0 5px;font-size:9.5px;font-weight:900}
+.track .ar{flex:none;width:11px;height:11px;opacity:.5;color:var(--ivory-deep)}
+.track .ar svg{width:100%;height:100%;display:block}
+.track.ccw .ar svg{transform:scaleX(-1)}
 /* الورقة الطائرة: نسخةٌ ثابتة الموضع تُحرَّك من اليد إلى المرمى أو من المسحب إلى اليد */
 .fly{position:fixed;z-index:50;pointer-events:none;transform-origin:50% 50%;transition:transform .56s cubic-bezier(.22,.61,.36,1)}
 .fly .card{width:100%;height:100%;aspect-ratio:auto}
@@ -1221,6 +1341,7 @@ button:disabled{cursor:default}
 <div class="wrap">
   <div class="panel">
     <div class="turn" id="turn"></div>
+    <div class="track" id="track"></div>
     <div class="status"><div class="clr" id="clr"></div></div>
     <div class="hint" id="hint"></div>
   </div>
@@ -1232,9 +1353,11 @@ button:disabled{cursor:default}
       <div class="over" id="over" hidden></div>
       <div class="veil" id="veil"></div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="decision" id="decision" hidden></div>
       <div class="netdown" id="netdown" hidden><span class="sp"></span><div class="why" id="netdowntxt"></div><button class="key" id="retrynow">أعد المحاولة الآن</button><small>مقعدك وورقك محفوظان عند المضيف حتى تعود.</small></div>
       <div class="handoff" id="handoff" hidden><span class="av" id="ho-av"></span><div class="to">مرّر الجوّال إلى</div><div class="who" id="ho-who"></div><button class="key acc" id="handoffok"></button><small>لا يظهر ورقك حتى تضغط، فلا يراه من قبلك.</small></div>
       <div class="locknote" id="locknote" hidden><div class="lc" id="lockcard"></div><div class="who">هذه الورقة مقفلة</div><div class="why">لم يبقَ عندك من الورق العاديّ إلا هي، ومعك ورقٌ قويّ. العب القويّ أو اسحب.</div><button class="key acc" id="locknoteok">فهمت</button><small>القويّ: سحب أربعة · سحب ثنتين · تغيير اللون. وما عداه عاديّ.</small></div>
+      <div class="locknote cont" id="contnote" hidden><div class="lc" id="contcard"></div><div class="who" id="contwho"></div><div class="why" id="contwhy"></div><button class="key acc" id="contnoteok">استمرار</button></div>
     </div>
   </div>
   <div class="acts" id="acts"></div>
@@ -1272,17 +1395,21 @@ button:disabled{cursor:default}
       <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div></div>
       <div class="lbl" id="namehead">الأسماء</div>
       <div class="namelist" id="namelist"></div>
-      <button class="toggle" id="privacy" role="switch" aria-checked="true"><span>شاشة الخصوصية بين الأدوار</span><span class="sw"></span></button>
-      <button class="toggle" id="easy" role="switch" aria-checked="false"><span>لعبٌ مُيسَّر<small>ورقتك العادية الأخيرة تُلعب، و«سحب أربعة» لا تتراكم</small></span><span class="sw"></span></button>
-      <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد زائدة</span><span class="sw"></span></button>
+      <button class="toggle" id="privacy" role="switch" aria-checked="true"><span>شاشة الخصوصية بين الأدوار<small>عند تسليم الجوّال، ورق اللاعب السابق يُحجب حتى يضغط التالي «هذا أنا».</small></span><span class="sw"></span></button>
+      <button class="toggle" id="easy" role="switch" aria-checked="false"><span>لعبٌ مُيسَّر<small>يرفع قفل الورقة الأخيرة وتراكم «سحب أربعة». مثال: بلا هذا المفتاح، ومعك سحب أربعة وورقة ٩ فقط، لا تُلعب التسعة — العب القويّ أو اسحب.</small></span><span class="sw"></span></button>
+      <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد زائدة<small>تضيف قاعدتين اختياريّتين، مفصَّلتين تحت.</small></span><span class="sw"></span></button>
       <div class="subs dim" id="housesubs">
-        <button class="toggle" role="switch" aria-checked="false" data-k="jumpIn" disabled><span>القفز بالورقة المطابقة (jump-in)</span><span class="sw"></span></button>
-        <button class="toggle" role="switch" aria-checked="false" data-k="sevenZero" disabled><span>٧ تبادل و٠ تدوير</span><span class="sw"></span></button>
+        <button class="toggle" role="switch" aria-checked="false" data-k="jumpIn" disabled><span>القفز بورقةٍ مطابقة تماماً<small>مثال: على المرمى ٧ أحمر، ومعك ٧ أحمر — تلعبها في أيّ وقت ولو لم يكن دورك، ويستمرّ اللعب من مقعدك.</small></span><span class="sw"></span></button>
+        <button class="toggle" role="switch" aria-checked="false" data-k="sevenZero" disabled><span>٧ يبادل و٠ يُدوِّر الأيدي<small>مثال: لعبُ ٧ يبادل يدك مع من تختار؛ ولعبُ ٠ ينقل كل الأيدي مقعداً واحداً في اتجاه اللعب.</small></span><span class="sw"></span></button>
       </div>
-      <button class="toggle" id="statsw" role="switch" aria-checked="false"><span>سطر القياس (rtt وبايت/ث)</span><span class="sw"></span></button>
+      <button class="toggle" id="statsw" role="switch" aria-checked="false"><span>سطر القياس<small>سطرٌ تقنيّ صغير أسفل الشاشة يقيس سرعة الاتصال بالغرفة — للأونلاين فقط.</small></span><span class="sw"></span></button>
       <button class="key acc startbtn" id="startbtn">ابدأ</button>
       <button class="key resume" id="resume" hidden>عودة إلى الطاولة</button>
-      <p class="note">قواعد البيت هي الأصل هنا: ١٠٨ ورقة، وسبعٌ لكل لاعب، و«عكس» تعمل عمل «وقّف» في لعبة اثنين، و«سحب ثنتين» تُردّ بمثلها و«سحب أربعة» بمثلها ولا تُخلطان، ومن لا يردّ يأخذ الكومة كلَّها ويقف دوره. وإذا لم يبقَ عندك من العاديّ إلا ورقةٌ واحدة ومعك ورقٌ قويّ فتلك العاديّة مقفلة. ولا «واحدة» ولا اعتراض. و«لعبٌ مُيسَّر» يرفع القفل وتراكمَ الأربع.</p>
+      <p class="note">تبدأ بسبع ورقات. طابِق اللون أو الرقم أو الرمز مع الورقة العلوية، أو العب ورقةً حرّة؛ وإن لم تُطابق شيئاً فاسحب.<br><br>
+      «وقّف» تمنع من بعدك من اللعب هذا الدور، و«عكس» تُبدّل اتجاه اللعب (وفي لعبة اثنين تعمل «عكس» عمل «وقّف»: تلعب أنت ثانيةً).<br><br>
+      «سحب ثنتين» تُردّ بمثلها فيتراكم المجموع، و«سحب أربعة» بمثلها كذلك — لكنّ الكومتين لا تختلطان: على كومة أربعاتٍ لا يُردّ إلا بأربعةٍ أخرى. ومن لا يملك الردّ يأخذ الكومة كلَّها ويقف دوره.<br><br>
+      قاعدةٌ زادها المالك: إن لم يبقَ في يدك من الورق العاديّ (الأرقام و«وقّف» و«عكس») إلا واحدة، ومعك ورقٌ قويّ (سحب أربعة أو سحب ثنتين أو تغيير اللون)، فتلك الورقة الأخيرة لا تُلعب حتى تُنفق ورقك القويّ أو تسحب. مثال: معك سحب أربعة وورقة ٩ فقط — التسعة مقفلة، ولو طابقت اللون.<br><br>
+      لا نداء «واحدة» هنا ولا اعتراضَ على «سحب أربعة» — أُلغيا كلاهما. و«لعبٌ مُيسَّر» أعلاه يعيدهما بلا الاعتراض: يرفع القفل ويُلغي تراكم الأربعة.</p>
     </div>
   </div>
 </div>
@@ -2235,6 +2362,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     dot: '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M50 50 L50 12 A38 38 0 0 1 88 50 Z" fill="' + HEX.red + '"/><path d="M50 50 L88 50 A38 38 0 0 1 50 88 Z" fill="' + HEX.yellow + '"/><path d="M50 50 L50 88 A38 38 0 0 1 12 50 Z" fill="' + HEX.green + '"/><path d="M50 50 L12 50 A38 38 0 0 1 50 12 Z" fill="' + HEX.blue + '"/></svg>'
   };
   var DIRSVG = '<svg viewBox="0 0 200 110" fill="none" stroke="#f3ecd9" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M40 20 A80 45 0 0 1 160 20"/><path d="M150 12 L162 21 L150 30"/><path d="M160 90 A80 45 0 0 1 40 90"/><path d="M50 82 L38 91 L50 100"/></svg>';
+  /* سهم شريط المسار — سلاحٌ واحد يُقلَب بـ‎.ccw‎ كما يُقلَب ‎.dir‎، لا آليّةٌ ثانية */
+  var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4l8 8-8 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   /* ---------- المروحة: الشارة وظهر الورقة؛ والتدرّج يُكتب للشارة وحدها ---------- */
   var COLS = [HEX.yellow, HEX.green, HEX.blue, HEX.red];
@@ -2281,8 +2410,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'start', 'badge', 'count', 'namelist', 'easy', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
-   'locknote', 'lockcard', 'locknoteok',
+  ['cap-n', 'menu', 'turn', 'track', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'decision', 'start', 'badge', 'count', 'namelist', 'easy', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
+   'locknote', 'lockcard', 'locknoteok', 'contnote', 'contcard', 'contwho', 'contwhy', 'contnoteok',
    'net', 'netpick', 'mkroom', 'joinroom', 'joinbox', 'codein', 'joingo', 'roombox', 'codehead', 'roomcode', 'roomlink', 'copylink', 'roster', 'netnote', 'countrow', 'namehead', 'statsw', 'meas',
    'netdown', 'netdowntxt', 'retrynow', 'rejoin'].forEach(function (id) {
     el[id.replace(/-(\w)/g, function (m, c) { return c.toUpperCase(); })] = document.getElementById(id);
@@ -2299,7 +2428,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var mySeat = null, amHost = false, link = null, tbl = null, netView = null;
   var netPhase = 'off', netCode = '', netNote = '', netSeen = -1, netN = [], netHere = [];
   var netBusy = false, netBusyTimer = null, snapTimer = null, pingTimer = null, measTimer = null;
-  var pingAt = 0, statsOn = false, joinTimer = null, VER = 'f37a5b9faf';
+  var pingAt = 0, statsOn = false, joinTimer = null, VER = '6e0a6cde76';
   /* العودة بعد الانقطاع: تراجعٌ تصاعدي بلا استسلام (المرجع ٤ و١٣) */
   var netDown = false, retryStep = 0, retryTimer = null, lastCode = '';
   var RETRY = [1000, 2000, 4000, 8000, 10000, 10000, 10000, 10000];
@@ -2315,6 +2444,20 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
      المعطّلة معروضةٌ فيها — lockCard هي المعروضة الآن، lockTold من رآها. */
   var lockCard = null, lockTold = {};
   var reduced = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  /* ---------- نافذة «استمرار»: القفز والعكس، على نمط تنويه القفل بعينه ----------
+     المالك: «حتى لو تم تطبيق القفز عليه أرغب أن يأتي دوره أولاً ثم يظهر تبويب
+     تم قفز دورك ثم ينقر استمرار، ونفس الشيء للعكس». تُبنى من الأحداث وحدها —
+     لا فعل جديد في المحرّك — وتظهر لصاحب الشأن وحده: كل مقعدٍ محلّياً (جهازٌ
+     واحد يمرّ بينهم)، والمقعد ٠ وحده في وضع الحاسب، ومقعدُنا وحده أونلاين.
+     ‎contPush‎ يُستبعد فيها من ليس على هذا الجهاز فلا يبقى طابورٌ مسدودٌ
+     بنافذةٍ لن تُرى، وتُستبعد نافذةٌ تسبّبها اللاعب نفسه (أخذُه الكومة يقف
+     دوره هو، لا مفاجأةَ فيه تستحقّ تبويباً). */
+  var contQ = [];
+  function contRelevant(seat) { return mode === 'local' ? true : mode === 'cpu' ? seat === 0 : seat === mySeat; }
+  function contPush(seat, who, why, card) {
+    if (typeof seat !== 'number' || !contRelevant(seat)) return;
+    contQ.push({ seat: seat, who: who, why: why, card: typeof card === 'number' ? card : null });
+  }
 
   /* ---------- الإيقاع: أبطأ وأنعم، والتنويه يبقى حتى يُقرأ (طلب المالك) ---------- */
   var FLY_MS = 560, HANDOFF_WAIT = 1800, AFTER_TOAST = 500, TOAST_GAP = 200, TOAST_OUT = 300;
@@ -2457,12 +2600,14 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
      مقعدُه هو — شاشةُ المضيف المقعدُ ٠ — فلا يُقال لها إلا ما يُقال له. */
   function mine(events) { return mode === 'online' ? ShaddaNet.eventsFor(events, 0) : events; }
   function myEye() { return mySeat === null ? actorOf(G) : mySeat; }
+  /* الموقفُ الحقيقيّ بعد الحدث — أونلاين وضيفٌ لا يملك ‎G‎، فرؤيته وحدها معه */
+  function curTurn() { var s = mode === 'online' && !amHost ? netView : G; return s ? s.turn : null; }
   function tell(events, me) {
-    var quiet = {};                                      // «وقف دوره» الذي قاله تنويهٌ قبله لا يُعاد
+    var quiet = {}, actedBy = null;             // «وقف دوره» الذي قاله تنويهٌ قبله لا يُعاد، ومن فعل الأثر في هذا الطابور
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
       if (e.t === 'flipped') lastPlayed = e.card;   // المكشوفة قد تكون عقوبةً على البادئ
-      else if (e.t === 'played') lastPlayed = e.card;
+      else if (e.t === 'played') { lastPlayed = e.card; actedBy = e.seat; }
       else if (e.t === 'drew' && e.n) {
         /* الورق نفسه يُنزع من الحدث لمن لا يحقّ له (ShaddaNet.eventsFor)، فيصل
            ‎drew‎ بعدده بلا أرقامه. والعدد وحده هو ما يُقال حينئذ. */
@@ -2479,13 +2624,23 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
           toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
         }
       }
-      else if (e.t === 'colourChosen') toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour);
-      else if (e.t === 'skipped') { if (!quiet[i]) toast(nameOf(e.seat) + ' وقف دوره', false, false, effectCard(['skip'])); }
+      else if (e.t === 'colourChosen') { actedBy = e.seat; toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour); }
+      else if (e.t === 'skipped') {
+        if (!quiet[i]) {
+          toast(nameOf(e.seat) + ' وقف دوره', false, false, effectCard(['skip']));
+          /* من غيرَه أوقف دوره فله تبويبٌ؛ ومن أوقف دوره بنفسه (أخذُ الكومة) لا مفاجأة فيه */
+          if (actedBy !== null && actedBy !== e.seat) contPush(e.seat, 'قُفز دورك', nameOf(actedBy) + ' لعب ' + label(lastPlayed) + '، فوقف دورك.', lastPlayed);
+        }
+      }
       else if (e.t === 'directionReversed') {
         /* في اثنين يعمل العكس عمل «وقّف»، والوقوف يُقال هنا لا في تنويهٍ ثانٍ */
         var nx = events[i + 1] && events[i + 1].t === 'skipped' ? events[i + 1] : null;
         if (nx) quiet[i + 1] = true;
         toast(nx ? 'انعكس الاتجاه — ' + nameOf(nx.seat) + ' يقف' : 'انعكس الاتجاه', false, false, effectCard(['reverse']));
+        if (actedBy !== null) {
+          if (nx) contPush(nx.seat, 'قُفز دورك', nameOf(actedBy) + ' عكس الاتجاه — فوقف دورك.', lastPlayed);
+          else { var nt = curTurn(); if (nt !== null && nt !== actedBy) contPush(nt, 'انعكس الاتجاه', nameOf(actedBy) + ' عكس الاتجاه — دورك الآن.', lastPlayed); }
+        }
       }
       else if (e.t === 'penalised') { if (!quiet[i]) toast(nameOf(e.seat) + ' أخذ الكومة: ' + fmt(e.cards)); }
       else if (e.t === 'stockReshuffled') toast('أُعيد خلط المرميّ');
@@ -2544,13 +2699,18 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (v.pending > 0 || !v.drew) { send(seat, { type: 'draw' }); return; }
     send(seat, { type: 'pass' });
   }
-  /* مهلةٌ لا حركة: ‏٤٥٠–٧٠٠‏ ملّي ثانية بمولّدٍ ببذرة seed، لا Math.random */
+  /* مهلةٌ لا حركة، ومتفاوتةٌ لا ثابتة: قرارٌ فيه اختيار لونٍ أبطأ من قرارٍ بلا
+     خيار، بمولّدٍ ببذرة seed لا Math.random — فتُعاد المهلة نفسها كما يُعاد كل
+     شيء في جلسةٍ لبذرتها (المالك: «رتم اللعبة سريع، أرغب أن يكون هادئاً») */
   function scheduleCpu() {
     if (mode !== 'cpu' || !G || G.phase === 'over' || !el.start.hidden || cpuPending) return;
     var seat = actorOf(G);
     if (seat === 0) return;
     cpuPending = true;
-    var delay = 450 + Math.floor(cpuRng() * 250);
+    var v = S.viewFor(G, seat);
+    var hard = v.phase === 'colour', legalN = v.phase === 'play' ? S.legalMoves(v).length : 1;
+    var base = hard ? 900 : legalN > 1 ? 700 : 500, spread = hard ? 500 : 350;
+    var delay = base + Math.floor(cpuRng() * spread);
     cpuTimer = setTimeout(function () {
       cpuPending = false; cpuTimer = null;
       if (mode !== 'cpu' || !G || G.phase === 'over' || !el.start.hidden) return;
@@ -2706,6 +2866,25 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     return b;
   }
 
+  /* ---------- شريط مسار اللعب (الصقل، البند ١) ----------
+     شريحةٌ لكل مقعدٍ بترتيب اللعب ابتداءً من مقعدنا — لا حساب زاويةٍ هنا، هو
+     نفس ترتيب ‎seatsHTML‎ فموضعك يبقى أوّل الشريط دائماً. السهم بين شريحتين
+     ثابتٌ في مكانه ويُقلَب بـ‎.ccw‎ كما يُقلَب سهم الاتجاه في ‎pilesHTML‎: عناصرٌ
+     لا تحمل زرّاً واحداً، فلا تدخل فحص الـ‎44‎ بكسلاً ولا تُحسب أهدافاً للمس. */
+  function trackHTML(v, me) {
+    var n = v.seats, actor = actorOf(v), over = v.phase === 'over';
+    var next = over ? -1 : seatAfter(v, actor), html = '';
+    for (var i = 0; i < n; i++) {
+      var seat = (me + i) % n;
+      var cls = 'sl' + (!over && seat === actor ? ' turn' : '') + (!over && seat === next && seat !== actor ? ' next' : '') +
+        (mode === 'online' && netHere[seat] === false ? ' off' : '');
+      var pend = v.pending > 0 && seat === actor ? '<b class="pd">' + KIND[v.pendingKind] + ' ' + fmt(v.pending) + '</b>' : '';
+      html += '<span class="' + cls + '"><span class="av">' + esc(nameOf(seat).charAt(0)) + '</span><span>' + esc(nameOf(seat)) + '</span><span class="cnt">' + fmt(v.counts[seat]) + '</span>' + pend + '</span>';
+      if (i < n - 1) html += '<span class="ar">' + ARROW + '</span>';
+    }
+    return html;
+  }
+
   /* ---------- الرسم كلّه من رؤية المقعد صاحب الموقف ---------- */
   /* ما يراه هذا الجهاز. محلّياً يُحسب من ‎G‎؛ وعند ضيفٍ بعيدٍ لا ‎G‎ عنده
      أصلاً — ما وصله من المضيف هو كلّ ما يملك، وهو ‎viewFor‎ مقعدِه لا غير. */
@@ -2730,6 +2909,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var handoff = mySeat === null && shownSeat !== me, waiting = handoff && Date.now() < handoffAt;
     if (handoffTimer) { clearTimeout(handoffTimer); handoffTimer = null; }
     if (waiting) handoffTimer = setTimeout(render, handoffAt - Date.now() + 10);
+    /* شريط المسار ونافذة «استمرار» يُرسمان قبل أي عودةٍ مبكّرة أدناه، فالنافذة
+       تظهر قبل نافذة «مرّر الجوّال» — أعلى منها طبقةً — لا بعدها (البند ٣).
+       وتُرسم فوراً بلا مؤقّتٍ خاصٍّ بها — على نمط تنويه القفل بعينه، الذي لا
+       ينتظر شيئاً هو أيضاً: مؤقّتٌ يُعيد الرسم بمعزلٍ عن فعل اللاعب يُعطِّل
+       ورقةً رُفعت للتوّ بين نقرتَي لعبها، فتعلَّق نقرةٌ ثانيةٌ لا تصل شيئاً
+       (وقع هذا فعلاً حين جُرِّب). */
+    el.track.className = 'track' + (v.dir < 0 ? ' ccw' : '');
+    el.track.innerHTML = trackHTML(v, me);
+    var cn = contQ.length ? contQ[0] : null;
+    el.contnote.hidden = cn === null;
+    if (cn) { el.contwho.textContent = cn.who; el.contwhy.textContent = cn.why; el.contcard.innerHTML = cn.card !== null ? cardHTML(cn.card, {}) : ''; }
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
     el.felt.innerHTML = seatsHTML(v, me) + pilesHTML(v);
     placeTags();
@@ -2746,6 +2936,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     el.clr.innerHTML = '<i style="--cur:' + (v.colour ? 'var(--' + v.colour + ')' : 'transparent') + '"></i>' + (v.colour ? CLR[v.colour] + ' · ' : '') + esc(label(top));
 
     el.acts.textContent = '';
+    el.decision.textContent = ''; el.decision.hidden = true;
     el.over.hidden = true;
     var can = v.phase === 'play' ? S.legalMoves(v) : [], hint = hintText;
 
@@ -2801,10 +2992,13 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (!hint) hint = 'ينتظر ' + nameOf(actor) + '.';
       lastPrompt = '';                 // فنداء «دورك» يُنادى ثانيةً حين يعود الدور إلى الإنسان
     } else if (v.phase === 'colour') {
+      /* اختيار اللون قرارُ توقّفٍ — طبقةٌ فوق الطاولة قرب المنتصف، أكبر من
+         مفاتيح المجرى العادي (الصقل، البند ٢)، لا في ‎.acts‎ */
       setTurn(nameOf(me) + '، اختر اللون');
       S.COLOURS.forEach(function (c) {
-        el.acts.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }, { 'data-c': c }));
+        el.decision.appendChild(btn(CLR[c], 'c', function () { send(me, { type: 'colour', colour: c }); }, { 'data-c': c }));
       });
+      el.decision.hidden = false;
       if (!hint) hint = 'اللون الذي تختاره هو ما يُطابَق بعدك.';
     } else {
       setTurn(nameOf(me) + '، دورك');
@@ -2817,7 +3011,9 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         if (end) handoffAt = Math.max(handoffAt, end);
         else { fly(from, rect(el.hand.querySelector('.card.fresh')), backHTML({})); landAll(FLY_MS); }
       };
-      if (v.pending > 0) el.acts.appendChild(btn('خذ ' + fmt(v.pending), 'acc', drawFly));
+      /* «خذ ن» على كومةٍ قائمة قرارُ توقّفٍ أيضاً، فهو في الطبقة الوسطى؛
+         «اسحب» و«مرّر» مجرى عاديّ يبقى في مكانه */
+      if (v.pending > 0) { el.decision.appendChild(btn('خذ ' + fmt(v.pending), 'acc', drawFly)); el.decision.hidden = false; }
       else if (!v.drew) el.acts.appendChild(btn('اسحب', '', drawFly));
       else el.acts.appendChild(btn('مرّر', '', function () { send(me, { type: 'pass' }); }));
       if (!hint) {
@@ -2851,13 +3047,15 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
     /* الضيفُ بعد فعله لا يضغط ثانيةً قبل أن يصل حكم المضيف */
     el.netdown.hidden = !netDown;
-    if (netBusy || netDown || lockCard !== null) {
+    if (netBusy || netDown || lockCard !== null || cn !== null) {
       var stop = el.acts.querySelectorAll('button'), z;
       for (z = 0; z < stop.length; z++) stop[z].disabled = true;
       stop = el.hand.querySelectorAll('button');
       for (z = 0; z < stop.length; z++) stop[z].disabled = true;
+      stop = el.decision.querySelectorAll('button');
+      for (z = 0; z < stop.length; z++) stop[z].disabled = true;
     }
-    scheduleCpu();
+    if (!cn) scheduleCpu();   // الحاسب لا يلعب فوق نافذةٍ لم يُقرَّ بعد بضغط «استمرار»
   }
 
   /* ---------- اليد: نقرةٌ ترفع، وثانيةٌ تلعب ---------- */
@@ -2874,6 +3072,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   });
   el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; flightUntil = 0; render(); } });
   el.locknoteok.addEventListener('click', function () { lockCard = null; render(); });
+  el.contnoteok.addEventListener('click', function () { contQ.shift(); render(); });
   el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
   window.addEventListener('resize', function () { if ((G || netView) && el.start.hidden) render(); });
 
@@ -2960,6 +3159,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (out.error) { el.hint.textContent = ERR[out.error]; return; }
     G = out.state; sel = null; lastDrawn = null; hintText = ''; lastPrompt = '';
     lockCard = null; lockTold = {};                    // تنويهُ القفل يُقال مرّةً في كل مباراة
+    contQ = [];                                         // ونافذةُ «استمرار» تبدأ من غير طابور
     mySeat = mode === 'local' ? null : 0;             // محلّياً يمرّ الجوّال، وإلا فمقعدُنا ثابت
     shownSeat = mySeat === null ? actorOf(G) : mySeat;
     netBusy = false;
