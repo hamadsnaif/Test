@@ -178,9 +178,9 @@ async function roomMove(pages) {
     return { p, what: await oneMove(p) };
   }
   for (const p of pages) {
-    const acts = await texts(p, '#acts button');
-    if (acts.some(x => /^(الجولة التالية|مباراة جديدة)$/.test(x))) {
-      await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/);
+    const overActs = await texts(p, '#over button');
+    if (overActs.some(x => /^(الجولة التالية|مباراة جديدة)$/.test(x))) {
+      await clickByText(p, '#over button', /^(الجولة التالية|مباراة جديدة)$/);
       return { p, what: 'nextRound' };
     }
   }
@@ -303,9 +303,14 @@ async function open(browser, w, h, query) {
       ok('the winner\'s line in the panel is the winner named above it', w.indexOf(m[1]) === 0, w);
       ok('the score on the bar matches the winner\'s points in the panel', cap.indexOf(String(num(pts))) >= 0, cap + ' vs ' + pts);
       ok('the hand is cleared when the round is over', (await handCards(p)).length === 0);
+      /* لا نافذةَ سوى نافذة الفوز نفسها، ولا مفتاح يفوتها إليها (المالك:
+         «تأتيني نافذة اختيار فوق نافذة الفوز واستطيع الاستمرار باللعب») */
+      ok('nothing else floats over the win window: no decision, no continue, no lock',
+        (await p.$eval('#decision', e => e.hidden)) && (await p.$eval('#contnote', e => e.hidden)) && (await p.$eval('#locknote', e => e.hidden)));
+      ok('and the only button left standing is the win window\'s own', (await texts(p, '#acts button')).length === 0);
     }
-    ok('the round offers a way on', (await texts(p, '#acts button')).indexOf('الجولة التالية') >= 0);
-    await clickByText(p, '#acts button', 'الجولة التالية');
+    ok('the round offers a way on, inside the win window itself', (await texts(p, '#over button')).indexOf('الجولة التالية') >= 0);
+    await clickByText(p, '#over button', 'الجولة التالية');
     await sleep(150);
     ok('the next round deals again and keeps the score',
       (await capText(p)).indexOf('round 2') >= 0 && ((await handCards(p)).length > 0 || await p.$eval('#handoff', e => !e.hidden)), await capText(p));
@@ -367,8 +372,9 @@ async function open(browser, w, h, query) {
       /* تُقاد اللعبة حتى يُرى كلُّ ما تبحث عنه هذه الفقرة، ثم تُترك */
       if (sawLock && pileHints['سحب ثنتين'] && pileHints['سحب أربعة']) break;
       const acts = (await texts(p, '#acts button')).concat(await texts(p, '#decision button'));
-      if (acts.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
-        await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
+      const overNext = await texts(p, '#over button');
+      if (overNext.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
+        await clickByText(p, '#over button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
       }
       /* لا يوجد على الشاشة، في أي لحظةٍ من كل هذه الجولات، مفتاحٌ لهما */
       const one = acts.find(t => /واحدة|نادِ على/.test(t));
@@ -423,8 +429,9 @@ async function open(browser, w, h, query) {
     for (let k = 0; k < 2000 && easyTurns < 300; k++) {
       if (await p.$eval('#locknote', e => !e.hidden)) { easyLock = true; break; }
       const acts = (await texts(p, '#acts button')).concat(await texts(p, '#decision button'));
-      if (acts.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
-        await clickByText(p, '#acts button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
+      const overNext2 = await texts(p, '#over button');
+      if (overNext2.some(t => /^(الجولة التالية|مباراة جديدة)$/.test(t))) {
+        await clickByText(p, '#over button', /^(الجولة التالية|مباراة جديدة)$/); await sleep(100); continue;
       }
       if (acts.some(t => /^خذ /.test(t))) { const mk = (await hintText(p)).match(/ردّ بـ(سحب [^ ]+)/); if (mk) easyHints[mk[1]] = (easyHints[mk[1]] || 0) + 1; }
       const w = await oneMove(p);
@@ -498,14 +505,14 @@ async function open(browser, w, h, query) {
     await p.click('#privacy'); await p.click('#startbtn'); await sleep(150);
     let big = 0;
     for (let k = 0; k < 400; k++) {
-      const acts = await texts(p, '#acts button'), dec = await texts(p, '#decision button');
+      const acts = await texts(p, '#acts button'), dec = await texts(p, '#decision button'), over = await texts(p, '#over button');
       const n = (await handCards(p)).length;
       if (n >= 15) { big = n; break; }
       if (acts.indexOf('اسحب') >= 0) { await clickByText(p, '#acts button', 'اسحب'); await sleep(20); await clickByText(p, '#acts button', 'مرّر'); }
       else if (acts.indexOf('مرّر') >= 0) await clickByText(p, '#acts button', 'مرّر');
       else if (dec.indexOf('أحمر') >= 0) await clickByText(p, '#decision button', 'أحمر');
       else if (dec.some(t => /^خذ /.test(t))) await clickByText(p, '#decision button', /^خذ /);
-      else if (acts.indexOf('الجولة التالية') >= 0) await clickByText(p, '#acts button', 'الجولة التالية');
+      else if (over.indexOf('الجولة التالية') >= 0) await clickByText(p, '#over button', 'الجولة التالية');
       else break;
       await sleep(20);
     }
@@ -542,8 +549,11 @@ async function open(browser, w, h, query) {
     const cpuNames = await p.$$eval('#namelist .in:not(:has(input)) span:last-child', es => es.map(e => e.textContent.split(' — ')[0]));
     ok('two computer seats stand on the felt, named as promised', (await tags(p)).length === 2 && cpuNames.length === 2);
 
-    let handoffSeen = false, minHand = 99, kindsCpu = {}, seenCpuToast = false, movesCpu = 0;
+    let handoffSeen = false, minHand = 99, kindsCpu = {}, seenCpuToast = false, movesCpu = 0, seenCpuFly = false;
     for (let k = 0; k < 900 && movesCpu < 400; k++) {
+      /* أثر الحاسب يطير هو أيضاً بدل أن يظهر لحظياً على المرمى (المالك:
+         «اضافة انيميشن للعب الأطراف الأخرى»)؛ يُلتقط أثناء انتظار دور الحاسب */
+      if (!seenCpuFly && (await p.$$('.fly')).length) seenCpuFly = true;
       /* الجولة قد تنتهي بين سؤالٍ وسؤال — والانتهاء يمسح اليد — فيُقرأ
          اللوحان في استعلامٍ واحد كي لا يُقاس فراغُ يدٍ انتهت جولتها على أنه
          يدٌ فارغة في أثناء اللعب. (سقط الفحص عليه حين أبطأ إيقاعُ المرحلة ٥
@@ -567,6 +577,7 @@ async function open(browser, w, h, query) {
     }
     ok('the hand-off window never appears against the computer', !handoffSeen);
     ok('the human always has a hand to look at — never the computer\'s', minHand > 0, 'minHand=' + minHand);
+    ok('a computer\'s played card flies to the pile too, not a silent snap', seenCpuFly);
     ok('the game actually moved (played, drew or passed) while the computer took its turns', movesCpu > 0, JSON.stringify(kindsCpu));
     ok('a computer\'s move popped up in its own name — no shared log', seenCpuToast, JSON.stringify(kindsCpu));
     const overCpu = await overText(p);

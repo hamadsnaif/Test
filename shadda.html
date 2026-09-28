@@ -917,6 +917,49 @@
     before the next rule starts, on the same logic as this file's own prose —
     a fact stated once, plainly, is easier to trust than the same fact folded
     into six others.
+
+    A SECOND ROUND OF POLISH, from the owner's own phone session after this
+    stage first shipped:
+
+      The computer's pace is 1-4s per tick, not 500-1400ms, and a wild card
+      is two ticks now — one to play it, a separate one to name the colour —
+      because playChosen no longer sends the colour inline; it waits for the
+      next tick to catch the seat still in the colour phase, the same phase
+      a human sees. The owner: "the pace should feel like a real player's."
+
+      An opponent's card flies too. A CPU or remote seat's play used to snap
+      onto the pile the instant render() rebuilt the felt; now the seat
+      that played is measured before the rebuild and the card flies from
+      there, and the toast that names its effect waits for the flight to
+      land — tell() extends toastHoldUntil for exactly this case. Scoped to
+      `mode === 'cpu' || 'online'` on purpose: in local hand-off, "someone
+      else" is only the seat who had the phone a moment ago, which is every
+      single play, and giving that its own flight and hold just piled delay
+      onto a flow the hand-off window already paces. That scoping mistake,
+      tried first without it, was the first shape this bug took.
+
+      The round-over window covers the table now, big, on the `.locknote`/
+      `.handoff` pattern (`position:absolute;inset:0`), and its own button
+      lives inside it — not in `.acts` below the table, which is where a
+      leftover choice window was found floating over the win screen (a
+      queued «continue» note from an unresolved skip, never cleared when
+      the round ended; `contQ` is emptied the moment `v.phase === 'over'`).
+
+      Moving that button into `#over` opened a second bug, worse for being
+      quiet: `.acts` and `.decision` are wiped on EVERY render regardless of
+      phase, so a stale button there can never outlive the render that
+      should replace it. `#over` was not — its own rebuild ran only inside
+      the `v.phase === 'over'` branch — so once a round ended and the player
+      moved to the next one, the old "الجولة التالية" button sat in the DOM
+      untouched, just `hidden`, for the whole round that followed. Nothing
+      in the running game ever looked at it again, but src/tests/shadda-play.js
+      does, on exactly the same terms the code offers it: "is there a button
+      with this text." It found the dead one, tried to press a control that
+      will never become visible again, and hung. `el.over.textContent = ''`
+      now runs unconditionally beside `el.acts.textContent = ''` and
+      `el.decision.textContent = ''`, so a stale control cannot outlive the
+      render that made it stale — the same rule the other two already kept,
+      applied to the one place it was missed.
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -1287,13 +1330,17 @@ button:disabled{cursor:default}
 .fly{position:fixed;z-index:50;pointer-events:none;transform-origin:50% 50%;transition:transform .56s cubic-bezier(.22,.61,.36,1)}
 .fly .card{width:100%;height:100%;aspect-ratio:auto}
 
-/* ---------- نهاية الجولة ---------- */
-.over{position:absolute;left:8%;right:8%;top:20%;z-index:3;direction:rtl;text-align:center;padding:14px 12px;border-radius:16px;
-  background:rgba(20,17,16,.92);box-shadow:0 0 0 1px rgba(255,255,255,.14), 0 12px 30px rgba(0,0,0,.6);animation:rise .4s cubic-bezier(.22,.61,.36,1)}
-.over b{display:block;font-size:19px;font-weight:900;line-height:1.3}
-.over .sc{font-size:13px;color:#dcd2bd;margin-top:8px;line-height:1.7}
-.over .sc span{display:inline-block;padding:0 6px}
-.over .sc .w{color:var(--acc-hi);font-weight:800}
+/* ---------- نهاية الجولة: نافذةٌ تغطّي الطاولة كاملةً — على نمط تنويه القفل
+   والتسليم بعينه، لا نافذةً صغيرةً يبقى ما حولها مرسوماً وقابلاً للنقر
+   (المالك: «نافذة الفوز يجب أن تكون أكبر وتعمل بشكل مناسب») ---------- */
+.over{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  text-align:center;direction:rtl;padding:20px 16px;background:rgba(20,17,16,.9);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  animation:rise .4s cubic-bezier(.22,.61,.36,1)}
+.over b{font-size:clamp(22px, 7cqw, 30px);font-weight:900;line-height:1.3;max-width:24em}
+.over .sc{font-size:14px;color:#dcd2bd;margin-top:2px;line-height:2;max-width:26em}
+.over .sc span{display:inline-block;padding:0 8px}
+.over .sc .w{color:var(--acc-hi);font-weight:900;font-size:1.08em}
+.over .key{min-width:210px;min-height:52px;font-size:17px;margin-top:6px}
 
 /* ---------- شاشة البداية: ورقةٌ فوق الطاولة، والجوخ يبين من خلفها ---------- */
 .start{position:absolute;inset:0;z-index:30;overflow-y:auto;-webkit-overflow-scrolling:touch;direction:rtl;
@@ -2428,7 +2475,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var mySeat = null, amHost = false, link = null, tbl = null, netView = null;
   var netPhase = 'off', netCode = '', netNote = '', netSeen = -1, netN = [], netHere = [];
   var netBusy = false, netBusyTimer = null, snapTimer = null, pingTimer = null, measTimer = null;
-  var pingAt = 0, statsOn = false, joinTimer = null, VER = '6e0a6cde76';
+  var pingAt = 0, statsOn = false, joinTimer = null, VER = 'd593ad6fc4';
   /* العودة بعد الانقطاع: تراجعٌ تصاعدي بلا استسلام (المرجع ٤ و١٣) */
   var netDown = false, retryStep = 0, retryTimer = null, lastCode = '';
   var RETRY = [1000, 2000, 4000, 8000, 10000, 10000, 10000, 10000];
@@ -2593,7 +2640,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   }
 
   /* ---------- الأحداث: ما يجب أن يُلاحَظ يُنادى؛ ولا سجلّ (قرار المالك) ---------- */
-  var lastPlayed = null, revealIds = null;              // آخر ورقةٍ لُعبت، وما سُحب لمن يمسك الجوّال
+  var lastPlayed = null, lastPlayedBy = null, flownPlay = null, revealIds = null;   // آخر ورقةٍ لُعبت ومن لعبها، وآخر ورقةٍ طارت فعلاً فلا تطير ثانية، وما سُحب لمن يمسك الجوّال
   /* الورقة التي أحدثت الأثر تُعرض مع تنويهه — إن كانت آخرُ ما لُعب من نوعه */
   function effectCard(kinds) { return lastPlayed !== null && kinds.indexOf(S.card(lastPlayed).kind) >= 0 ? lastPlayed : null; }
   /* ما يُقال على هذه الشاشة، وبعين أي مقعد. في الأونلاين شاشةُ كلِّ جهازٍ
@@ -2606,8 +2653,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var quiet = {}, actedBy = null;             // «وقف دوره» الذي قاله تنويهٌ قبله لا يُعاد، ومن فعل الأثر في هذا الطابور
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.t === 'flipped') lastPlayed = e.card;   // المكشوفة قد تكون عقوبةً على البادئ
-      else if (e.t === 'played') { lastPlayed = e.card; actedBy = e.seat; }
+      if (e.t === 'flipped') { lastPlayed = e.card; lastPlayedBy = null; }   // المكشوفة لم يلعبها أحد
+      else if (e.t === 'played') {
+        lastPlayed = e.card; lastPlayedBy = e.seat; actedBy = e.seat;
+        /* خصمٌ آخر — حاسبٌ أو مقعدٌ بعيد — تُطلَب لأثره مهلةٌ قبل أن يُنادى، نفس
+           مهلة الورقة الطائرة، فلا يُقال «فلان وقف دوره» قبل أن تُرى الورقة
+           تحطّ (المالك: «سرعة التوجيه قبل استيعاب استقرار الورقة»). محصورةٌ
+           بالحاسب والأونلاين حصراً: في التسليم المحلّي «غيري» هو كل من سبقني
+           على الجوّال نفسه — أي كل ورقةٍ تقريباً — فتتراكم مهلٌ لا محلّ لها
+           هناك، ونافذة «مرّر الجوّال» أصلاً مهلتُها. */
+        if ((mode === 'cpu' || mode === 'online') && e.seat !== me && !reduced) toastHoldUntil = Math.max(toastHoldUntil, Date.now() + FLY_MS + 200);
+      }
       else if (e.t === 'drew' && e.n) {
         /* الورق نفسه يُنزع من الحدث لمن لا يحقّ له (ShaddaNet.eventsFor)، فيصل
            ‎drew‎ بعدده بلا أرقامه. والعدد وحده هو ما يُقال حينئذ. */
@@ -2686,8 +2742,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     } else if (wild4s.length) chosen = wild4s[0];
     else chosen = wilds[0];
     var action = { type: 'play', card: chosen };
-    if (!S.card(chosen).colour) action.colour = cpuColour(v, chosen);
-    else if (v.house.sevenZero && S.card(chosen).kind === 'number' && S.card(chosen).value === 7) action.swapWith = seatAfter(v, seat);
+    /* اللون لا يُرسَل معها: ورقةٌ حرّة تُلعب أوّلاً بلا لون، فيدخل الحاسب طَور
+       اختيار اللون كما يدخله الإنسان — ويُجدوَل قرارُ اللون تِكّةً ثانيةً
+       منفصلة، بمهلتها هي، لا في نفس اللحظة (طلب المالك) */
+    if (v.house.sevenZero && S.card(chosen).colour && S.card(chosen).kind === 'number' && S.card(chosen).value === 7) action.swapWith = seatAfter(v, seat);
     send(seat, action);
   }
   function cpuAct(seat) {
@@ -2699,18 +2757,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (v.pending > 0 || !v.drew) { send(seat, { type: 'draw' }); return; }
     send(seat, { type: 'pass' });
   }
-  /* مهلةٌ لا حركة، ومتفاوتةٌ لا ثابتة: قرارٌ فيه اختيار لونٍ أبطأ من قرارٍ بلا
-     خيار، بمولّدٍ ببذرة seed لا Math.random — فتُعاد المهلة نفسها كما يُعاد كل
-     شيء في جلسةٍ لبذرتها (المالك: «رتم اللعبة سريع، أرغب أن يكون هادئاً») */
+  /* مهلةٌ لا حركة، وبين ثانيةٍ وأربع، ومتفاوتةٌ لا توقيتاً موحّداً — بمولّدٍ
+     ببذرة seed لا Math.random، فتُعاد المهلة نفسها كما يُعاد كل شيء في
+     جلسةٍ لبذرتها. وكلُّ تِكّةٍ مهلتها الخاصّة: ورقةٌ حرّة تُجدوِل تِكّتين —
+     واحدةً قبل أن تُلعب وأخرى بعدها قبل أن يُختار اللون — لا تِكّةً واحدة
+     تُنجز الاثنتين معاً (المالك: يريد رتماً هادئاً كلاعبٍ حقيقي لا لحظياً). */
   function scheduleCpu() {
     if (mode !== 'cpu' || !G || G.phase === 'over' || !el.start.hidden || cpuPending) return;
     var seat = actorOf(G);
     if (seat === 0) return;
     cpuPending = true;
-    var v = S.viewFor(G, seat);
-    var hard = v.phase === 'colour', legalN = v.phase === 'play' ? S.legalMoves(v).length : 1;
-    var base = hard ? 900 : legalN > 1 ? 700 : 500, spread = hard ? 500 : 350;
-    var delay = base + Math.floor(cpuRng() * spread);
+    var delay = 1000 + Math.floor(cpuRng() * 3000);
     cpuTimer = setTimeout(function () {
       cpuPending = false; cpuTimer = null;
       if (mode !== 'cpu' || !G || G.phase === 'over' || !el.start.hidden) return;
@@ -2917,11 +2974,22 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
        (وقع هذا فعلاً حين جُرِّب). */
     el.track.className = 'track' + (v.dir < 0 ? ' ccw' : '');
     el.track.innerHTML = trackHTML(v, me);
+    /* الجولة انتهت: نافذتها وحدها، ولا نافذة «استمرار» متأخّرة تطفو فوقها */
+    if (v.phase === 'over') contQ = [];
     var cn = contQ.length ? contQ[0] : null;
     el.contnote.hidden = cn === null;
     if (cn) { el.contwho.textContent = cn.who; el.contwhy.textContent = cn.why; el.contcard.innerHTML = cn.card !== null ? cardHTML(cn.card, {}) : ''; }
     el.capN.textContent = 'round ' + v.round + ' · ' + v.scores.join(' - ');
+    /* أثر خصمٍ آخر — حاسبٌ أو مقعدٌ بعيد — يطير هو أيضاً بدل أن يظهر لحظياً:
+       مرساةُ مقعده تُقاس قبل أن يُعاد رسم الجوخ، ووجهته المرمى بعد الرسم.
+       الورقة التي طارت بيد صاحبها بنفسه (flownPlay) لا تطير مرّتين. */
+    var flyFrom = null;
+    if ((mode === 'cpu' || mode === 'online') && lastPlayed !== null && lastPlayed !== flownPlay) {
+      if (lastPlayedBy !== null && lastPlayedBy !== me) flyFrom = rect(el.felt.querySelector('.seat[data-seat="' + lastPlayedBy + '"] .oppfan .card:last-child'));
+      flownPlay = lastPlayed;
+    }
     el.felt.innerHTML = seatsHTML(v, me) + pilesHTML(v);
+    if (flyFrom) fly(flyFrom, rect(el.felt.querySelector('.pile .tc')), cardHTML(lastPlayed, {}));
     placeTags();
 
     var W = scenewrap.clientWidth || 360, sl = el.hand.scrollLeft;
@@ -2937,7 +3005,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
     el.acts.textContent = '';
     el.decision.textContent = ''; el.decision.hidden = true;
-    el.over.hidden = true;
+    el.over.textContent = ''; el.over.hidden = true;   // مفتاحُها معه، لا يبقى معطَّلاً وميّتاً بين يدي الجولة التالية
     var can = v.phase === 'play' ? S.legalMoves(v) : [], hint = hintText;
 
     if (waiting) {
@@ -2968,12 +3036,15 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       el.over.innerHTML = '<b>' + (v.over ? 'انتهت المباراة: ' + esc(nameOf(v.winner)) + ' يفوز' : 'فاز ' + esc(nameOf(v.winner)) + ' بالجولة') + '</b><div class="sc">' + sc + '</div>';
       el.over.hidden = false;
       /* الجولة التالية يملكها من يمسك الحالة: محلّياً هذا الجهاز، وفي الأونلاين
-         المضيفُ وحده — والباقون يُخبَرون أنهم ينتظرونه. */
-      if (mode !== 'online' || amHost) el.acts.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'acc', function () {
+         المضيفُ وحده — والباقون يُخبَرون أنهم ينتظرونه. والمفتاح نفسه داخل
+         نافذة الفوز لا في شريط المفاتيح أسفلها — نافذةٌ واحدةٌ ذاتُ اكتفاء،
+         على نمط التسليم والقفل. */
+      if (mode !== 'online' || amHost) el.over.appendChild(btn(v.over ? 'مباراة جديدة' : 'الجولة التالية', 'acc', function () {
         if (G.over) { seed = (seed + 1) | 0; startGame(); return; }
         var out = S.nextRound(G, null);
         if (out.error) return;
         G = out.state; sel = null; lastDrawn = null;
+        flownPlay = null;                          // بطاقةٌ جديدة، ومعرّفات الورق تُعاد من الصفر كل جولة
         tell(mine(out.events), myEye());
         if (mode === 'online') hostPush(out.events);
         render();
@@ -3068,7 +3139,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     sel = null;
     var from = rect(b), html = cardHTML(id, {});
     if (!reduced) toastHoldUntil = Date.now() + FLY_MS + 200;   // أثر الورقة يُنادى بعد أن تحطّ وتُرى
-    if (send(me, a)) fly(from, rect(el.felt.querySelector('.pile .tc')), html);
+    if (send(me, a)) { fly(from, rect(el.felt.querySelector('.pile .tc')), html); flownPlay = id; }
   });
   el.handoffok.addEventListener('click', function () { if (G) { shownSeat = actorOf(G); handoffAt = 0; flightUntil = 0; render(); } });
   el.locknoteok.addEventListener('click', function () { lockCard = null; render(); });
@@ -3160,6 +3231,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     G = out.state; sel = null; lastDrawn = null; hintText = ''; lastPrompt = '';
     lockCard = null; lockTold = {};                    // تنويهُ القفل يُقال مرّةً في كل مباراة
     contQ = [];                                         // ونافذةُ «استمرار» تبدأ من غير طابور
+    lastPlayed = null; lastPlayedBy = null; flownPlay = null;   // ومعرّفات الورق تبدأ من صفرٍ جديد كل مباراة
     mySeat = mode === 'local' ? null : 0;             // محلّياً يمرّ الجوّال، وإلا فمقعدُنا ثابت
     shownSeat = mySeat === null ? actorOf(G) : mySeat;
     netBusy = false;
