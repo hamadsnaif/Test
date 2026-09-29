@@ -960,6 +960,48 @@
       `el.decision.textContent = ''`, so a stale control cannot outlive the
       render that made it stale — the same rule the other two already kept,
       applied to the one place it was missed.
+
+    A THIRD ROUND: SOUND (‏٢٠٢٦-٠٩-٢٩‏)
+
+      The owner asked, separately from the two rounds above, for sound — and
+      then asked that the spoken-voice plan (voice-script.md, outside the
+      repo) be shelved "until further notice" in favour of composed effects,
+      the same zero-byte idea already proven in audio-samples/index.html
+      (also outside the repo) since stage 2. Nineteen effects were designed
+      and tuned there — on the owner's own phone, by his own ear, not
+      argued here — then carried into this file verbatim: the same triangle-
+      wave tone() and filtered-noise puff() helpers, the same tuned numbers,
+      under their own SHADDA-prefixed names (sac/spuff/stone/SFX) so nothing
+      collides with the drawing layer's own `tone`-less naming. Triangle, not
+      square: tetris.html and snake.html already have their own synthesized
+      beeps, and they are square-wave 8-bit ones, right for an arcade screen.
+      This table is felt and paper since stage 2, so its sound is a softer
+      wave and filtered noise for the paper's own friction, not a chiptune
+      borrowed from a different game's identity.
+
+      Ten of the nineteen answer engine events already read by tell() —
+      skip, reverse, colour chosen, a pile reshuffled, hands swapped or
+      rotated, a jump-in — so each is one line beside the toast() that
+      already announced it, no new listening surface. A round's end and a
+      match's end are distinguished on purpose (won a match is bigger, not
+      the round sound repeated), and gated by `lastOverSound` so a re-render
+      of the same over-screen — a resize, an online snapshot — never repeats
+      it. Local hand-off has no individual "I" to win or lose for, since the
+      device is shared around the table, so it always plays the shared
+      fanfare; only cpu and online distinguish a win from a loss, because
+      only there does "me" name one particular seat. The other nine — a
+      card lifted, played, drawn, dealt, a rejected move, a turn's arrival —
+      have no matching engine event at all and are called from the exact UI
+      moments that already existed (the hand's own click handler, send()'s
+      error branch, the "دورك" toast condition, startGame() and the next-
+      round button) rather than invented ones.
+
+      A switch on the start sheet, `shadda_sfx` in localStorage exactly as
+      `tetris_sfx`/`snake_sfx` already do it for their own games — default
+      on, and no context is created before that switch or any other control
+      is actually pressed, so the collection's own rule (nothing before the
+      player's touch) is kept by construction: `sac()` only ever constructs
+      an AudioContext lazily, the first time a sound is actually asked for.
 -->
 <html lang="ar" dir="rtl">
 <head>
@@ -1442,6 +1484,7 @@ button:disabled{cursor:default}
       <div class="count" id="count"><button class="key" data-n="2">٢</button><button class="key on" data-n="3">٣</button><button class="key" data-n="4">٤</button><button class="key" data-n="5">٥</button></div></div>
       <div class="lbl" id="namehead">الأسماء</div>
       <div class="namelist" id="namelist"></div>
+      <button class="toggle" id="sfxsw" role="switch" aria-checked="true"><span>المؤثّرات الصوتية<small>نغماتٌ ونقراتٌ لكل لعبٍ وسحبٍ ووقّفٍ وفوز — مركَّبةٌ في الصفحة، لا ملفّاً محمَّلاً.</small></span><span class="sw"></span></button>
       <button class="toggle" id="privacy" role="switch" aria-checked="true"><span>شاشة الخصوصية بين الأدوار<small>عند تسليم الجوّال، ورق اللاعب السابق يُحجب حتى يضغط التالي «هذا أنا».</small></span><span class="sw"></span></button>
       <button class="toggle" id="easy" role="switch" aria-checked="false"><span>لعبٌ مُيسَّر<small>يرفع قفل الورقة الأخيرة وتراكم «سحب أربعة». مثال: بلا هذا المفتاح، ومعك سحب أربعة وورقة ٩ فقط، لا تُلعب التسعة — العب القويّ أو اسحب.</small></span><span class="sw"></span></button>
       <button class="toggle" id="house" role="switch" aria-checked="false"><span>قواعد زائدة<small>تضيف قاعدتين اختياريّتين، مفصَّلتين تحت.</small></span><span class="sw"></span></button>
@@ -2455,9 +2498,157 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     return '<div class="card back' + (o.cls ? ' ' + o.cls : '') + '" style="' + (o.style || '') + '" aria-hidden="true"><span class="face"><span class="mid">' + MARK + '</span></span></div>';
   }
 
+  /* ================= الصوت: مركَّبٌ لا مسجَّل، صفر بايت =================
+     قُيست هذه النغمات وشُغّلت في audio-samples/index.html (خارج المستودع)
+     قبل أن تُنقل هنا، فالأرقام أدناه ثابتةٌ لا اختباراً — المالك اعتمدها من
+     تلك الصفحة على جوّاله. الآلة نفسها: موجةٌ مثلّثية (أنعم من الجيبية على
+     سمّاعة جوّال) وضجيجٌ أبيض مرشَّحٌ لوقعة الورق والجوخ؛ لا موجةٌ مربّعة
+     كتتريس والدودة — تلك رجعيّة الطابع، وهذه طاولةٌ حقيقية. ولا سياق صوتٍ
+     يُنشأ إلا عند أول نقرةٍ فعلية (سياسة المتصفّحات، وهي شرط العقد نفسه:
+     لا شيء قبل ضغطة اللاعب) — ولا طلبٌ خارجيٌّ بحال، فلا صلة لهذا بقاعدة
+     data-net أصلاً. */
+  var sfxOn = true;
+  try { sfxOn = localStorage.getItem('shadda_sfx') !== '0'; } catch (e) {}
+  var SAC = null, SMASTER = null, SNOISE = null;
+  function sac() {
+    if (!SAC) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { SAC = new AC(); SMASTER = SAC.createGain(); SMASTER.gain.value = 0.7; SMASTER.connect(SAC.destination); }
+      catch (e) { SAC = null; return null; }
+    }
+    if (SAC.state === 'suspended') SAC.resume();
+    return SAC;
+  }
+  var srnd = function (a, b) { return a + Math.random() * (b - a); };
+  function snoise() {
+    var c = sac();
+    if (!SNOISE) {
+      SNOISE = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+      var d = SNOISE.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    var s = c.createBufferSource();
+    s.buffer = SNOISE; s.loop = true;
+    return s;
+  }
+  function spuff(t, o) {
+    var c = sac(); if (!c) return;
+    var s = snoise(), f = c.createBiquadFilter(), g = c.createGain();
+    f.type = o.type || 'bandpass'; f.frequency.value = o.hz; f.Q.value = o.q === undefined ? 1 : o.q;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(o.peak, t + (o.attack || 0.004));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + o.len);
+    s.connect(f); f.connect(g); g.connect(SMASTER);
+    s.start(t); s.stop(t + o.len + 0.02);
+  }
+  function stone(t, hz, len, peak, hz2) {
+    var c = sac(); if (!c) return;
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = 'triangle'; o.frequency.setValueAtTime(hz, t);
+    if (hz2) o.frequency.exponentialRampToValueAtTime(hz2, t + len);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(SMASTER);
+    o.start(t); o.stop(t + len + 0.02);
+  }
+  var COLOUR_HZ = { red: 392, blue: 466, green: 523, yellow: 622 };
+  var SFX = {
+    lift: function () { if (!sfxOn || !sac()) return; spuff(SAC.currentTime + 0.01, { hz: 5200 * srnd(0.9, 1.12), q: 1.1, len: 0.014, peak: 0.05, type: 'highpass' }); },
+    draw: function (n) {
+      if (!sfxOn || !sac()) return;
+      var reps = Math.min(n || 1, 5);
+      for (var i = 0; i < reps; i++) spuff(SAC.currentTime + 0.01 + i * 0.05, { hz: 3000 * srnd(0.92, 1.1), q: 0.9, len: 0.07, peak: 0.15, attack: 0.02 });
+    },
+    play: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      spuff(t, { hz: 2200 * srnd(0.94, 1.08), q: 0.8, len: 0.075, peak: 0.15, attack: 0.022 });
+      var h = t + 0.062;
+      spuff(h, { hz: 880 * srnd(0.9, 1.12), q: 0.7, len: 0.09, peak: 0.3, type: 'lowpass' });
+      stone(h, srnd(104, 132), 0.075, 0.165);
+    },
+    deal: function (n) {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      for (var i = 0; i < (n || 21); i++) spuff(t + i * 0.042 * srnd(0.72, 1.3), { hz: srnd(1500, 3400), q: 1.3, len: 0.03, peak: 0.2 * srnd(0.6, 1), attack: 0.003 });
+    },
+    shuffle: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      for (var i = 0; i < 26; i++) spuff(t + i * 0.026 * srnd(0.6, 1.5), { hz: srnd(1300, 3800), q: 1.5, len: 0.026, peak: 0.18 * srnd(0.5, 1), attack: 0.003 });
+      spuff(t + 0.78, { hz: 520, q: 0.7, len: 0.1, peak: 0.234, type: 'lowpass' });
+      stone(t + 0.78, 118, 0.08, 0.126);
+    },
+    reject: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      stone(t, 330, 0.055, 0.1); stone(t + 0.062, 330 * 0.62, 0.1, 0.09);
+    },
+    turn: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      stone(t, 660, 0.09, 0.06); stone(t + 0.085, 660 * 1.335, 0.13, 0.051);
+    },
+    skip: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      spuff(t, { hz: 700 * srnd(0.94, 1.06), q: 0.6, len: 0.05, peak: 0.22, type: 'lowpass', attack: 0.002 });
+      stone(t + 0.01, 850, 0.09, 0.198, 850 * 0.55);
+    },
+    reverse: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      stone(t, 420, 0.16, 0.16, 420 * 2.2); stone(t + 0.09, 420 * 2.1, 0.14, 0.128, 420 * 0.9);
+    },
+    colour: function (c) {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01, hz = COLOUR_HZ[c] || 500;
+      stone(t, hz, 0.14, 0.16); stone(t + 0.03, hz * 1.5, 0.1, 0.096);
+    },
+    win: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01, n = [0, 4, 7, 12], i;
+      for (i = 0; i < 4; i++) stone(t + i * 0.085, 523 * Math.pow(2, n[i] / 12), 0.26, 0.16 * (1 - i * 0.1));
+      for (i = 0; i < 46; i++) spuff(t + 0.24 + i * 0.019 * srnd(0.5, 1.6), { hz: srnd(1100, 3000), q: 1.1, len: 0.03, peak: 0.16 * 0.32 * srnd(0.3, 1), attack: 0.003 });
+    },
+    match: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01, n = [0, 4, 7, 12, 16, 19, 24], i;
+      for (i = 0; i < n.length; i++) stone(t + i * 0.075, 523 * Math.pow(2, n[i] / 12), 0.4, 0.18 * (1 - i * 0.07));
+      for (i = 0; i < 80; i++) spuff(t + 0.3 + i * 0.02 * srnd(0.5, 1.6), { hz: srnd(1000, 3400), q: 1.1, len: 0.035, peak: 0.18 * 0.34 * srnd(0.3, 1), attack: 0.003 });
+    },
+    lose: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      stone(t, 300, 0.22, 0.09, 300 * 0.72); stone(t + 0.16, 300 * 0.68, 0.28, 0.063, 300 * 0.5);
+    },
+    jumpin: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      spuff(t, { hz: 4500, q: 2, len: 0.02, peak: 0.22, attack: 0.001, type: 'highpass' });
+      stone(t + 0.006, 1400, 0.05, 0.176, 1400 * 1.6);
+    },
+    swap: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      stone(t, 380 * 1.6, 0.18, 0.2, 380 * 0.8); stone(t, 380 * 0.8, 0.18, 0.16, 380 * 1.6);
+    },
+    rotate: function () {
+      if (!sfxOn || !sac()) return;
+      var t = SAC.currentTime + 0.01;
+      [1, 1.19, 1.5, 1.19].forEach(function (m, i) { stone(t + i * 0.045, 480 * m, 0.07, 0.2 * (1 - i * 0.12)); });
+    }
+  };
+  function sfxToggle(on) {
+    sfxOn = on;
+    try { localStorage.setItem('shadda_sfx', on ? '1' : '0'); } catch (e) {}
+  }
+
   /* ---------- العناصر ---------- */
   var el = {};
-  ['cap-n', 'menu', 'turn', 'track', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'decision', 'start', 'badge', 'count', 'namelist', 'easy', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy',
+  ['cap-n', 'menu', 'turn', 'track', 'clr', 'hint', 'scene', 'felt', 'tags', 'hand', 'over', 'acts', 'decision', 'start', 'badge', 'count', 'namelist', 'easy', 'house', 'housesubs', 'startbtn', 'resume', 'veil', 'toast', 'handoff', 'ho-av', 'ho-who', 'handoffok', 'privacy', 'sfxsw',
    'locknote', 'lockcard', 'locknoteok', 'contnote', 'contcard', 'contwho', 'contwhy', 'contnoteok',
    'net', 'netpick', 'mkroom', 'joinroom', 'joinbox', 'codein', 'joingo', 'roombox', 'codehead', 'roomcode', 'roomlink', 'copylink', 'roster', 'netnote', 'countrow', 'namehead', 'statsw', 'meas',
    'netdown', 'netdowntxt', 'retrynow', 'rejoin'].forEach(function (id) {
@@ -2475,7 +2666,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   var mySeat = null, amHost = false, link = null, tbl = null, netView = null;
   var netPhase = 'off', netCode = '', netNote = '', netSeen = -1, netN = [], netHere = [];
   var netBusy = false, netBusyTimer = null, snapTimer = null, pingTimer = null, measTimer = null;
-  var pingAt = 0, statsOn = false, joinTimer = null, VER = 'd593ad6fc4';
+  var pingAt = 0, statsOn = false, joinTimer = null, VER = '6ebab91068';
   /* العودة بعد الانقطاع: تراجعٌ تصاعدي بلا استسلام (المرجع ٤ و١٣) */
   var netDown = false, retryStep = 0, retryTimer = null, lastCode = '';
   var RETRY = [1000, 2000, 4000, 8000, 10000, 10000, 10000, 10000];
@@ -2641,6 +2832,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
 
   /* ---------- الأحداث: ما يجب أن يُلاحَظ يُنادى؛ ولا سجلّ (قرار المالك) ---------- */
   var lastPlayed = null, lastPlayedBy = null, flownPlay = null, revealIds = null;   // آخر ورقةٍ لُعبت ومن لعبها، وآخر ورقةٍ طارت فعلاً فلا تطير ثانية، وما سُحب لمن يمسك الجوّال
+  var lastOverSound = null;   // نهاية الجولة/المباراة تُنادى مرّةً واحدة لا كل رسم — مفتاحها round+over+winner
   /* الورقة التي أحدثت الأثر تُعرض مع تنويهه — إن كانت آخرُ ما لُعب من نوعه */
   function effectCard(kinds) { return lastPlayed !== null && kinds.indexOf(S.card(lastPlayed).kind) >= 0 ? lastPlayed : null; }
   /* ما يُقال على هذه الشاشة، وبعين أي مقعد. في الأونلاين شاشةُ كلِّ جهازٍ
@@ -2656,6 +2848,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       if (e.t === 'flipped') { lastPlayed = e.card; lastPlayedBy = null; }   // المكشوفة لم يلعبها أحد
       else if (e.t === 'played') {
         lastPlayed = e.card; lastPlayedBy = e.seat; actedBy = e.seat;
+        SFX.play();
         /* خصمٌ آخر — حاسبٌ أو مقعدٌ بعيد — تُطلَب لأثره مهلةٌ قبل أن يُنادى، نفس
            مهلة الورقة الطائرة، فلا يُقال «فلان وقف دوره» قبل أن تُرى الورقة
            تحطّ (المالك: «سرعة التوجيه قبل استيعاب استقرار الورقة»). محصورةٌ
@@ -2669,6 +2862,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
            ‎drew‎ بعدده بلا أرقامه. والعدد وحده هو ما يُقال حينئذ. */
         if (e.seat === me && e.cards) lastDrawn = e.cards[e.cards.length - 1];
         if (e.seat === shownSeat && e.cards) revealIds = e.cards.slice();
+        SFX.draw(e.n);
         if (e.n > 1) {
           /* الوقوف والعقوبة اللذان يتبعان السحب يُقالان في تنويهه لا في تنويهٍ ثانٍ */
           var stops = false;
@@ -2680,9 +2874,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
           toast(nameOf(e.seat) + ' يسحب ' + fmt(e.n) + (stops ? ' ويقف دوره' : ''), true, false, effectCard(['draw2', 'wild4']), e.n);
         }
       }
-      else if (e.t === 'colourChosen') { actedBy = e.seat; toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour); }
+      else if (e.t === 'colourChosen') { actedBy = e.seat; SFX.colour(e.colour); toast(nameOf(e.seat) + ' اختار ' + CLR[e.colour], false, false, effectCard(['wild', 'wild4']), e.colour); }
       else if (e.t === 'skipped') {
         if (!quiet[i]) {
+          SFX.skip();
           toast(nameOf(e.seat) + ' وقف دوره', false, false, effectCard(['skip']));
           /* من غيرَه أوقف دوره فله تبويبٌ؛ ومن أوقف دوره بنفسه (أخذُ الكومة) لا مفاجأة فيه */
           if (actedBy !== null && actedBy !== e.seat) contPush(e.seat, 'قُفز دورك', nameOf(actedBy) + ' لعب ' + label(lastPlayed) + '، فوقف دورك.', lastPlayed);
@@ -2692,6 +2887,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         /* في اثنين يعمل العكس عمل «وقّف»، والوقوف يُقال هنا لا في تنويهٍ ثانٍ */
         var nx = events[i + 1] && events[i + 1].t === 'skipped' ? events[i + 1] : null;
         if (nx) quiet[i + 1] = true;
+        SFX.reverse();
         toast(nx ? 'انعكس الاتجاه — ' + nameOf(nx.seat) + ' يقف' : 'انعكس الاتجاه', false, false, effectCard(['reverse']));
         if (actedBy !== null) {
           if (nx) contPush(nx.seat, 'قُفز دورك', nameOf(actedBy) + ' عكس الاتجاه — فوقف دورك.', lastPlayed);
@@ -2699,10 +2895,10 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         }
       }
       else if (e.t === 'penalised') { if (!quiet[i]) toast(nameOf(e.seat) + ' أخذ الكومة: ' + fmt(e.cards)); }
-      else if (e.t === 'stockReshuffled') toast('أُعيد خلط المرميّ');
-      else if (e.t === 'handsSwapped') toast('تبادلت الأيدي', false, false, effectCard(['number']));
-      else if (e.t === 'handsRotated') toast('دارت الأيدي', false, false, effectCard(['number']));
-      else if (e.t === 'jumpedIn') { lastPlayed = e.card; toast(nameOf(e.seat) + ' قفز!', false, false, e.card); }
+      else if (e.t === 'stockReshuffled') { SFX.shuffle(); toast('أُعيد خلط المرميّ'); }
+      else if (e.t === 'handsSwapped') { SFX.swap(); toast('تبادلت الأيدي', false, false, effectCard(['number'])); }
+      else if (e.t === 'handsRotated') { SFX.rotate(); toast('دارت الأيدي', false, false, effectCard(['number'])); }
+      else if (e.t === 'jumpedIn') { lastPlayed = e.card; SFX.jumpin(); toast(nameOf(e.seat) + ' قفز!', false, false, e.card); }
       else if (e.t === 'turnPassed') lastDrawn = null;
     }
   }
@@ -2787,7 +2983,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
       return true;
     }
     var out = S.applyAction(G, seat, action, null);
-    if (out.error) { hintText = ERR[out.error] || out.error; toastHoldUntil = 0; toast(hintText); render(); return false; }
+    if (out.error) { hintText = ERR[out.error] || out.error; toastHoldUntil = 0; SFX.reject(); toast(hintText); render(); return false; }
     var wasSeat = shownSeat;
     G = out.state;
     tell(mine(out.events), myEye());
@@ -3030,6 +3226,17 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     el.handoff.hidden = true;
 
     if (v.phase === 'over') {
+      /* نداءٌ واحد: فوزٌ بالمباراة أكبر من فوز الجولة، وخسارةٌ خافتة لمن لم يفز —
+         مفتاحٌ يمنع تكرار النداء في كل رسمٍ تالٍ ما دامت الجولة نفسها معروضة */
+      var overKey = v.round + ':' + v.over + ':' + v.winner;
+      if (lastOverSound !== overKey) {
+        lastOverSound = overKey;
+        /* محلّياً الجهاز مشتركٌ بين الجميع، فلا معنى لتمييز «أنا» من «الآخر» —
+           تُقال هي فرحة الطاولة كلّها. وفي الحاسب والأونلاين «أنا» مقعدٌ ثابتٌ
+           بذاته، فيُقال فوزٌ لمن فاز وخسارةٌ خافتة لمن لم يفز. */
+        if (mode === 'local' || v.winner === me) { if (v.over) SFX.match(); else SFX.win(); }
+        else SFX.lose();
+      }
       setTurn(v.over ? 'انتهت المباراة' : 'انتهت الجولة');
       var sc = '';
       for (var i = 0; i < v.seats; i++) sc += '<span class="' + (i === v.winner ? 'w' : '') + '">' + esc(nameOf(i)) + ' ' + fmt(v.scores[i]) + '</span>';
@@ -3045,6 +3252,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
         if (out.error) return;
         G = out.state; sel = null; lastDrawn = null;
         flownPlay = null;                          // بطاقةٌ جديدة، ومعرّفات الورق تُعاد من الصفر كل جولة
+        lastOverSound = null;
+        SFX.deal(G.seats * 7);
         tell(mine(out.events), myEye());
         if (mode === 'online') hostPush(out.events);
         render();
@@ -3108,6 +3317,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var key = me + ':' + v.phase + ':' + v.round;
     if (actor === me && v.phase !== 'over' && key !== lastPrompt) {
       lastPrompt = key;
+      SFX.turn();
       if (v.phase === 'colour') toast('اختر اللون', false, true);
       else if (v.pending > 0) toast('عليك ' + fmt(v.pending) + ' — ردّ بـ' + KIND[v.pendingKind] + ' أو خذ', true, true, top, v.pending);
       else toast('دورك يا ' + nameOf(me), false, true);
@@ -3134,7 +3344,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     var b = e.target.closest('button.card');
     if (!b || b.disabled || !V) return;     /* الضيفُ لا يمسك G — رؤيتُه كل ما عنده */
     var id = +b.getAttribute('data-id'), me = mySeat === null ? actorOf(V) : mySeat;
-    if (sel !== id) { sel = id; hintText = ''; render(); return; }
+    if (sel !== id) { sel = id; hintText = ''; SFX.lift(); render(); return; }
     var a = { type: 'play', card: id };
     sel = null;
     var from = rect(b), html = cardHTML(id, {});
@@ -3145,6 +3355,8 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
   el.locknoteok.addEventListener('click', function () { lockCard = null; render(); });
   el.contnoteok.addEventListener('click', function () { contQ.shift(); render(); });
   el.privacy.addEventListener('click', function () { privacy = el.privacy.getAttribute('aria-checked') !== 'true'; setToggle(el.privacy, privacy); });
+  setToggle(el.sfxsw, sfxOn);                        // القيمة من localStorage تُرسم فور تحميل الصفحة
+  el.sfxsw.addEventListener('click', function () { sfxToggle(el.sfxsw.getAttribute('aria-checked') !== 'true'); setToggle(el.sfxsw, sfxOn); if (sfxOn) SFX.turn(); });
   window.addEventListener('resize', function () { if ((G || netView) && el.start.hidden) render(); });
 
   /* ---------- شاشة البداية ---------- */
@@ -3232,6 +3444,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     lockCard = null; lockTold = {};                    // تنويهُ القفل يُقال مرّةً في كل مباراة
     contQ = [];                                         // ونافذةُ «استمرار» تبدأ من غير طابور
     lastPlayed = null; lastPlayedBy = null; flownPlay = null;   // ومعرّفات الورق تبدأ من صفرٍ جديد كل مباراة
+    lastOverSound = null;                              // ونهاية الجولة تُنادى مرّةً واحدة، لا كل رسم
     mySeat = mode === 'local' ? null : 0;             // محلّياً يمرّ الجوّال، وإلا فمقعدُنا ثابت
     shownSeat = mySeat === null ? actorOf(G) : mySeat;
     netBusy = false;
@@ -3240,6 +3453,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     cpuPending = false;
     if (cpuTimer) { clearTimeout(cpuTimer); cpuTimer = null; }
     clearToasts();
+    SFX.deal(seats * 7);
     tell(mine(out.events), myEye());
     el.start.hidden = true;
     el.resume.hidden = false;
@@ -3538,7 +3752,7 @@ if (typeof module === 'object' && module.exports) module.exports = Shadda;
     if (m.t === 'no') {
       netBusy = false;
       hintText = ERR[m.e] || String(m.e || '');
-      toastHoldUntil = 0; toast(hintText); render();
+      toastHoldUntil = 0; SFX.reject(); toast(hintText); render();
       return;
     }
     if (m.t === 'v') {
